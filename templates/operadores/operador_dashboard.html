@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard de Operadores{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="mb-6">
+    <ol class="flex items-center space-x-2 text-sm text-gray-600">
+        <li><a href="{% url 'admin:index' %}" class="hover:text-blue-600">Inicio</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li class="text-gray-900 font-medium">Operadores</li>
+    </ol>
+</nav>
+
+<!-- Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Dashboard de Operadores</h1>
+    <p class="text-gray-600">Gestión y control del personal operativo</p>
+</div>
+
+<!-- Estadísticas Principales -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Total Operadores -->
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Total Operadores</p>
+                <p class="text-3xl font-bold text-gray-900">{{ total_operadores }}</p>
+            </div>
+            <div class="text-4xl">👥</div>
+        </div>
+    </div>
+
+    <!-- Operadores Activos -->
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Activos</p>
+                <p class="text-3xl font-bold text-green-600">{{ operadores_activos }}</p>
+            </div>
+            <div class="text-4xl">✅</div>
+        </div>
+    </div>
+
+    <!-- Operadores Inactivos -->
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Inactivos</p>
+                <p class="text-3xl font-bold text-red-600">{{ operadores_inactivos }}</p>
+            </div>
+            <div class="text-4xl">🔴</div>
+        </div>
+    </div>
+</div>
+
+<!-- Distribución por Tipo -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-xl font-bold text-gray-900 mb-6">Distribución por Tipo</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for tipo, cantidad in operadores_por_tipo.items %}
+        <div class="bg-gradient-to-br {% if tipo == 'LOCAL' %}from-blue-50 to-blue-100{% elif tipo == 'FORANEO' %}from-green-50 to-green-100{% else %}from-purple-50 to-purple-100{% endif %} rounded-lg p-6 border {% if tipo == 'LOCAL' %}border-blue-200{% elif tipo == 'FORANEO' %}border-green-200{% else %}border-purple-200{% endif %}">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold {% if tipo == 'LOCAL' %}text-blue-800{% elif tipo == 'FORANEO' %}text-green-800{% else %}text-purple-800{% endif %}">
+                    {% if tipo == 'LOCAL' %}Locales
+                    {% elif tipo == 'FORANEO' %}Foráneos
+                    {% else %}Esperanza{% endif %}
+                </h3>
+                <div class="text-2xl">
+                    {% if tipo == 'LOCAL' %}🏙️
+                    {% elif tipo == 'FORANEO' %}🛣️
+                    {% else %}⭐{% endif %}
+                </div>
+            </div>
+            <p class="text-4xl font-bold {% if tipo == 'LOCAL' %}text-blue-900{% elif tipo == 'FORANEO' %}text-green-900{% else %}text-purple-900{% endif %}">
+                {{ cantidad }}
+            </p>
+            <p class="text-sm {% if tipo == 'LOCAL' %}text-blue-600{% elif tipo == 'FORANEO' %}text-green-600{% else %}text-purple-600{% endif %} mt-2">
+                operadores
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Operadores Recientes -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-gray-900">Operadores Recientes</h2>
+        <a href="{% url 'operadores:list' %}" class="text-blue-600 hover:text-blue-700 font-medium">
+            Ver todos →
+        </a>
+    </div>
+    
+    {% if operadores_recientes %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Nombre
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tipo
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Unidad Asignada
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Contacto
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Estado
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for operador in operadores_recientes %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                {{ operador.nombre|slice:":1"|upper }}
+                            </div>
+                            <div class="ml-4">
+                                <div class="font-semibold text-gray-900">{{ operador.nombre }}</div>
+                                {% if operador.licencia %}
+                                <div class="text-xs text-gray-500">Lic: {{ operador.licencia }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if operador.tipo == 'LOCAL' %}bg-blue-100 text-blue-800
+                            {% elif operador.tipo == 'FORANEO' %}bg-green-100 text-green-800
+                            {% else %}bg-purple-100 text-purple-800{% endif %}">
+                            {{ operador.get_tipo_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-700">
+                        {% if operador.unidad_asignada %}
+                            <span class="font-medium">{{ operador.unidad_asignada.numero_economico }}</span>
+                        {% else %}
+                            <span class="text-gray-400 italic">Sin asignar</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if operador.telefono %}
+                            <div class="text-sm text-gray-700">📞 {{ operador.telefono }}</div>
+                        {% endif %}
+                        {% if operador.email %}
+                            <div class="text-xs text-gray-500">✉️ {{ operador.email }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if operador.activo %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                Activo
+                            </span>
+                        {% else %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                Inactivo
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'operadores:detail' operador.pk %}" class="text-blue-600 hover:text-blue-900">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12 text-gray-500">
+        <p class="text-4xl mb-4">👤</p>
+        <p>No hay operadores registrados</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Botones de Acción -->
+<div class="flex justify-center space-x-4">
+    <a href="{% url 'operadores:list' %}" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+        Ver Todos los Operadores
+    </a>
+    <a href="{% url 'operadores:create' %}" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium">
+        + Agregar Operador
+    </a>
+</div>
+
+{% endblock %}

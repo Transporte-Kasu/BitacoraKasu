@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Gestión de Transporte{% endblock %} - ProyectoKasu</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- CSS Base -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    
+    <!-- CSS Adicional -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Barra de navegación superior -->
+    <header class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <a href="{% url 'inicio' %}">
+                    <img src="{% get_media_prefix %}logoKasu.png" alt="Logo Kasu" class="logo">
+                </a>
+                <span class="brand-text">Sistema de Gestión de Transporte</span>
+            </div>
+            
+            <nav class="navbar-menu">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="{% url 'inicio' %}" class="nav-link">
+                            <span class="nav-icon">🏠</span>
+                            Inicio
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'operadores:dashboard' %}" class="nav-link">
+                            <span class="nav-icon">👤</span>
+                            Operadores
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'unidades:dashboard' %}" class="nav-link">
+                            <span class="nav-icon">🚛</span>
+                            Unidades
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'bitacoras:dashboard' %}" class="nav-link">
+                            <span class="nav-icon">📋</span>
+                            Bitácoras
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="navbar-user">
+                {% if user.is_authenticated %}
+                    <div class="user-info">
+                        <span class="user-icon">👨‍💼</span>
+                        <span class="user-name">{{ user.username }}</span>
+                    </div>
+                    <a href="{% url 'admin:logout' %}" class="btn btn-logout">Salir</a>
+                {% else %}
+                    <a href="{% url 'admin:login' %}" class="btn btn-primary">Iniciar sesión</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Mensajes del sistema -->
+    {% if messages %}
+    <div class="messages-container">
+        <div class="container">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <span class="alert-icon">
+                        {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✗{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %}
+                    </span>
+                    <span class="alert-message">{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <div class="container">
+            {% block breadcrumb %}{% endblock %}
+            
+            {% block content %}
+            <!-- El contenido de las páginas se insertará aquí -->
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>ProyectoKasu</h4>
+                    <p>Sistema de Gestión de Transporte</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Enlaces</h4>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'admin:index' %}">Panel de Administración</a></li>
+                        <li><a href="#">Documentación</a></li>
+                        <li><a href="#">Soporte</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contacto</h4>
+                    <p>Para soporte técnico, contacte al administrador del sistema.</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; {% now "Y" %} ProyectoKasu. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Base -->
+    <script src="{% static 'js/base.js' %}"></script>
+    
+    <!-- JavaScript Adicional -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

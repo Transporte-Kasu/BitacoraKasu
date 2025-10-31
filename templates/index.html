@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <h1 class="page-title" style="color: var(--primary-color);">
+        Bienvenido al Sistema de Gestión de Transporte
+    </h1>
+    <p style="color: #7F8C8D;">Panel de control y administración de operadores, unidades y bitácoras de viaje</p>
+</div>
+
+<!-- Tarjetas de resumen -->
+<div class="grid grid-3 mb-4">
+    <div class="card" style="border-top: 4px solid #E74C3C;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="color: #E74C3C; margin-bottom: 0.5rem;">Operadores</h3>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--primary-color); margin: 0;">
+                    {{ total_operadores|default:"0" }}
+                </p>
+                <p style="color: #7F8C8D; font-size: 0.9rem;">Activos en el sistema</p>
+            </div>
+            <div style="font-size: 3rem;">👤</div>
+        </div>
+        <a href="{% url 'operadores:dashboard' %}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            Ver operadores
+        </a>
+    </div>
+
+    <div class="card" style="border-top: 4px solid #F39C12;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="color: #F39C12; margin-bottom: 0.5rem;">Unidades</h3>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--primary-color); margin: 0;">
+                    {{ total_unidades|default:"0" }}
+                </p>
+                <p style="color: #7F8C8D; font-size: 0.9rem;">Vehículos en flota</p>
+            </div>
+            <div style="font-size: 3rem;">🚛</div>
+        </div>
+        <a href="{% url 'unidades:dashboard' %}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            Ver unidades
+        </a>
+    </div>
+
+    <div class="card" style="border-top: 4px solid #27AE60;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="color: #27AE60; margin-bottom: 0.5rem;">Bitácoras</h3>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--primary-color); margin: 0;">
+                    {{ total_bitacoras|default:"0" }}
+                </p>
+                <p style="color: #7F8C8D; font-size: 0.9rem;">Viajes registrados</p>
+            </div>
+            <div style="font-size: 3rem;">📋</div>
+        </div>
+        <a href="{% url 'bitacoras:dashboard' %}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            Ver bitácoras
+        </a>
+    </div>
+</div>
+
+<!-- Sección de acciones rápidas -->
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🚀 Acciones Rápidas</h3>
+        </div>
+        <div class="card-body">
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 1rem;">
+                    <a href="{% url 'bitacoras:create' %}" class="btn btn-success" style="width: 100%;">
+                        ➕ Registrar nuevo viaje
+                    </a>
+                </li>
+                <li style="margin-bottom: 1rem;">
+                    <a href="{% url 'operadores:create' %}" class="btn btn-success" style="width: 100%;">
+                        ➕ Agregar operador
+                    </a>
+                </li>
+                <li style="margin-bottom: 1rem;">
+                    <a href="{% url 'unidades:create' %}" class="btn btn-success" style="width: 100%;">
+                        ➕ Agregar unidad
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📊 Estadísticas del Sistema</h3>
+        </div>
+        <div class="card-body">
+            <div style="padding: 1rem 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--light-color);">
+                    <span style="color: #7F8C8D;">Viajes completados:</span>
+                    <strong style="color: var(--primary-color);">{{ viajes_completados|default:"0" }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--light-color);">
+                    <span style="color: #7F8C8D;">Viajes en curso:</span>
+                    <strong style="color: var(--accent-color);">{{ viajes_en_curso|default:"0" }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--light-color);">
+                    <span style="color: #7F8C8D;">Operadores activos:</span>
+                    <strong style="color: var(--success-color);">{{ operadores_activos|default:"0" }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #7F8C8D;">Unidades activas:</span>
+                    <strong style="color: var(--success-color);">{{ unidades_activas|default:"0" }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información adicional -->
+<div class="card mt-4" style="background: linear-gradient(135deg, var(--primary-color) 0%, #34495E 100%); color: white;">
+    <div style="display: flex; align-items: center; gap: 2rem;">
+        <div style="font-size: 4rem;">ℹ️</div>
+        <div>
+            <h3 style="color: var(--accent-color); margin-bottom: 0.5rem;">Sistema de Gestión de Transporte</h3>
+            <p style="margin: 0; line-height: 1.6;">
+                Este sistema le permite gestionar de manera eficiente todos los aspectos de su flota de transporte, 
+                incluyendo el seguimiento de operadores, unidades vehiculares y bitácoras de viaje con integración 
+                a Google Maps para cálculo automático de rutas y distancias.
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // JavaScript específico para la página de inicio
+    console.log('📊 Página de inicio cargada');
+</script>
+{% endblock %}

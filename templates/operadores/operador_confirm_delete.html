@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Operador{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Header con ícono de advertencia -->
+    <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+            <span class="text-4xl">⚠️</span>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Confirmar Eliminación</h1>
+        <p class="text-gray-600">Esta acción no se puede deshacer</p>
+    </div>
+
+    <!-- Información del operador a eliminar -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">
+            ¿Está seguro que desea eliminar este operador?
+        </h2>
+        
+        <div class="bg-gray-50 rounded-lg p-4 mb-4">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0 h-16 w-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-md">
+                    {{ object.nombre|slice:":1"|upper }}
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-600">Nombre</p>
+                    <p class="text-xl font-bold text-gray-900">{{ object.nombre }}</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Tipo</p>
+                    <p class="font-bold text-gray-900">{{ object.get_tipo_display }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Licencia</p>
+                    <p class="font-bold text-gray-900">{{ object.licencia|default:"N/A" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Teléfono</p>
+                    <p class="font-bold text-gray-900">{{ object.telefono|default:"N/A" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Unidad Asignada</p>
+                    <p class="font-bold text-gray-900">
+                        {% if object.unidad_asignada %}
+                            {{ object.unidad_asignada.numero_economico }}
+                        {% else %}
+                            Sin asignar
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <span class="text-2xl">ℹ️</span>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">Información importante</h3>
+                    <div class="mt-2 text-sm text-yellow-700">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Se eliminarán todos los registros asociados a este operador</li>
+                            <li>La unidad asignada quedará libre para otros operadores</li>
+                            <li>Las bitácoras de viaje asociadas se conservarán pero sin referencia al operador</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de confirmación -->
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        
+        <div class="flex justify-center space-x-4">
+            <a href="{% url 'operadores:list' %}" 
+               class="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
+                ← Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200 font-medium">
+                🗑️ Sí, Eliminar
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
