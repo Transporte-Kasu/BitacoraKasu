@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ operador.nombre }} - Detalle{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="mb-6">
+    <ol class="flex items-center space-x-2 text-sm text-gray-600">
+        <li><a href="{% url 'admin:index' %}" class="hover:text-blue-600">Inicio</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li><a href="{% url 'operadores:dashboard' %}" class="hover:text-blue-600">Operadores</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li><a href="{% url 'operadores:list' %}" class="hover:text-blue-600">Lista</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li class="text-gray-900 font-medium">{{ operador.nombre }}</li>
+    </ol>
+</nav>
+
+<!-- Header con Información del Operador -->
+<div class="bg-white rounded-lg shadow-md p-8 mb-6">
+    <div class="flex items-start justify-between mb-6">
+        <div class="flex items-center">
+            <!-- Avatar -->
+            <div class="flex-shrink-0 h-20 w-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-3xl shadow-lg mr-6">
+                {{ operador.nombre|slice:":1"|upper }}
+            </div>
+
+            <!-- Info Principal -->
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ operador.nombre }}</h1>
+                <div class="flex items-center space-x-4">
+                    <span class="px-4 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
+                        {% if operador.tipo == 'LOCAL' %}bg-blue-100 text-blue-800
+                        {% elif operador.tipo == 'FORANEO' %}bg-green-100 text-green-800
+                        {% else %}bg-purple-100 text-purple-800{% endif %}">
+                        {{ operador.get_tipo_display }}
+                    </span>
+
+                    {% if operador.activo %}
+                        <span class="px-4 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            ✓ Activo
+                        </span>
+                    {% else %}
+                        <span class="px-4 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            ✗ Inactivo
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex space-x-3">
+            <a href="{% url 'operadores:update' operador.pk %}" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-200 font-medium inline-flex items-center">
+                ✏️ Editar
+            </a>
+            <a href="{% url 'operadores:delete' operador.pk %}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200 font-medium inline-flex items-center">
+                🗑️ Eliminar
+            </a>
+            <a href="{% url 'operadores:list' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200 font-medium inline-flex items-center">
+                ← Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas Rápidas -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <!-- Viajes Completados -->
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Viajes Completados</p>
+                <p class="text-3xl font-bold text-gray-900">{{ viajes_completados }}</p>
+            </div>
+            <div class="text-4xl">🚚</div>
+        </div>
+    </div>
+
+    <!-- Rendimiento Promedio -->
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Rendimiento Promedio</p>
+                <p class="text-3xl font-bold text-green-600">{{ rendimiento_promedio }}</p>
+                <p class="text-xs text-gray-500 mt-1">km/litro</p>
+            </div>
+            <div class="text-4xl">⛽</div>
+        </div>
+    </div>
+
+    <!-- Unidad Asignada -->
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Unidad Asignada</p>
+                {% if operador.unidad_asignada %}
+                    <a href="{% url 'unidades:detail' operador.unidad_asignada.pk %}" class="text-2xl font-bold text-purple-600 hover:text-purple-800">
+                        {{ operador.unidad_asignada.numero_economico }}
+                    </a>
+                {% else %}
+                    <p class="text-xl font-bold text-gray-400">Sin asignar</p>
+                {% endif %}
+            </div>
+            <div class="text-4xl">🚛</div>
+        </div>
+    </div>
+</div>
+
+<!-- Información Detallada -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Datos Personales -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <span class="text-2xl mr-3">👤</span>
+            Datos Personales
+        </h2>
+
+        <div class="space-y-4">
+            <div class="flex border-b border-gray-200 pb-3">
+                <span class="text-gray-600 font-medium w-40">Nombre Completo:</span>
+                <span class="text-gray-900 font-semibold">{{ operador.nombre }}</span>
+            </div>
+
+            <div class="flex border-b border-gray-200 pb-3">
+                <span class="text-gray-600 font-medium w-40">Tipo:</span>
+                <span class="text-gray-900">{{ operador.get_tipo_display }}</span>
+            </div>
+
+            {% if operador.licencia %}
+            <div class="flex border-b border-gray-200 pb-3">
+                <span class="text-gray-600 font-medium w-40">Licencia:</span>
+                <span class="text-gray-900 font-mono">{{ operador.licencia }}</span>
+            </div>
+            {% endif %}
+
+            <div class="flex border-b border-gray-200 pb-3">
+                <span class="text-gray-600 font-medium w-40">Fecha de Ingreso:</span>
+                <span class="text-gray-900">{{ operador.fecha_ingreso|date:"d/m/Y" }}</span>
+            </div>
+
+            {% if not operador.activo and operador.fecha_baja %}
+            <div class="flex border-b border-gray-200 pb-3">
+                <span class="text-gray-600 font-medium w-40">Fecha de Baja:</span>
+                <span class="text-red-600 font-semibold">{{ operador.fecha_baja|date:"d/m/Y" }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información de Contacto -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <span class="text-2xl mr-3">📞</span>
+            Información de Contacto
+        </h2>
+
+        <div class="space-y-4">
+            {% if operador.telefono %}
+            <div class="flex items-center border-b border-gray-200 pb-3">
+                <span class="text-2xl mr-3">📱</span>
+                <div>
+                    <span class="text-gray-600 text-sm block">Teléfono</span>
+                    <a href="tel:{{ operador.telefono }}" class="text-blue-600 hover:text-blue-800 font-semibold text-lg">
+                        {{ operador.telefono }}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if operador.email %}
+            <div class="flex items-center border-b border-gray-200 pb-3">
+                <span class="text-2xl mr-3">✉️</span>
+                <div>
+                    <span class="text-gray-600 text-sm block">Email</span>
+                    <a href="mailto:{{ operador.email }}" class="text-blue-600 hover:text-blue-800 font-semibold break-all">
+                        {{ operador.email }}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not operador.telefono and not operador.email %}
+            <div class="text-center py-8 text-gray-400">
+                <p class="text-4xl mb-2">📭</p>
+                <p class="text-sm">Sin información de contacto registrada</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Notas -->
+{% if operador.notas %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+        <span class="text-2xl mr-3">📝</span>
+        Notas Adicionales
+    </h2>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+        <p class="text-gray-700 whitespace-pre-wrap">{{ operador.notas }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Últimos Viajes -->
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+        <span class="text-2xl mr-3">🗺️</span>
+        Últimos Viajes Realizados
+    </h2>
+
+    {% if ultimos_viajes %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fecha Salida
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Unidad
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Origen → Destino
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Duración
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Estado
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for viaje in ultimos_viajes %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 font-medium">
+                            {{ viaje.fecha_salida|date:"d/m/Y" }}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            {{ viaje.fecha_salida|date:"H:i" }} hrs
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if viaje.unidad %}
+                            <a href="{% url 'unidades:detail' viaje.unidad.pk %}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                🚛 {{ viaje.unidad.numero_economico }}
+                            </a>
+                        {% else %}
+                            <span class="text-gray-400">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm">
+                            <div class="text-gray-900 font-medium">{{ viaje.origen|default:"Sin especificar" }}</div>
+                            <div class="text-gray-500 text-xs">↓</div>
+                            <div class="text-gray-900 font-medium">{{ viaje.destino|default:"Sin especificar" }}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if viaje.fecha_llegada %}
+                            <span class="text-sm text-gray-900">
+                                {{ viaje.horas_viaje|floatformat:1 }} hrs
+                            </span>
+                        {% else %}
+                            <span class="text-gray-400 text-sm italic">En curso</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if viaje.fecha_llegada %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                Completado
+                            </span>
+                        {% else %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                En curso
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'bitacora:detail' viaje.pk %}" class="text-blue-600 hover:text-blue-900">
+                            Ver detalles →
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12 text-gray-400">
+        <p class="text-5xl mb-4">🚫</p>
+        <p class="text-lg font-medium mb-2">Sin viajes registrados</p>
+        <p class="text-sm">Este operador aún no ha realizado ningún viaje</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Información de Auditoría -->
+<div class="mt-6 text-center text-sm text-gray-500">
+    <p>Registro creado: {{ operador.created_at|date:"d/m/Y H:i" }} | Última actualización: {{ operador.updated_at|date:"d/m/Y H:i" }}</p>
+</div>
+
+{% endblock %}
