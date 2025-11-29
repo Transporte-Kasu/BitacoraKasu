@@ -123,15 +123,67 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [Path.joinpath(BASE_DIR, 'static'), ]
 
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Media files storage - DigitalOcean Spaces
+# Check if Spaces credentials are available
+SPACES_KEY = env.str('SPACES_KEY', default='')
+SPACES_SECRET = env.str('SPACES_SECRET', default='')
+SPACES_BUCKET = env.str('SPACES_BUCKET', default='')
+
+# Only use Spaces if credentials are configured
+USE_SPACES = bool(SPACES_KEY and SPACES_SECRET and SPACES_BUCKET)
+
+if USE_SPACES:
+    # DigitalOcean Spaces settings
+    AWS_ACCESS_KEY_ID = SPACES_KEY
+    AWS_SECRET_ACCESS_KEY = SPACES_SECRET
+    AWS_STORAGE_BUCKET_NAME = SPACES_BUCKET
+    AWS_S3_ENDPOINT_URL = env.str('SPACES_ENDPOINT', default='https://sfo3.digitaloceanspaces.com')
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+    AWS_LOCATION = 'media'
+    AWS_DEFAULT_ACL = 'public-read'
+
+    # Extraer región del endpoint
+    region = AWS_S3_ENDPOINT_URL.split('//')[1].split('.')[0]  # sfo3
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.{region}.digitaloceanspaces.com'
+
+    # Media files configuration
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+
+    print(f"Using Spaces: {AWS_STORAGE_BUCKET_NAME} at {MEDIA_URL}")
+else:
+    # Local storage (fallback)
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+    print("Using local media storage (Spaces credentials not configured)")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configuración de email (ejemplo con Gmail)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey'  # Cambiar
+EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD')  # Usar App Password de Gmail
+DEFAULT_FROM_EMAIL = 'bitacora@transportekasu.com.mx'
+
+# Celery deshabilitado. Los reportes periódicos se ejecutan vía GitHub Actions.
+# CELERY_BROKER_URL = ''
+# CELERY_RESULT_BACKEND = ''
+
+# Seguridad
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['https://*.ondigitalocean.app'])
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

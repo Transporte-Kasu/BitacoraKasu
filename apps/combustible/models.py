@@ -4,6 +4,8 @@ from django.utils import timezone
 from apps.unidades.models import Unidad
 from decimal import Decimal
 
+from config.storage_backends import MediaStorage
+
 
 class Despachador(models.Model):
     """Modelo para los despachadores de combustible"""
@@ -108,24 +110,29 @@ class CargaCombustible(models.Model):
 
     # Fotos del proceso
     foto_numero_economico = models.ImageField(
+        storage=MediaStorage(),
         upload_to='combustible/numero_economico/%Y/%m/',
         verbose_name="Foto número económico"
     )
     foto_tablero = models.ImageField(
+        storage=MediaStorage(),
         upload_to='combustible/tablero/%Y/%m/',
         verbose_name="Foto del tablero"
     )
     foto_candado_anterior = models.ImageField(
+        storage=MediaStorage(),
         upload_to='combustible/candado_anterior/%Y/%m/',
         verbose_name="Foto candado anterior"
     )
     foto_candado_nuevo = models.ImageField(
+        storage=MediaStorage(),
         upload_to='combustible/candado_nuevo/%Y/%m/',
         null=True,
         blank=True,
         verbose_name="Foto candado nuevo"
     )
     foto_ticket = models.ImageField(
+        storage=MediaStorage(),
         upload_to='combustible/tickets/%Y/%m/',
         null=True,
         blank=True,
