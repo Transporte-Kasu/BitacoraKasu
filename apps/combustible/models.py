@@ -1,0 +1,195 @@
+from django.db import models
+from django.core.validators import MinValueValidator
+from django.utils import timezone
+from apps.unidades.models import Unidad
+from decimal import Decimal
+
+
+class Despachador(models.Model):
+    """Modelo para los despachadores de combustible"""
+    nombre = models.CharField(max_length=100, verbose_name="Nombre completo")
+    telefono = models.CharField(max_length=15, blank=True, verbose_name="Teléfono")
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Despachador"
+        verbose_name_plural = "Despachadores"
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
+class CargaCombustible(models.Model):
+    """Modelo para el registro de carga de combustible"""
+
+    NIVEL_COMBUSTIBLE_CHOICES = [
+        ('VACIO', 'Vacío'),
+        ('CUARTO', '1/4'),
+        ('MEDIO', '1/2'),
+        ('TRES_CUARTOS', '3/4'),
+    ]
+
+    ESTADO_CANDADO_CHOICES = [
+        ('NORMAL', 'Normal'),
+        ('ALTERADO', 'Alterado'),
+        ('VIOLADO', 'Violado'),
+        ('SIN_CANDADO', 'Sin candado'),
+    ]
+
+    ESTADO_CHOICES = [
+        ('INICIADO', 'Iniciado'),
+        ('EN_PROCESO', 'En proceso de carga'),
+        ('COMPLETADO', 'Completado'),
+        ('CANCELADO', 'Cancelado'),
+    ]
+
+    # Relaciones
+    despachador = models.ForeignKey(
+        Despachador,
+        on_delete=models.PROTECT,
+        related_name='cargas',
+        verbose_name="Despachador"
+    )
+    unidad = models.ForeignKey(
+        Unidad,
+        on_delete=models.PROTECT,
+        related_name='cargas_combustible',
+        verbose_name="Unidad"
+    )
+
+    # Datos de la carga
+    cantidad_litros = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Cantidad de litros cargados"
+    )
+
+    # Datos del tablero (Paso 2)
+    kilometraje_actual = models.IntegerField(
+        validators=[MinValueValidator(0)],
+        verbose_name="Kilometraje actual"
+    )
+    nivel_combustible_inicial = models.CharField(
+        max_length=20,
+        choices=NIVEL_COMBUSTIBLE_CHOICES,
+        verbose_name="Nivel de combustible inicial"
+    )
+
+    # Estado del candado anterior (Paso 3)
+    estado_candado_anterior = models.CharField(
+        max_length=20,
+        choices=ESTADO_CANDADO_CHOICES,
+        verbose_name="Estado del candado anterior"
+    )
+    observaciones_candado = models.TextField(
+        blank=True,
+        verbose_name="Observaciones del candado"
+    )
+
+    # Tiempos de carga (Paso 4)
+    fecha_hora_inicio = models.DateTimeField(
+        verbose_name="Fecha y hora de inicio"
+    )
+    fecha_hora_fin = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fecha y hora de finalización"
+    )
+    tiempo_carga_minutos = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Tiempo de carga (minutos)"
+    )
+
+    # Fotos del proceso
+    foto_numero_economico = models.ImageField(
+        upload_to='combustible/numero_economico/%Y/%m/',
+        verbose_name="Foto número económico"
+    )
+    foto_tablero = models.ImageField(
+        upload_to='combustible/tablero/%Y/%m/',
+        verbose_name="Foto del tablero"
+    )
+    foto_candado_anterior = models.ImageField(
+        upload_to='combustible/candado_anterior/%Y/%m/',
+        verbose_name="Foto candado anterior"
+    )
+    foto_candado_nuevo = models.ImageField(
+        upload_to='combustible/candado_nuevo/%Y/%m/',
+        null=True,
+        blank=True,
+        verbose_name="Foto candado nuevo"
+    )
+    foto_ticket = models.ImageField(
+        upload_to='combustible/tickets/%Y/%m/',
+        null=True,
+        blank=True,
+        verbose_name="Foto del ticket o medidor"
+    )
+
+    # Estado y control
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='INICIADO',
+        verbose_name="Estado de la carga"
+    )
+
+    # Metadatos
+    notas = models.TextField(blank=True, verbose_name="Notas adicionales")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Carga de Combustible"
+        verbose_name_plural = "Cargas de Combustible"
+        ordering = ['-fecha_hora_inicio']
+        indexes = [
+            models.Index(fields=['unidad', '-fecha_hora_inicio']),
+            models.Index(fields=['despachador', '-fecha_hora_inicio']),
+            models.Index(fields=['estado', '-fecha_hora_inicio']),
+        ]
+
+    def __str__(self):
+        return f"Carga {self.id} - {self.unidad.numero_economico} - {self.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M')}"
+
+    def save(self, *args, **kwargs):
+        # Calcular tiempo de carga si ambas fechas están presentes
+        if self.fecha_hora_inicio and self.fecha_hora_fin:
+            diferencia = self.fecha_hora_fin - self.fecha_hora_inicio
+            self.tiempo_carga_minutos = int(diferencia.total_seconds() / 60)
+
+        # Actualizar kilometraje de la unidad si la carga está completada
+        if self.estado == 'COMPLETADO' and self.unidad:
+            self.unidad.kilometraje_actual = self.kilometraje_actual
+            self.unidad.save(update_fields=['kilometraje_actual'])
+
+        super().save(*args, **kwargs)
+
+    def iniciar_carga(self):
+        """Marca el inicio del proceso de carga"""
+        self.fecha_hora_inicio = timezone.now()
+        self.estado = 'EN_PROCESO'
+        self.save()
+
+    def finalizar_carga(self):
+        """Marca la finalización del proceso de carga"""
+        self.fecha_hora_fin = timezone.now()
+        self.estado = 'COMPLETADO'
+        self.save()
+
+    def calcular_rendimiento(self):
+        """Calcula el rendimiento aproximado basado en la carga"""
+        if self.cantidad_litros > 0 and self.unidad:
+            # Estimación simple, puede mejorarse con datos históricos
+            return round(float(self.unidad.rendimiento_esperado), 2)
+        return 0
+
+    def tiene_alertas(self):
+        """Verifica si hay alertas en el candado"""
+        return self.estado_candado_anterior in ['ALTERADO', 'VIOLADO', 'SIN_CANDADO']

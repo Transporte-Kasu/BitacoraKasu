@@ -4,6 +4,7 @@ Ubicación: apps/unidades/management/commands/load_unidades.py
 """
 
 import csv
+import re
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from apps.unidades.models import Unidad
@@ -25,6 +26,15 @@ class Command(BaseCommand):
             action='store_true',
             help='Eliminar todas las unidades existentes antes de cargar'
         )
+
+    def clean_number(self, value):
+        """Limpia números que pueden tener comas como separadores de miles"""
+        if not value:
+            return "0"
+
+        # Remover espacios y comas
+        cleaned = str(value).strip().replace(',', '')
+        return cleaned
 
     def handle(self, *args, **options):
         csv_file = options['csv_file']
@@ -52,31 +62,62 @@ class Command(BaseCommand):
                 with transaction.atomic():
                     for row_num, row in enumerate(csv_reader, start=2):
                         try:
-                            # Limpiar espacios en blanco
-                            numero_economico = row['numero_economico'].strip()
-                            placa = row['placa'].strip()
-                            tipo = row['tipo'].strip()
+                            # Limpiar espacios en blanco de todos los campos
+                            cleaned_row = {k: v.strip() if v else '' for k, v in row.items()}
+
+                            numero_economico = cleaned_row['numero_economico']
+                            placa = cleaned_row['placa']
+                            tipo = cleaned_row['tipo']
+
+                            # Validar campos requeridos
+                            if not numero_economico:
+                                errores.append(f"Fila {row_num}: numero_economico vacío")
+                                continue
+
+                            if not placa:
+                                errores.append(f"Fila {row_num}: placa vacía para {numero_economico}")
+                                continue
 
                             # Validar tipo
                             tipos_validos = dict(Unidad.TIPO_CHOICES)
                             if tipo not in tipos_validos:
                                 errores.append(
-                                    f"Fila {row_num}: Tipo '{tipo}' no válido para {numero_economico}"
+                                    f"Fila {row_num}: Tipo '{tipo}' no válido para {numero_economico}. Válidos: {list(tipos_validos.keys())}"
                                 )
                                 continue
 
                             # Procesar campos opcionales
-                            marca = row.get('marca', '').strip()
-                            modelo = row.get('modelo', '').strip()
+                            marca = cleaned_row.get('marca', '')
+                            modelo = cleaned_row.get('modelo', '')
 
                             # Año por defecto si está vacío
-                            año_str = row.get('año', '').strip()
-                            año = int(año_str) if año_str else datetime.now().year
+                            año_str = cleaned_row.get('año', '')
+                            try:
+                                año = int(año_str) if año_str else datetime.now().year
+                            except ValueError:
+                                año = datetime.now().year
+                                self.stdout.write(
+                                    self.style.WARNING(f'Fila {row_num}: Año inválido "{año_str}", usando {año}')
+                                )
 
-                            # Convertir campos numéricos
-                            capacidad_combustible = Decimal(row['capacidad_combustible'].strip())
-                            rendimiento_esperado = Decimal(row['rendimiento_esperado'].strip())
-                            kilometraje_actual = int(row['kilometraje_actual'].strip())
+                            # Convertir campos numéricos con limpieza
+                            try:
+                                capacidad_combustible = Decimal(self.clean_number(cleaned_row['capacidad_combustible']))
+                            except (ValueError, KeyError) as e:
+                                errores.append(f"Fila {row_num}: capacidad_combustible inválida para {numero_economico}: {cleaned_row['capacidad_combustible']}")
+                                continue
+
+                            try:
+                                rendimiento_esperado = Decimal(self.clean_number(cleaned_row['rendimiento_esperado']))
+                            except (ValueError, KeyError) as e:
+                                errores.append(f"Fila {row_num}: rendimiento_esperado inválido para {numero_economico}: {cleaned_row['rendimiento_esperado']}")
+                                continue
+
+                            try:
+                                kilometraje_actual = int(self.clean_number(cleaned_row['kilometraje_actual']))
+                            except (ValueError, KeyError) as e:
+                                errores.append(f"Fila {row_num}: kilometraje_actual inválido para {numero_economico}: {cleaned_row['kilometraje_actual']}")
+                                continue
 
                             # Crear o actualizar unidad
                             unidad, created = Unidad.objects.update_or_create(

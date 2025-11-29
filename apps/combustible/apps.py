@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class CombustibleConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.combustible'
+    verbose_name = 'Gestión de Carga Combustible'

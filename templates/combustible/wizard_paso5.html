@@ -1,0 +1,118 @@
+<!-- wizard_paso5.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Paso 5: Candado Nuevo{% endblock %}
+
+{% block extra_css %}
+<style>
+    body { background: #f3f4f6; }
+    .preview-image { max-width: 100%; height: auto; border-radius: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen pb-20">
+    <div class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="px-4 py-4">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-lg font-semibold text-gray-800">Paso {{ paso }} de {{ total_pasos }}</h2>
+                <span class="text-sm text-gray-600">{{ progreso }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300 progress-bar"
+                     data-progress="{{ progreso }}"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-4 py-6">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">Candado Nuevo</h1>
+                <p class="text-gray-600">Instala y fotografía el nuevo candado de seguridad</p>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" id="paso5Form">
+                {% csrf_token %}
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Fotografía del candado nuevo instalado</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+                        <div id="preview-container" class="hidden mb-4">
+                            <img id="image-preview" class="preview-image mx-auto" alt="Vista previa">
+                        </div>
+                        <label for="id_foto_candado_nuevo" class="cursor-pointer">
+                            <div class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span id="btn-text">Tomar Foto del Candado Nuevo</span>
+                            </div>
+                        </label>
+                        {{ form.foto_candado_nuevo }}
+                        <p class="text-xs text-gray-500 mt-2">El candado debe estar correctamente instalado</p>
+                    </div>
+                    {% if form.foto_candado_nuevo.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.foto_candado_nuevo.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex gap-3">
+                    <a href="{% url 'combustible:wizard' paso=4 %}"
+                       class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-center font-medium">
+                        ← Atrás
+                    </a>
+                    <button type="submit" id="submitBtn" disabled
+                            class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:bg-gray-300 disabled:cursor-not-allowed">
+                        Continuar →
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h3 class="font-semibold text-green-900 mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                Instrucciones
+            </h3>
+            <ul class="text-sm text-green-800 space-y-1">
+                <li>• Instala el nuevo candado correctamente</li>
+                <li>• Verifica que esté bien cerrado</li>
+                <li>• Fotografía el candado instalado</li>
+                <li>• Asegura que el número sea visible</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('id_foto_candado_nuevo');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const btnText = document.getElementById('btn-text');
+    const submitBtn = document.getElementById('submitBtn');
+
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                previewContainer.classList.remove('hidden');
+                btnText.textContent = 'Cambiar Foto';
+                submitBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}

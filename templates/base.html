@@ -5,16 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sistema de Gestión de Transporte{% endblock %} - ProyectoKasu</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
-    
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- CSS Base -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
-    
+
     <!-- CSS Adicional -->
     {% block extra_css %}{% endblock %}
 </head>
@@ -28,7 +28,7 @@
                 </a>
                 <span class="brand-text">Sistema de Gestión de Transporte</span>
             </div>
-            
+
             <nav class="navbar-menu">
                 <ul class="nav-list">
                     <li class="nav-item">
@@ -50,6 +50,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="{% url 'combustible:dashboard' %}" class="nav-link">
+                            <span class="nav-icon">⛽</span>
+                            Combustible
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{% url 'bitacoras:dashboard' %}" class="nav-link">
                             <span class="nav-icon">📋</span>
                             Bitácoras
@@ -57,7 +63,7 @@
                     </li>
                 </ul>
             </nav>
-            
+
             <div class="navbar-user">
                 {% if user.is_authenticated %}
                     <div class="user-info">
@@ -92,7 +98,7 @@
     <main class="main-content">
         <div class="container">
             {% block breadcrumb %}{% endblock %}
-            
+
             {% block content %}
             <!-- El contenido de las páginas se insertará aquí -->
             {% endblock %}
@@ -128,7 +134,7 @@
 
     <!-- JavaScript Base -->
     <script src="{% static 'js/base.js' %}"></script>
-    
+
     <!-- JavaScript Adicional -->
     {% block extra_js %}{% endblock %}
 </body>

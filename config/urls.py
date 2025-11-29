@@ -27,6 +27,7 @@ urlpatterns = [
     path('unidades/', include('apps.unidades.urls'),name='dashboard_unidades'),
     path('bitacoras/', include('apps.bitacoras.urls'), name='dashboard_bitacoras'),
     path('operadores/', include('apps.operadores.urls'), name='dashboard_operadores'),
+    path('combustible/', include('apps.combustible.urls'), name='dashboard_combustible'),
 ]
 
 # Servir archivos media en desarrollo

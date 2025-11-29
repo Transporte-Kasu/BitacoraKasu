@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Paso 2: Tablero y Kilometraje{% endblock %}
+
+{% block extra_css %}
+<style>
+    body { background: #f3f4f6; }
+    .preview-image { max-width: 100%; height: auto; border-radius: 0.5rem; }
+    .radio-card { transition: all 0.2s; }
+    .radio-card input:checked + label {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen pb-20">
+    <!-- Barra de progreso -->
+    <div class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="px-4 py-4">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-lg font-semibold text-gray-800">Paso {{ paso }} de {{ total_pasos }}</h2>
+                <span class="text-sm text-gray-600">{{ progreso }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300 progress-bar"
+                     data-progress="{{ progreso }}"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="px-4 py-6">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">Tablero de Instrumentos</h1>
+                <p class="text-gray-600">Registra el kilometraje y nivel de combustible</p>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" id="paso2Form">
+                {% csrf_token %}
+
+                <!-- Foto del tablero -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Fotografía del tablero</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+                        <div id="preview-container" class="hidden mb-4">
+                            <img id="image-preview" class="preview-image mx-auto" alt="Vista previa">
+                        </div>
+                        <label for="id_foto_tablero" class="cursor-pointer">
+                            <div class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span id="btn-text">Tomar Foto del Tablero</span>
+                            </div>
+                        </label>
+                        {{ form.foto_tablero }}
+                        <p class="text-xs text-gray-500 mt-2">Debe verse el kilometraje y el medidor de combustible</p>
+                    </div>
+                    {% if form.foto_tablero.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.foto_tablero.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Kilometraje -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                            </svg>
+                            Kilometraje Actual
+                        </span>
+                    </label>
+                    {{ form.kilometraje_actual }}
+                    {% if form.kilometraje_actual.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.kilometraje_actual.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Nivel de combustible -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+                            </svg>
+                            Nivel de Combustible Inicial
+                        </span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for value, label in form.nivel_combustible_inicial.field.choices %}
+                        <div class="radio-card">
+                            <input type="radio" id="nivel_{{ value }}" name="nivel_combustible_inicial" value="{{ value }}"
+                                   class="hidden" {% if form.nivel_combustible_inicial.value == value %}checked{% endif %}>
+                            <label for="nivel_{{ value }}"
+                                   class="block p-4 border-2 border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-400 font-medium">
+                                {{ label }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if form.nivel_combustible_inicial.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.nivel_combustible_inicial.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="flex gap-3">
+                    <a href="{% url 'combustible:wizard' paso=1 %}"
+                       class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-center font-medium">
+                        ← Atrás
+                    </a>
+                    <button type="submit" id="submitBtn" disabled
+                            class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:bg-gray-300 disabled:cursor-not-allowed">
+                        Continuar →
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Instrucciones -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h3 class="font-semibold text-green-900 mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                Instrucciones
+            </h3>
+            <ul class="text-sm text-green-800 space-y-1">
+                <li>• La foto debe mostrar claramente el tablero</li>
+                <li>• Verifica que el kilometraje sea visible</li>
+                <li>• Ingresa el kilometraje exacto que muestra</li>
+                <li>• Selecciona el nivel aproximado de combustible</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const fileInput = document.getElementById('id_foto_tablero');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const btnText = document.getElementById('btn-text');
+    const submitBtn = document.getElementById('submitBtn');
+    const kilometrajeInput = document.getElementById('id_kilometraje_actual');
+    const nivelInputs = document.querySelectorAll('input[name="nivel_combustible_inicial"]');
+
+    function checkFormValid() {
+        const hasFile = fileInput.files.length > 0;
+        const hasKilometraje = kilometrajeInput.value !== '';
+        const hasNivel = Array.from(nivelInputs).some(input => input.checked);
+        submitBtn.disabled = !(hasFile && hasKilometraje && hasNivel);
+    }
+
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                previewContainer.classList.remove('hidden');
+                btnText.textContent = 'Cambiar Foto';
+            };
+            reader.readAsDataURL(file);
+        }
+        checkFormValid();
+    });
+
+    kilometrajeInput.addEventListener('input', checkFormValid);
+    nivelInputs.forEach(input => input.addEventListener('change', checkFormValid));
+
+    checkFormValid();
+</script>
+{% endblock %}
