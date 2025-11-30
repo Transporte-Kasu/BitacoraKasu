@@ -76,7 +76,7 @@ a:hover {
     box-shadow: var(--shadow);
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 1002;
 }
 
 .navbar-container {
@@ -564,11 +564,16 @@ table td {
         display: flex;
     }
     
+    /* Ocultar elementos del navbar en modo desktop */
+    .navbar-container {
+        position: relative;
+    }
+    
     /* Menú oculto por defecto en móvil */
     .navbar-menu {
         position: fixed;
         top: 0;
-        right: -100%;
+        right: 0;
         width: 280px;
         height: 100vh;
         background-color: var(--primary-color);
@@ -577,14 +582,15 @@ table td {
         padding: 5rem 1.5rem 2rem;
         gap: 2rem;
         margin: 0;
-        transition: right 0.3s ease;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
         box-shadow: -4px 0 10px rgba(0, 0, 0, 0.2);
         overflow-y: auto;
         z-index: 1000;
     }
     
     .navbar-menu.active {
-        right: 0;
+        transform: translateX(0);
     }
     
     .nav-list {
@@ -649,10 +655,5 @@ table td {
     
     .navbar-menu {
         width: 100%;
-        right: -100%;
-    }
-    
-    .navbar-menu.active {
-        right: 0;
     }
 }
