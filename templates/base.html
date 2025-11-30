@@ -19,9 +19,12 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Overlay para menú móvil -->
+    <div class="navbar-overlay" id="navbarOverlay"></div>
+
     <!-- Barra de navegación superior -->
     <header class="navbar">
-        <div class="container">
+        <div class="navbar-container">
             <div class="navbar-brand">
                 <a href="{% url 'inicio' %}">
                     <img src="{% get_media_prefix %}logoKasu.png" alt="Logo Kasu" class="logo">
@@ -29,52 +32,59 @@
                 <span class="brand-text">Sistema de Gestión de Transporte</span>
             </div>
 
-            <nav class="navbar-menu">
+            <!-- Botón hamburguesa para móvil -->
+            <button class="navbar-toggle" id="navbarToggle" aria-label="Abrir menú">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+
+            <nav class="navbar-menu" id="navbarMenu">
                 <ul class="nav-list">
                     <li class="nav-item">
                         <a href="{% url 'inicio' %}" class="nav-link">
                             <span class="nav-icon">🏠</span>
-                            Inicio
+                            <span>Inicio</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'operadores:dashboard' %}" class="nav-link">
                             <span class="nav-icon">👤</span>
-                            Operadores
+                            <span>Operadores</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'unidades:dashboard' %}" class="nav-link">
                             <span class="nav-icon">🚛</span>
-                            Unidades
+                            <span>Unidades</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'combustible:dashboard' %}" class="nav-link">
                             <span class="nav-icon">⛽</span>
-                            Combustible
+                            <span>Combustible</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'bitacoras:dashboard' %}" class="nav-link">
                             <span class="nav-icon">📋</span>
-                            Bitácoras
+                            <span>Bitácoras</span>
                         </a>
                     </li>
                 </ul>
-            </nav>
 
-            <div class="navbar-user">
-                {% if user.is_authenticated %}
-                    <div class="user-info">
-                        <span class="user-icon">👨‍💼</span>
-                        <span class="user-name">{{ user.username }}</span>
-                    </div>
-                    <a href="{% url 'admin:logout' %}" class="btn btn-logout">Salir</a>
-                {% else %}
-                    <a href="{% url 'admin:login' %}" class="btn btn-primary">Iniciar sesión</a>
-                {% endif %}
-            </div>
+                <div class="navbar-user">
+                    {% if user.is_authenticated %}
+                        <div class="user-info">
+                            <span class="user-icon">👨‍💼</span>
+                            <span class="user-name">{{ user.username }}</span>
+                        </div>
+                        <a href="{% url 'admin:logout' %}" class="btn btn-logout">Salir</a>
+                    {% else %}
+                        <a href="{% url 'admin:login' %}" class="btn btn-primary">Iniciar sesión</a>
+                    {% endif %}
+                </div>
+            </nav>
         </div>
     </header>
 
