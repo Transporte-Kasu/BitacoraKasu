@@ -18,7 +18,7 @@
     <!-- CSS Adicional -->
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <!-- Overlay para menú móvil -->
     <div class="navbar-overlay" id="navbarOverlay"></div>
 

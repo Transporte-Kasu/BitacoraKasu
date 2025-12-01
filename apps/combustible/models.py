@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 from apps.unidades.models import Unidad
@@ -9,6 +10,14 @@ from config.storage_backends import MediaStorage
 
 class Despachador(models.Model):
     """Modelo para los despachadores de combustible"""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='despachador',
+        verbose_name="Usuario"
+    )
     nombre = models.CharField(max_length=100, verbose_name="Nombre completo")
     telefono = models.CharField(max_length=15, blank=True, verbose_name="Teléfono")
     activo = models.BooleanField(default=True, verbose_name="Activo")

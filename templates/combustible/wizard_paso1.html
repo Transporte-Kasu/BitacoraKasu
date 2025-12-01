@@ -3,8 +3,11 @@
 
 {% block title %}Paso 1: Número Económico{% endblock %}
 
+{% block body_class %}wizard-page{% endblock %}
+
 {% block extra_css %}
 <style>
+    .navbar-menu{display:none}
     body { background: #f3f4f6; }
     .preview-image { max-width: 100%; height: auto; border-radius: 0.5rem; }
 </style>
@@ -42,22 +45,6 @@
 
             <form method="post" enctype="multipart/form-data" id="paso1Form">
                 {% csrf_token %}
-
-                <!-- Selector de Despachador -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <span class="flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                            </svg>
-                            Despachador
-                        </span>
-                    </label>
-                    {{ form.despachador }}
-                    {% if form.despachador.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.despachador.errors.0 }}</p>
-                    {% endif %}
-                </div>
 
                 <!-- Selector de Unidad -->
                 <div class="mb-6">
@@ -123,7 +110,6 @@
                 Instrucciones
             </h3>
             <ul class="text-sm text-blue-800 space-y-1">
-                <li>• Selecciona tu nombre como despachador</li>
                 <li>• Selecciona la unidad a cargar</li>
                 <li>• Fotografía el número económico claramente</li>
                 <li>• Asegúrate de que la foto sea nítida</li>
@@ -140,14 +126,12 @@
     const imagePreview = document.getElementById('image-preview');
     const btnText = document.getElementById('btn-text');
     const submitBtn = document.getElementById('submitBtn');
-    const despachadorSelect = document.getElementById('id_despachador');
     const unidadSelect = document.getElementById('id_unidad');
 
     function checkFormValid() {
         const hasFile = fileInput.files.length > 0;
-        const hasDespachador = despachadorSelect.value !== '';
         const hasUnidad = unidadSelect.value !== '';
-        submitBtn.disabled = !(hasFile && hasDespachador && hasUnidad);
+        submitBtn.disabled = !(hasFile && hasUnidad);
     }
 
     fileInput.addEventListener('change', function(e) {
@@ -164,7 +148,6 @@
         checkFormValid();
     });
 
-    despachadorSelect.addEventListener('change', checkFormValid);
     unidadSelect.addEventListener('change', checkFormValid);
 
     checkFormValid();

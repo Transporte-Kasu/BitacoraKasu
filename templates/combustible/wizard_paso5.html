@@ -1,11 +1,14 @@
 <!-- wizard_paso5.html -->
-<!-- {% extends 'base.html' %} -->
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Paso 5: Candado Nuevo{% endblock %}
 
+{% block body_class %}wizard-page{% endblock %}
+
 {% block extra_css %}
 <style>
+    .navbar-menu{display:none}
     body { background: #f3f4f6; }
     .preview-image { max-width: 100%; height: auto; border-radius: 0.5rem; }
 </style>

@@ -61,9 +61,18 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
         if paso == 1:
             form = Paso1Form(request.POST, request.FILES)
             if form.is_valid():
+                # Obtener o crear despachador para el usuario logueado
+                despachador, created = Despachador.objects.get_or_create(
+                    user=request.user,
+                    defaults={
+                        'nombre': request.user.get_full_name() or request.user.username,
+                        'activo': True
+                    }
+                )
+                
                 # Crear nueva carga
                 carga = CargaCombustible(
-                    despachador=form.cleaned_data['despachador'],
+                    despachador=despachador,
                     unidad=form.cleaned_data['unidad'],
                     foto_numero_economico=form.cleaned_data['foto_numero_economico'],
                     fecha_hora_inicio=timezone.now(),

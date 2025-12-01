@@ -5,13 +5,6 @@ from apps.unidades.models import Unidad
 
 class Paso1Form(forms.Form):
     """Paso 1: Foto del número económico y confirmación de unidad"""
-    despachador = forms.ModelChoiceField(
-        queryset=Despachador.objects.filter(activo=True),
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-        }),
-        label="Despachador"
-    )
     unidad = forms.ModelChoiceField(
         queryset=Unidad.objects.filter(activa=True),
         widget=forms.Select(attrs={
