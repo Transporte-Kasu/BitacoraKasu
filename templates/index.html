@@ -12,7 +12,7 @@
 </div>
 
 <!-- Tarjetas de resumen -->
-<div class="grid grid-3 mb-4">
+<div class="grid grid-4 mb-4">
     <div class="card" style="border-top: 4px solid #E74C3C;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -60,6 +60,22 @@
             Ver bitácoras
         </a>
     </div>
+
+    <div class="card" style="border-top: 4px solid #3498DB;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="color: #3498DB; margin-bottom: 0.5rem;">Combustible</h3>
+                <p style="font-size: 2rem; font-weight: bold; color: var(--primary-color); margin: 0;">
+                    {{ total_cargas_combustible|default:"0" }}
+                </p>
+                <p style="color: #7F8C8D; font-size: 0.9rem;">Cargas registradas</p>
+            </div>
+            <div style="font-size: 3rem;">⛽</div>
+        </div>
+        <a href="{% url 'combustible:dashboard' %}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            Ver combustible
+        </a>
+    </div>
 </div>
 
 <!-- Sección de acciones rápidas -->
@@ -82,7 +98,12 @@
                 </li>
                 <li style="margin-bottom: 1rem;">
                     <a href="{% url 'unidades:create' %}" class="btn btn-success" style="width: 100%;">
-                        ➕ Agregar unidad
+                        ➤ Agregar unidad
+                    </a>
+                </li>
+                <li style="margin-bottom: 1rem;">
+                    <a href="{% url 'combustible:wizard' paso=1 %}" class="btn btn-success" style="width: 100%;">
+                        ➤ Registrar carga de combustible
                     </a>
                 </li>
             </ul>
@@ -107,10 +128,29 @@
                     <span style="color: #7F8C8D;">Operadores activos:</span>
                     <strong style="color: var(--success-color);">{{ operadores_activos|default:"0" }}</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--light-color);">
                     <span style="color: #7F8C8D;">Unidades activas:</span>
                     <strong style="color: var(--success-color);">{{ unidades_activas|default:"0" }}</strong>
                 </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--light-color);">
+                    <span style="color: #7F8C8D;">Cargas hoy:</span>
+                    <strong style="color: #3498DB;">{{ cargas_hoy|default:"0" }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--light-color);">
+                    <span style="color: #7F8C8D;">Litros cargados hoy:</span>
+                    <strong style="color: #3498DB;">{{ total_litros_hoy|default:"0" }} L</strong>
+                </div>
+                {% if alertas_candado > 0 %}
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #E74C3C;">⚠️ Alertas de candado:</span>
+                    <strong style="color: #E74C3C;">{{ alertas_candado }}</strong>
+                </div>
+                {% else %}
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #7F8C8D;">Cargas en proceso:</span>
+                    <strong style="color: var(--accent-color);">{{ cargas_en_proceso|default:"0" }}</strong>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
