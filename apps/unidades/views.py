@@ -3,7 +3,11 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, Sum
+from django.db.models.functions import TruncMonth
+from django.utils import timezone
+from datetime import timedelta
+import json
 from .models import Unidad
 from .forms import UnidadForm
 
@@ -61,13 +65,14 @@ class UnidadDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         unidad = self.get_object()
+        hoy = timezone.now().date()
         
         # Obtener últimos viajes
         context['ultimos_viajes'] = unidad.bitacoras.select_related(
             'operador'
         ).order_by('-fecha_salida')[:10]
         
-        # Estadísticas
+        # Estadísticas de viajes
         context['viajes_completados'] = unidad.viajes_completados()
         context['rendimiento_promedio'] = unidad.rendimiento_promedio_real()
         context['eficiencia'] = unidad.eficiencia_combustible()
@@ -75,6 +80,58 @@ class UnidadDetailView(LoginRequiredMixin, DetailView):
         
         # Operadores asignados
         context['operadores_asignados'] = unidad.operadores.filter(activo=True)
+        
+        # Historial de cargas de combustible
+        cargas = unidad.cargas_combustible.select_related(
+            'despachador'
+        ).order_by('-fecha_hora_inicio')
+        
+        context['cargas_combustible'] = cargas[:15]  # Últimas 15 cargas
+        context['total_cargas'] = cargas.count()
+        
+        # Estadísticas de combustible
+        cargas_completadas = cargas.filter(estado='COMPLETADO')
+        context['total_litros_cargados'] = cargas_completadas.aggregate(
+            total=Sum('cantidad_litros')
+        )['total'] or 0
+        
+        # Estadísticas del mes actual
+        cargas_mes = cargas_completadas.filter(
+            fecha_hora_inicio__year=hoy.year,
+            fecha_hora_inicio__month=hoy.month
+        )
+        context['litros_mes_actual'] = cargas_mes.aggregate(
+            total=Sum('cantidad_litros')
+        )['total'] or 0
+        context['cargas_mes_actual'] = cargas_mes.count()
+        
+        # Alertas de candado en últimas 10 cargas
+        context['alertas_candado_recientes'] = cargas.filter(
+            estado_candado_anterior__in=['ALTERADO', 'VIOLADO', 'SIN_CANDADO']
+        )[:10]
+        
+        # Datos para gráfico de litros por mes (últimos 12 meses)
+        fecha_inicio = hoy - timedelta(days=365)
+        cargas_por_mes = cargas_completadas.filter(
+            fecha_hora_inicio__gte=fecha_inicio
+        ).annotate(
+            mes=TruncMonth('fecha_hora_inicio')
+        ).values('mes').annotate(
+            total_litros=Sum('cantidad_litros')
+        ).order_by('mes')
+        
+        # Preparar datos para Chart.js
+        meses_labels = []
+        litros_data = []
+        
+        for item in cargas_por_mes:
+            mes_fecha = item['mes']
+            # Formato: "Ene 2024"
+            meses_labels.append(mes_fecha.strftime('%b %Y'))
+            litros_data.append(float(item['total_litros']))
+        
+        context['grafico_meses'] = json.dumps(meses_labels)
+        context['grafico_litros'] = json.dumps(litros_data)
         
         return context
 

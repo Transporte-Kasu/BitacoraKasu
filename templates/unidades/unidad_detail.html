@@ -1,0 +1,562 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle Unidad {{ unidad.numero_economico }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="mb-6">
+    <ol class="flex items-center space-x-2 text-sm text-gray-600">
+        <li><a href="{% url 'inicio' %}" class="hover:text-blue-600">Inicio</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li><a href="{% url 'unidades:dashboard' %}" class="hover:text-blue-600">Unidades</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li><a href="{% url 'unidades:list' %}" class="hover:text-blue-600">Lista</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li class="text-gray-900 font-medium">{{ unidad.numero_economico }}</li>
+    </ol>
+</nav>
+
+<!-- Header con botones -->
+<div class="flex items-center justify-between mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            Unidad {{ unidad.numero_economico }}
+            {% if not unidad.activa %}
+                <span class="text-red-600 text-xl">(Inactiva)</span>
+            {% endif %}
+        </h1>
+        <p class="text-gray-600">{{ unidad.marca }} {{ unidad.modelo }} - {{ unidad.placa }}</p>
+    </div>
+    <div class="flex space-x-3">
+        <a href="{% url 'unidades:update' unidad.pk %}" class="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-200 font-medium">
+            ✏️ Editar
+        </a>
+        <a href="{% url 'unidades:list' %}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
+            ← Volver
+        </a>
+    </div>
+</div>
+
+<!-- Alertas -->
+{% if requiere_mantenimiento %}
+<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+        </div>
+        <div class="ml-3">
+            <p class="text-sm text-yellow-700">
+                ⚠️ <strong>Mantenimiento requerido:</strong> La unidad requiere mantenimiento programado.
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if alertas_candado_recientes %}
+<div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+        </div>
+        <div class="ml-3">
+            <p class="text-sm text-red-700">
+                🚨 <strong>Alertas de seguridad:</strong> Se detectaron {{ alertas_candado_recientes|length }} incidencia(s) con candados en cargas recientes.
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Información General -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Especificaciones Técnicas -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">🚛 Especificaciones</h2>
+        <dl class="space-y-3">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Número Económico</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ unidad.numero_economico }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Placa</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ unidad.placa }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Tipo</dt>
+                <dd class="mt-1">
+                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        {% if unidad.tipo == 'LOCAL' %}bg-blue-100 text-blue-800
+                        {% elif unidad.tipo == 'FORANEA' %}bg-green-100 text-green-800
+                        {% else %}bg-purple-100 text-purple-800{% endif %}">
+                        {{ unidad.get_tipo_display }}
+                    </span>
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Marca/Modelo</dt>
+                <dd class="text-lg text-gray-900">{{ unidad.marca }} {{ unidad.modelo }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Año</dt>
+                <dd class="text-lg text-gray-900">{{ unidad.año }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Kilometraje Actual</dt>
+                <dd class="text-lg font-bold text-blue-600">{{ unidad.kilometraje_actual|floatformat:0 }} km</dd>
+            </div>
+        </dl>
+    </div>
+
+    <!-- Rendimiento y Combustible -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">⛽ Rendimiento</h2>
+        <dl class="space-y-3">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Capacidad de Tanque</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ unidad.capacidad_combustible }} L</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Rendimiento Esperado</dt>
+                <dd class="text-lg text-gray-900">{{ unidad.rendimiento_esperado }} km/L</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Rendimiento Real</dt>
+                <dd class="text-lg font-bold text-blue-600">
+                    {% if rendimiento_promedio > 0 %}
+                        {{ rendimiento_promedio }} km/L
+                    {% else %}
+                        <span class="text-gray-400">Sin datos</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Eficiencia</dt>
+                <dd class="text-lg">
+                    {% if eficiencia > 0 %}
+                        <span class="font-bold {% if eficiencia >= 90 %}text-green-600{% elif eficiencia >= 75 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                            {{ eficiencia }}%
+                        </span>
+                    {% else %}
+                        <span class="text-gray-400">Sin datos</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="pt-3 border-t">
+                <dt class="text-sm font-medium text-gray-500">Total Litros Cargados</dt>
+                <dd class="text-2xl font-bold text-blue-600">{{ total_litros_cargados|floatformat:2 }} L</dd>
+            </div>
+        </dl>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">📊 Estadísticas</h2>
+        <dl class="space-y-3">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Viajes Completados</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ viajes_completados }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Total Cargas Combustible</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ total_cargas }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Cargas Este Mes</dt>
+                <dd class="text-lg font-bold text-blue-600">{{ cargas_mes_actual }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Litros Este Mes</dt>
+                <dd class="text-lg font-bold text-blue-600">{{ litros_mes_actual|floatformat:2 }} L</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Estado</dt>
+                <dd class="mt-1">
+                    {% if unidad.activa %}
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            ✓ Activa
+                        </span>
+                    {% else %}
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            ✗ Inactiva
+                        </span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Operadores Asignados</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ operadores_asignados.count }}</dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- Gráfico de Consumo -->
+{% if grafico_meses %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">📈 Consumo de Combustible (Últimos 12 Meses)</h2>
+    <div style="position: relative; height: 300px;">
+        <canvas id="chartLitrosPorMes"></canvas>
+    </div>
+</div>
+{% endif %}
+
+<!-- Mantenimiento -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">🔧 Mantenimiento</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Fecha de Alta</dt>
+            <dd class="text-lg text-gray-900">{{ unidad.fecha_alta|date:"d/m/Y" }}</dd>
+        </div>
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Último Mantenimiento</dt>
+            <dd class="text-lg text-gray-900">
+                {% if unidad.ultimo_mantenimiento %}
+                    {{ unidad.ultimo_mantenimiento|date:"d/m/Y" }}
+                {% else %}
+                    <span class="text-gray-400">No registrado</span>
+                {% endif %}
+            </dd>
+        </div>
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Próximo Mantenimiento</dt>
+            <dd class="text-lg">
+                {% if unidad.proximo_mantenimiento %}
+                    <span class="{% if requiere_mantenimiento %}text-red-600 font-bold{% else %}text-gray-900{% endif %}">
+                        {{ unidad.proximo_mantenimiento|date:"d/m/Y" }}
+                    </span>
+                {% else %}
+                    <span class="text-gray-400">No programado</span>
+                {% endif %}
+            </dd>
+        </div>
+    </div>
+    {% if unidad.notas %}
+    <div class="mt-4 pt-4 border-t">
+        <dt class="text-sm font-medium text-gray-500 mb-2">Notas</dt>
+        <dd class="text-gray-700 bg-gray-50 p-3 rounded">{{ unidad.notas }}</dd>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tabs para Historial -->
+<div class="bg-white rounded-lg shadow-md mb-6">
+    <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+            <button onclick="showTab('combustible')" id="tab-combustible" class="tab-button border-b-2 border-blue-500 py-4 px-1 text-sm font-medium text-blue-600">
+                ⛽ Historial de Combustible ({{ total_cargas }})
+            </button>
+            <button onclick="showTab('viajes')" id="tab-viajes" class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                🚛 Últimos Viajes ({{ viajes_completados }})
+            </button>
+            <button onclick="showTab('operadores')" id="tab-operadores" class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                👤 Operadores Asignados ({{ operadores_asignados.count }})
+            </button>
+        </nav>
+    </div>
+
+    <!-- Contenido Tabs -->
+    <div class="p-6">
+        <!-- Tab Combustible -->
+        <div id="content-combustible" class="tab-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Historial de Cargas de Combustible</h3>
+                <a href="{% url 'combustible:wizard' paso=1 %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                    ➕ Nueva Carga
+                </a>
+            </div>
+            
+            {% if cargas_combustible %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Despachador</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Litros</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kilometraje</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nivel Inicial</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candado</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for carga in cargas_combustible %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ carga.fecha_hora_inicio|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ carga.despachador.nombre }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
+                                {{ carga.cantidad_litros }} L
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ carga.kilometraje_actual|floatformat:0 }} km
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                                    {{ carga.get_nivel_combustible_inicial_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {% if carga.estado_candado_anterior == 'NORMAL' %}
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">✓ Normal</span>
+                                {% elif carga.estado_candado_anterior == 'ALTERADO' %}
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">⚠️ Alterado</span>
+                                {% elif carga.estado_candado_anterior == 'VIOLADO' %}
+                                    <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">🚨 Violado</span>
+                                {% else %}
+                                    <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">❌ Sin candado</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {% if carga.estado == 'COMPLETADO' %}
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Completado</span>
+                                {% elif carga.estado == 'EN_PROCESO' %}
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">En proceso</span>
+                                {% elif carga.estado == 'CANCELADO' %}
+                                    <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">Cancelado</span>
+                                {% else %}
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">Iniciado</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="{% url 'combustible:detalle' carga.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
+                                    👁️ Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if total_cargas > 15 %}
+            <div class="mt-4 text-center">
+                <a href="{% url 'combustible:lista' %}?unidad={{ unidad.numero_economico }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                    Ver todas las cargas ({{ total_cargas }}) →
+                </a>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-gray-500 mb-4">No hay cargas de combustible registradas para esta unidad.</p>
+                <a href="{% url 'combustible:wizard' paso=1 %}" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium inline-block">
+                    ➕ Registrar Primera Carga
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab Viajes -->
+        <div id="content-viajes" class="tab-content hidden">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Últimos Viajes Realizados</h3>
+            {% if ultimos_viajes %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Salida</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Operador</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distancia</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rendimiento</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for viaje in ultimos_viajes %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ viaje.fecha_salida|date:"d/m/Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ viaje.operador.nombre }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                CP {{ viaje.cp_destino }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {% if viaje.kilometros_recorridos %}
+                                    {{ viaje.kilometros_recorridos }} km
+                                {% else %}
+                                    <span class="text-gray-400">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {% if viaje.rendimiento_combustible %}
+                                    <span class="font-bold {% if viaje.rendimiento_combustible >= unidad.rendimiento_esperado %}text-green-600{% else %}text-yellow-600{% endif %}">
+                                        {{ viaje.rendimiento_combustible }} km/L
+                                    </span>
+                                {% else %}
+                                    <span class="text-gray-400">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {% if viaje.completado %}
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Completado</span>
+                                {% else %}
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">En curso</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="{% url 'bitacoras:detail' viaje.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
+                                    👁️ Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-gray-500">No hay viajes registrados para esta unidad.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab Operadores -->
+        <div id="content-operadores" class="tab-content hidden">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Operadores Asignados a Esta Unidad</h3>
+            {% if operadores_asignados %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for operador in operadores_asignados %}
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-blue-300 transition">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h4 class="font-semibold text-gray-900">{{ operador.nombre }}</h4>
+                            <p class="text-sm text-gray-600 mt-1">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                                    {{ operador.get_tipo_display }}
+                                </span>
+                            </p>
+                            {% if operador.telefono %}
+                            <p class="text-sm text-gray-600 mt-2">📞 {{ operador.telefono }}</p>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'operadores:detail' operador.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
+                            👁️
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-gray-500">No hay operadores asignados a esta unidad.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+function showTab(tabName) {
+    // Ocultar todos los contenidos
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Remover estilos activos de todos los botones
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('border-blue-500', 'text-blue-600');
+        button.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // Mostrar contenido seleccionado
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    
+    // Activar botón seleccionado
+    const activeButton = document.getElementById('tab-' + tabName);
+    activeButton.classList.remove('border-transparent', 'text-gray-500');
+    activeButton.classList.add('border-blue-500', 'text-blue-600');
+}
+
+// Gráfico de litros por mes
+{% if grafico_meses %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('chartLitrosPorMes');
+    
+    const meses = {{ grafico_meses|safe }};
+    const litros = {{ grafico_litros|safe }};
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: meses,
+            datasets: [{
+                label: 'Litros Cargados',
+                data: litros,
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 2,
+                borderRadius: 8,
+                hoverBackgroundColor: 'rgba(59, 130, 246, 0.7)',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y.toFixed(2) + ' litros';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + ' L';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    
+    // Inicializar tabs
+    showTab('combustible');
+});
+{% else %}
+// Inicializar en la pestaña de combustible
+document.addEventListener('DOMContentLoaded', function() {
+    showTab('combustible');
+});
+{% endif %}
+</script>
+{% endblock %}
