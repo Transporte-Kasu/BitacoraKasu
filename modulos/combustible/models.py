@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.utils import timezone
-from apps.unidades.models import Unidad
+from modulos.unidades.models import Unidad
 from decimal import Decimal
 
 from config.storage_backends import MediaStorage

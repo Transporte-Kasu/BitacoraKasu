@@ -8,7 +8,7 @@ Uso:
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from apps.operadores.models import Operador
+from modulos.operadores.models import Operador
 import csv
 import os
 

@@ -1,10 +1,10 @@
 from django.views.generic import TemplateView
 from django.utils import timezone
 from django.db.models import Sum
-from apps.operadores.models import Operador
-from apps.unidades.models import Unidad
-from apps.bitacoras.models import BitacoraViaje
-from apps.combustible.models import CargaCombustible
+from modulos.operadores.models import Operador
+from modulos.unidades.models import Unidad
+from modulos.bitacoras.models import BitacoraViaje
+from modulos.combustible.models import CargaCombustible
 
 
 class IndexView(TemplateView):

@@ -42,10 +42,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Apps del proyecto
-    'apps.operadores',
-    'apps.unidades',
-    'apps.bitacoras',
-    'apps.combustible'
+    'modulos.operadores',
+    'modulos.unidades',
+    'modulos.bitacoras',
+    'modulos.combustible'
 ]
 
 MIDDLEWARE = [

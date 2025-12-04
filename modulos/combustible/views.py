@@ -210,8 +210,30 @@ class CargaCombustibleListView(LoginRequiredMixin, ListView):
         estado = self.request.GET.get('estado')
         if estado:
             queryset = queryset.filter(estado=estado)
+        
+        despachador = self.request.GET.get('despachador')
+        if despachador:
+            queryset = queryset.filter(despachador__nombre__icontains=despachador)
+        
+        candado = self.request.GET.get('candado')
+        if candado:
+            queryset = queryset.filter(estado_candado_anterior=candado)
 
         return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estadísticas generales
+        context['total_cargas'] = CargaCombustible.objects.count()
+        context['cargas_completadas'] = CargaCombustible.objects.filter(estado='COMPLETADO').count()
+        context['cargas_en_proceso'] = CargaCombustible.objects.filter(estado='EN_PROCESO').count()
+        
+        # Choices para filtros
+        context['estado_choices'] = CargaCombustible.ESTADO_CHOICES
+        context['candado_choices'] = CargaCombustible.ESTADO_CANDADO_CHOICES
+        
+        return context
 
 
 class CargaCombustibleDetailView(LoginRequiredMixin, DetailView):

@@ -1,6 +1,6 @@
 from django import forms
 from .models import CargaCombustible, Despachador
-from apps.unidades.models import Unidad
+from modulos.unidades.models import Unidad
 
 
 class Paso1Form(forms.Form):

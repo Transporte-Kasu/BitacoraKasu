@@ -24,10 +24,10 @@ from .views import IndexView
 urlpatterns = [
     path('', IndexView.as_view(), name='inicio'),
     path('admin/', admin.site.urls),
-    path('unidades/', include('apps.unidades.urls'),name='dashboard_unidades'),
-    path('bitacoras/', include('apps.bitacoras.urls'), name='dashboard_bitacoras'),
-    path('operadores/', include('apps.operadores.urls'), name='dashboard_operadores'),
-    path('combustible/', include('apps.combustible.urls'), name='dashboard_combustible'),
+    path('unidades/', include('modulos.unidades.urls'),name='dashboard_unidades'),
+    path('bitacoras/', include('modulos.bitacoras.urls'), name='dashboard_bitacoras'),
+    path('operadores/', include('modulos.operadores.urls'), name='dashboard_operadores'),
+    path('combustible/', include('modulos.combustible.urls'), name='dashboard_combustible'),
 ]
 
 # Servir archivos media en desarrollo

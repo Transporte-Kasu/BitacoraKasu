@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Cargas de Combustible{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="mb-6">
+    <ol class="flex items-center space-x-2 text-sm text-gray-600">
+        <li><a href="{% url 'inicio' %}" class="hover:text-blue-600">Inicio</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li><a href="{% url 'combustible:dashboard' %}" class="hover:text-blue-600">Combustible</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li class="text-gray-900 font-medium">Lista</li>
+    </ol>
+</nav>
+
+<!-- Header con botones -->
+<div class="flex items-center justify-between mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">⛽ Cargas de Combustible</h1>
+        <p class="text-gray-600">{{ total_cargas }} cargas registradas, {{ cargas_completadas }} completadas</p>
+    </div>
+    <a href="{% url 'combustible:wizard' paso=1 %}" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium inline-flex items-center">
+        <span class="text-xl mr-2">+</span>
+        Nueva Carga
+    </a>
+</div>
+
+<!-- Filtros y Búsqueda -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Búsqueda por Unidad -->
+        <div>
+            <label for="unidad" class="block text-sm font-medium text-gray-700 mb-2">Unidad</label>
+            <input type="text" name="unidad" id="unidad" value="{{ request.GET.unidad }}" 
+                   placeholder="Número económico..." 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+
+        <!-- Filtro por Despachador -->
+        <div>
+            <label for="despachador" class="block text-sm font-medium text-gray-700 mb-2">Despachador</label>
+            <input type="text" name="despachador" id="despachador" value="{{ request.GET.despachador }}" 
+                   placeholder="Nombre del despachador..." 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+
+        <!-- Filtro por Estado -->
+        <div>
+            <label for="estado" class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+            <select name="estado" id="estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">Todos</option>
+                {% for value, label in estado_choices %}
+                <option value="{{ value }}" {% if request.GET.estado == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Filtro por Estado Candado -->
+        <div>
+            <label for="candado" class="block text-sm font-medium text-gray-700 mb-2">Estado Candado</label>
+            <select name="candado" id="candado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">Todos</option>
+                {% for value, label in candado_choices %}
+                <option value="{{ value }}" {% if request.GET.candado == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Botones -->
+        <div class="md:col-span-4 flex space-x-3">
+            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+                🔍 Buscar
+            </button>
+            <a href="{% url 'combustible:lista' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
+                Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Tabla de Cargas -->
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    {% if cargas %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fecha/Hora
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Unidad
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Despachador
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Litros
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Kilometraje
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Candado
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Estado
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for carga in cargas %}
+                <tr class="hover:bg-gray-50 transition duration-150 {% if carga.tiene_alertas %}bg-red-50{% endif %}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        #{{ carga.id }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ carga.fecha_hora_inicio|date:"d/m/Y" }}<br>
+                        <span class="text-xs text-gray-500">{{ carga.fecha_hora_inicio|time:"H:i" }}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a href="{% url 'unidades:detail' carga.unidad.pk %}" class="font-bold text-blue-600 hover:text-blue-800">
+                            {{ carga.unidad.numero_economico }}
+                        </a><br>
+                        <span class="text-xs text-gray-500">{{ carga.unidad.placa }}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {{ carga.despachador.nombre }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
+                        {{ carga.cantidad_litros }} L
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {{ carga.kilometraje_actual|floatformat:0 }} km
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        {% if carga.estado_candado_anterior == 'NORMAL' %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                ✓ Normal
+                            </span>
+                        {% elif carga.estado_candado_anterior == 'ALTERADO' %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                ⚠️ Alterado
+                            </span>
+                        {% elif carga.estado_candado_anterior == 'VIOLADO' %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                🚨 Violado
+                            </span>
+                        {% else %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                ❌ Sin candado
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        {% if carga.estado == 'COMPLETADO' %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                ✓ Completado
+                            </span>
+                        {% elif carga.estado == 'EN_PROCESO' %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                🔄 En proceso
+                            </span>
+                        {% elif carga.estado == 'CANCELADO' %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                ❌ Cancelado
+                            </span>
+                        {% else %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                🔵 Iniciado
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'combustible:detalle' carga.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
+                            👁️ Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+        <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+                Mostrando 
+                <span class="font-medium">{{ page_obj.start_index }}</span>
+                -
+                <span class="font-medium">{{ page_obj.end_index }}</span>
+                de
+                <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                resultados
+            </div>
+            <div class="flex space-x-2">
+                {% if page_obj.has_previous %}
+                <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+                    Primera
+                </a>
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+                    Anterior
+                </a>
+                {% endif %}
+
+                <span class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-blue-50 text-blue-700">
+                    {{ page_obj.number }}
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+                    Siguiente
+                </a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+                    Última
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <!-- Sin resultados -->
+    <div class="text-center py-12">
+        <div class="inline-block p-4 bg-gray-100 rounded-full mb-4">
+            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No hay cargas registradas</h3>
+        <p class="text-gray-600 mb-6">Comienza registrando tu primera carga de combustible.</p>
+        <a href="{% url 'combustible:wizard' paso=1 %}" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium inline-block">
+            ➤ Registrar Primera Carga
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

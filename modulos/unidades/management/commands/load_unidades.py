@@ -7,7 +7,7 @@ import csv
 import re
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from apps.unidades.models import Unidad
+from modulos.unidades.models import Unidad
 from decimal import Decimal
 from datetime import datetime
 
