@@ -45,7 +45,9 @@ INSTALLED_APPS = [
     'modulos.operadores',
     'modulos.unidades',
     'modulos.bitacoras',
-    'modulos.combustible'
+    'modulos.combustible',
+    'modulos.compras',
+    'modulos.taller',
 ]
 
 MIDDLEWARE = [
