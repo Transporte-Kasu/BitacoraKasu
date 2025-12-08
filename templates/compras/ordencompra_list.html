@@ -2,29 +2,60 @@
 {% block title %}Órdenes de Compra{% endblock %}
 {% block content %}
 <div class="max-w-7xl mx-auto py-6">
-    <h1 class="text-3xl font-bold mb-6">🛒 Órdenes de Compra</h1>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">🛒 Órdenes de Compra</h1>
+        <a href="{% url 'compras:ordencompra_crear' %}" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+            + Nueva Orden de Compra
+        </a>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="get" class="flex flex-wrap gap-4">
+            <select name="estado" class="px-4 py-2 border border-gray-300 rounded-lg">
+                <option value="">Todos los estados</option>
+                <option value="PENDIENTE" {% if request.GET.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                <option value="CONFIRMADA" {% if request.GET.estado == 'CONFIRMADA' %}selected{% endif %}>Confirmada</option>
+                <option value="EN_TRANSITO" {% if request.GET.estado == 'EN_TRANSITO' %}selected{% endif %}>En Tránsito</option>
+                <option value="RECIBIDA" {% if request.GET.estado == 'RECIBIDA' %}selected{% endif %}>Recibida</option>
+                <option value="CANCELADA" {% if request.GET.estado == 'CANCELADA' %}selected{% endif %}>Cancelada</option>
+            </select>
+            <input type="date" name="fecha_desde" value="{{ request.GET.fecha_desde }}" class="px-4 py-2 border border-gray-300 rounded-lg">
+            <input type="date" name="fecha_hasta" value="{{ request.GET.fecha_hasta }}" class="px-4 py-2 border border-gray-300 rounded-lg">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold">🔍 Filtrar</button>
+            <a href="{% url 'compras:ordencompra_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold">↻ Limpiar</a>
+        </form>
+    </div>
+    
     <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Folio</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Folio</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requisición</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Factura</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for orden in ordenes %}
-                <tr>
-                    <td class="px-6 py-4 font-mono">{{ orden.folio }}</td>
-                    <td class="px-6 py-4">{{ orden.proveedor.nombre }}</td>
-                    <td class="px-6 py-4 text-sm">{{ orden.fecha_creacion|date:"d/m/Y" }}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded bg-purple-100 text-purple-800">{{ orden.get_estado_display }}</span>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm font-mono text-purple-600 font-semibold">{{ orden.folio }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold">{{ orden.proveedor.nombre }}</td>
+                    <td class="px-4 py-3 text-sm font-mono text-gray-600">{{ orden.requisicion.folio }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ orden.fecha_creacion|date:"d/m/Y" }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-3 py-1 text-xs rounded-full font-medium {% if orden.estado == 'PENDIENTE' %}bg-gray-100 text-gray-800{% elif orden.estado == 'CONFIRMADA' %}bg-blue-100 text-blue-800{% elif orden.estado == 'EN_TRANSITO' %}bg-yellow-100 text-yellow-800{% elif orden.estado == 'RECIBIDA' %}bg-green-100 text-green-800{% elif orden.estado == 'CANCELADA' %}bg-red-100 text-red-800{% endif %}">
+                            {{ orden.get_estado_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        {% if orden.factura_numero %}<span class="text-green-600 font-semibold">{{ orden.factura_numero }}</span>{% else %}<span class="text-gray-400">-</span>{% endif %}
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay órdenes</td></tr>
+                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No se encontraron órdenes</td></tr>
                 {% endfor %}
             </tbody>
         </table>

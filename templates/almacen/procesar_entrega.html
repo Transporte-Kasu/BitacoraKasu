@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Procesar Entrega{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Procesar Entrega - {{ solicitud.folio }}</h1>
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <form method="post">
+            {% csrf_token %}
+            <table class="min-w-full divide-y divide-gray-200 mb-6">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Solicitado</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cantidad a Entregar</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lote</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for item in items %}
+                    <tr>
+                        <td class="px-4 py-2">{{ item.producto_almacen.descripcion }}</td>
+                        <td class="px-4 py-2">{{ item.cantidad_solicitada }}</td>
+                        <td class="px-4 py-2"><input type="number" name="cantidad_{{ item.pk }}" step="0.01" max="{{ item.cantidad_solicitada }}" class="w-full px-2 py-1 border rounded"></td>
+                        <td class="px-4 py-2"><input type="text" name="lote_{{ item.pk }}" class="w-full px-2 py-1 border rounded"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
+                <textarea name="observaciones" rows="3" class="w-full px-4 py-2 border rounded"></textarea>
+            </div>
+            <div class="flex justify-end space-x-4">
+                <a href="{% url 'almacen:solicitud_detail' solicitud.pk %}" class="px-6 py-3 bg-gray-200 rounded-lg">Cancelar</a>
+                <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg">Procesar Entrega</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

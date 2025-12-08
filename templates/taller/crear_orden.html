@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Nueva Orden de Trabajo - Taller{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        ring: 2px;
+        ring-color: rgba(59, 130, 246, 0.3);
+    }
+    
+    .form-help {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+    
+    .required::after {
+        content: " *";
+        color: #ef4444;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-6">
+    <!-- Encabezado -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">🔧 Nueva Orden de Trabajo</h1>
+                <p class="text-gray-600 mt-1">Crear una nueva orden para el taller</p>
+            </div>
+            <a href="{% url 'taller:dashboard' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+                ← Cancelar
+            </a>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'taller:crear_orden' %}">
+        {% csrf_token %}
+        
+        <!-- Sección: Información de la Unidad -->
+        <div class="form-section">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="text-2xl mr-2">🚛</span> Información de la Unidad
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="unidad" class="form-label required">Unidad</label>
+                    <select id="unidad" name="unidad" class="form-select" required>
+                        <option value="">Seleccione una unidad</option>
+                        {% for unidad in unidades %}
+                        <option value="{{ unidad.id }}" data-km="{{ unidad.kilometraje_actual }}">
+                            {{ unidad.numero_economico }} - {{ unidad.placa }} ({{ unidad.marca }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="kilometraje_ingreso" class="form-label required">Kilometraje de Ingreso</label>
+                    <input 
+                        type="number" 
+                        id="kilometraje_ingreso" 
+                        name="kilometraje_ingreso" 
+                        class="form-input" 
+                        required
+                        placeholder="Ej: 125000"
+                    >
+                    <p class="form-help">Kilometraje actual al ingresar al taller</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="operador_reporta" class="form-label">Operador que Reporta</label>
+                <input 
+                    type="number" 
+                    id="operador_reporta" 
+                    name="operador_reporta" 
+                    class="form-input"
+                    placeholder="ID del operador (opcional)"
+                >
+                <p class="form-help">ID del operador que reporta el problema (opcional)</p>
+            </div>
+        </div>
+
+        <!-- Sección: Tipo de Mantenimiento -->
+        <div class="form-section">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="text-2xl mr-2">🔧</span> Tipo de Mantenimiento
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="tipo_mantenimiento" class="form-label required">Tipo de Mantenimiento</label>
+                    <select id="tipo_mantenimiento" name="tipo_mantenimiento" class="form-select" required>
+                        <option value="">Seleccione un tipo</option>
+                        {% for tipo in tipos_mantenimiento %}
+                        <option value="{{ tipo.id }}">
+                            {{ tipo.nombre }} ({{ tipo.get_tipo_display }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="categoria_falla" class="form-label">Categoría de Falla</label>
+                    <select id="categoria_falla" name="categoria_falla" class="form-select">
+                        <option value="">Seleccione una categoría (opcional)</option>
+                        {% for categoria in categorias_falla %}
+                        <option value="{{ categoria.id }}">
+                            {{ categoria.nombre }} (Prioridad: {{ categoria.get_prioridad_default_display }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Descripción del Problema -->
+        <div class="form-section">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="text-2xl mr-2">📝</span> Descripción del Problema
+            </h2>
+            
+            <div class="form-group">
+                <label for="descripcion_problema" class="form-label required">Descripción del Problema</label>
+                <textarea 
+                    id="descripcion_problema" 
+                    name="descripcion_problema" 
+                    class="form-textarea" 
+                    rows="4" 
+                    required
+                    placeholder="Describa detalladamente el problema o servicio requerido..."
+                ></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="sintomas" class="form-label">Síntomas Observados</label>
+                <textarea 
+                    id="sintomas" 
+                    name="sintomas" 
+                    class="form-textarea" 
+                    rows="3"
+                    placeholder="Síntomas que presenta la unidad (opcional)..."
+                ></textarea>
+                <p class="form-help">Describa los síntomas observados por el operador o al inspeccionar la unidad</p>
+            </div>
+        </div>
+
+        <!-- Sección: Prioridad y Programación -->
+        <div class="form-section">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="text-2xl mr-2">⚡</span> Prioridad y Programación
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="prioridad" class="form-label required">Prioridad</label>
+                    <select id="prioridad" name="prioridad" class="form-select" required>
+                        {% for valor, nombre in prioridades %}
+                        <option value="{{ valor }}" {% if valor == "MEDIA" %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="form-help">Nivel de urgencia del servicio o reparación</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fecha_programada" class="form-label">Fecha Programada</label>
+                    <input 
+                        type="date" 
+                        id="fecha_programada" 
+                        name="fecha_programada" 
+                        class="form-input"
+                    >
+                    <p class="form-help">Fecha programada para realizar el servicio (opcional)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Asignación -->
+        <div class="form-section">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="text-2xl mr-2">👨‍🔧</span> Asignación
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="mecanico_asignado" class="form-label">Mecánico Asignado</label>
+                    <input 
+                        type="number" 
+                        id="mecanico_asignado" 
+                        name="mecanico_asignado" 
+                        class="form-input"
+                        placeholder="ID del mecánico (opcional)"
+                    >
+                    <p class="form-help">ID del mecánico responsable (se puede asignar después)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Observaciones -->
+        <div class="form-section">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="text-2xl mr-2">📌</span> Observaciones Adicionales
+            </h2>
+            
+            <div class="form-group">
+                <label for="observaciones" class="form-label">Observaciones</label>
+                <textarea 
+                    id="observaciones" 
+                    name="observaciones" 
+                    class="form-textarea" 
+                    rows="3"
+                    placeholder="Observaciones adicionales sobre la orden..."
+                ></textarea>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex gap-4">
+            <button 
+                type="submit" 
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold text-lg transition shadow-lg"
+            >
+                ✅ Crear Orden de Trabajo
+            </button>
+            <a 
+                href="{% url 'taller:dashboard' %}" 
+                class="px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition text-center"
+            >
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-llenar kilometraje cuando se selecciona una unidad
+document.getElementById('unidad').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const kmActual = selectedOption.getAttribute('data-km');
+    
+    if (kmActual) {
+        document.getElementById('kilometraje_ingreso').value = kmActual;
+    }
+});
+
+// Validación: kilometraje debe ser positivo
+document.querySelector('form').addEventListener('submit', function(e) {
+    const km = parseInt(document.getElementById('kilometraje_ingreso').value);
+    
+    if (km < 0) {
+        e.preventDefault();
+        alert('El kilometraje debe ser un valor positivo');
+        return false;
+    }
+});
+</script>
+{% endblock %}

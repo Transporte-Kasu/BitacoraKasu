@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} Orden de Compra{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">{% if object %}Editar{% else %}Nueva{% endif %} Orden de Compra</h1>
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post">{% csrf_token %}
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-2">Requisición *</label>{{ form.requisicion }}{% if form.requisicion.errors %}<p class="text-red-600 text-sm mt-1">{{ form.requisicion.errors.0 }}</p>{% endif %}</div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-2">Proveedor *</label>{{ form.proveedor }}{% if form.proveedor.errors %}<p class="text-red-600 text-sm mt-1">{{ form.proveedor.errors.0 }}</p>{% endif %}</div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-2">Fecha Estimada de Entrega *</label>{{ form.fecha_estimada_entrega }}{% if form.fecha_estimada_entrega.errors %}<p class="text-red-600 text-sm mt-1">{{ form.fecha_estimada_entrega.errors.0 }}</p>{% endif %}</div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-2">Notas</label>{{ form.notas }}{% if form.notas.errors %}<p class="text-red-600 text-sm mt-1">{{ form.notas.errors.0 }}</p>{% endif %}</div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <a href="{% url 'compras:ordencompra_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold">Cancelar</a>
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

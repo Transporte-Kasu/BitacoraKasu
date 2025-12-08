@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Nueva Entrada{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">⬇️ Nueva Entrada de Almacén</h1>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+            <ul class="list-disc list-inside text-red-700 text-sm">
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">📝 Información de la Entrada</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="id_tipo" class="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo de Entrada <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.tipo }}
+                    {% if form.tipo.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.tipo.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="id_fecha_entrada" class="block text-sm font-medium text-gray-700 mb-2">
+                        Fecha de Entrada <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.fecha_entrada }}
+                    {% if form.fecha_entrada.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.fecha_entrada.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="id_orden_compra" class="block text-sm font-medium text-gray-700 mb-2">
+                        Orden de Compra
+                    </label>
+                    {{ form.orden_compra }}
+                    {% if form.orden_compra.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.orden_compra.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="id_orden_trabajo" class="block text-sm font-medium text-gray-700 mb-2">
+                        Orden de Trabajo
+                    </label>
+                    {{ form.orden_trabajo }}
+                    {% if form.orden_trabajo.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.orden_trabajo.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="id_referencia" class="block text-sm font-medium text-gray-700 mb-2">
+                        Referencia
+                    </label>
+                    {{ form.referencia }}
+                    {% if form.referencia.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.referencia.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="id_observaciones" class="block text-sm font-medium text-gray-700 mb-2">
+                        Observaciones
+                    </label>
+                    {{ form.observaciones }}
+                    {% if form.observaciones.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.observaciones.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-4">
+            <a href="{% url 'almacen:entrada_list' %}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancelar</a>
+            <button type="submit" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">➕ Crear Entrada</button>
+        </div>
+    </form>
+</div>
+
+{% block extra_css %}
+<style>
+    input[type="text"],
+    input[type="datetime-local"],
+    select,
+    textarea {
+        @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent;
+    }
+    textarea {
+        @apply min-h-[100px];
+    }
+</style>
+{% endblock %}
+{% endblock %}

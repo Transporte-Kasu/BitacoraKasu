@@ -2,7 +2,39 @@
 {% block title %}Proveedores{% endblock %}
 {% block content %}
 <div class="max-w-7xl mx-auto py-6">
-    <h1 class="text-3xl font-bold mb-6">🏢 Proveedores</h1>
+    <!-- Encabezado -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">🏢 Proveedores</h1>
+        <a href="{% url 'compras:proveedor_crear' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+            + Nuevo Proveedor
+        </a>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="get" class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="search" value="{{ request.GET.search }}" 
+                    placeholder="Buscar por nombre, RFC o contacto..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <select name="activo" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">Todos los estados</option>
+                    <option value="true" {% if request.GET.activo == 'true' %}selected{% endif %}>Activos</option>
+                    <option value="false" {% if request.GET.activo == 'false' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+                🔍 Buscar
+            </button>
+            <a href="{% url 'compras:proveedor_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold transition">
+                ↻ Limpiar
+            </a>
+        </form>
+    </div>
+    
+    <!-- Tabla -->
     <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -10,26 +42,55 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RFC</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contacto</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teléfono</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for proveedor in proveedores %}
-                <tr>
-                    <td class="px-6 py-4">{{ proveedor.nombre }}</td>
-                    <td class="px-6 py-4 font-mono">{{ proveedor.rfc }}</td>
-                    <td class="px-6 py-4 text-sm">{{ proveedor.contacto }}</td>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold text-gray-900">{{ proveedor.nombre }}</td>
+                    <td class="px-6 py-4 font-mono text-sm text-gray-700">{{ proveedor.rfc }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ proveedor.contacto|default:"-" }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ proveedor.telefono|default:"-" }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ proveedor.email|default:"-" }}</td>
                     <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded {% if proveedor.activo %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                            {% if proveedor.activo %}Activo{% else %}Inactivo{% endif %}
+                        <span class="px-3 py-1 text-xs rounded-full font-medium {% if proveedor.activo %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if proveedor.activo %}✓ Activo{% else %}✗ Inactivo{% endif %}
                         </span>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay proveedores</td></tr>
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                        No se encontraron proveedores
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="mt-6 flex justify-center">
+        <nav class="flex items-center space-x-2">
+            {% if page_obj.has_previous %}
+                <a href="?page=1{{ request.GET.urlencode }}" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Primera</a>
+                <a href="?page={{ page_obj.previous_page_number }}{{ request.GET.urlencode }}" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Anterior</a>
+            {% endif %}
+            
+            <span class="px-4 py-2 text-gray-700">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{{ request.GET.urlencode }}" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Siguiente</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{{ request.GET.urlencode }}" class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Última</a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

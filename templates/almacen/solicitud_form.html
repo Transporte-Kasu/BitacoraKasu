@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Nueva Solicitud{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">📝 Nueva Solicitud de Salida</h1>
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo <span class="text-red-500">*</span></label>
+                    {{ form.tipo }}
+                    {% if form.tipo.errors %}<p class="text-sm text-red-600">{{ form.tipo.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Necesidad</label>
+                    {{ form.fecha_necesidad }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
+                    {{ form.observaciones }}
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-4">
+            <a href="{% url 'almacen:solicitud_list' %}" class="px-6 py-3 bg-gray-200 rounded-lg">Cancelar</a>
+            <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg">➕ Crear Solicitud</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

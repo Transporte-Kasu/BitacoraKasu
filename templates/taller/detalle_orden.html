@@ -1,0 +1,717 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ orden.folio }} - Detalle de Orden{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .diagnostico-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .diagnostico-empty {
+        background: #fef3c7;
+        border: 2px dashed #f59e0b;
+        color: #92400e;
+    }
+    
+    .priority-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .priority-baja { background-color: #d1fae5; color: #065f46; }
+    .priority-media { background-color: #fef3c7; color: #92400e; }
+    .priority-alta { background-color: #fed7aa; color: #9a3412; }
+    .priority-critica { background-color: #fee2e2; color: #991b1b; }
+    
+    .estado-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    .estado-pendiente { background-color: #e5e7eb; color: #374151; }
+    .estado-en_diagnostico { background-color: #dbeafe; color: #1e40af; }
+    .estado-esperando_piezas { background-color: #fef3c7; color: #92400e; }
+    .estado-en_reparacion { background-color: #ddd6fe; color: #5b21b6; }
+    .estado-en_pruebas { background-color: #bfdbfe; color: #1e3a8a; }
+    .estado-completada { background-color: #d1fae5; color: #065f46; }
+    .estado-cancelada { background-color: #fee2e2; color: #991b1b; }
+    
+    .pieza-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .pieza-pendiente { background-color: #fee2e2; color: #991b1b; }
+    .pieza-solicitada { background-color: #fef3c7; color: #92400e; }
+    .pieza-en_compra { background-color: #dbeafe; color: #1e40af; }
+    .pieza-recibida { background-color: #d1fae5; color: #065f46; }
+    .pieza-instalada { background-color: #e0e7ff; color: #3730a3; }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.6);
+    }
+    
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 2rem;
+        border-radius: 0.75rem;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .close:hover,
+    .close:focus {
+        color: #000;
+    }
+    
+    .checklist-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .checklist-item:last-child {
+        border-bottom: none;
+    }
+    
+    .check-ok { color: #10b981; }
+    .check-atencion { color: #f59e0b; }
+    .check-pendiente { color: #6b7280; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <!-- Encabezado -->
+    <div class="mb-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ orden.folio }}</h1>
+                <p class="text-gray-600 mt-1">Orden de Trabajo</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'taller:lista_ordenes' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+                    ← Volver
+                </a>
+                {% if perms.taller.change_ordentrabajo %}
+                <button onclick="openModal('cambiarEstadoModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                    Cambiar Estado
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Estado y prioridad -->
+        <div class="flex gap-4 items-center">
+            <span class="estado-badge estado-{{ orden.estado|lower }}">
+                {{ orden.get_estado_display }}
+            </span>
+            <span class="priority-badge priority-{{ orden.prioridad|lower }}">
+                Prioridad: {{ orden.get_prioridad_display }}
+            </span>
+            {% if orden.dias_en_taller > 7 %}
+            <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
+                ⚠️ {{ orden.dias_en_taller }} días en taller
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ========== SECCIÓN DE DIAGNÓSTICO (DESTACADA) ========== -->
+    <div class="{% if orden.diagnostico %}diagnostico-section{% else %}diagnostico-section diagnostico-empty{% endif %}">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">🔍 Diagnóstico Técnico</h2>
+                {% if orden.fecha_diagnostico %}
+                <p class="{% if orden.diagnostico %}text-blue-100{% else %}text-yellow-900{% endif %} text-sm">
+                    Realizado el {{ orden.fecha_diagnostico|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+            </div>
+            {% if perms.taller.diagnosticar_orden and orden.estado in "PENDIENTE,EN_DIAGNOSTICO" %}
+            <button onclick="openModal('diagnosticoModal')" class="bg-white text-purple-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">
+                {% if orden.diagnostico %}✏️ Editar{% else %}+ Agregar{% endif %} Diagnóstico
+            </button>
+            {% endif %}
+        </div>
+        
+        {% if orden.diagnostico %}
+        <div class="bg-white bg-opacity-20 rounded-lg p-4 backdrop-blur-sm">
+            <p class="text-white text-lg leading-relaxed whitespace-pre-wrap">{{ orden.diagnostico }}</p>
+        </div>
+        
+        {% if orden.costo_estimado_mano_obra > 0 %}
+        <div class="mt-4 flex items-center gap-4">
+            <div class="bg-white bg-opacity-20 rounded-lg px-4 py-2">
+                <p class="text-sm text-blue-100">Costo Estimado Mano de Obra</p>
+                <p class="text-2xl font-bold">${{ orden.costo_estimado_mano_obra|floatformat:2 }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-8">
+            <p class="text-xl font-semibold mb-2">⚠️ Diagnóstico pendiente</p>
+            <p class="text-sm">Esta orden aún no tiene un diagnóstico técnico registrado</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Grid de información principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Información de la Unidad -->
+        <div class="info-card">
+            <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="text-2xl mr-2">🚛</span> Información de la Unidad
+            </h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Número Económico:</span>
+                    <span class="font-semibold">{{ orden.unidad.numero_economico }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Placas:</span>
+                    <span class="font-semibold">{{ orden.unidad.placa }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Marca/Modelo:</span>
+                    <span class="font-semibold">{{ orden.unidad.marca }} {{ orden.unidad.modelo }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Kilometraje Ingreso:</span>
+                    <span class="font-semibold">{{ orden.kilometraje_ingreso|floatformat:0 }} km</span>
+                </div>
+                {% if orden.kilometraje_salida %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Kilometraje Salida:</span>
+                    <span class="font-semibold">{{ orden.kilometraje_salida|floatformat:0 }} km</span>
+                </div>
+                <div class="flex justify-between border-t pt-2">
+                    <span class="text-gray-600">Kms en Taller:</span>
+                    <span class="font-semibold text-blue-600">{{ orden.kilometros_recorridos_en_taller }} km</span>
+                </div>
+                {% endif %}
+                <div class="mt-4">
+                    <a href="{% url 'taller:historial_unidad' orden.unidad.id %}" class="text-blue-600 hover:underline text-sm">
+                        Ver historial completo →
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Mantenimiento -->
+        <div class="info-card">
+            <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="text-2xl mr-2">🔧</span> Información del Mantenimiento
+            </h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Tipo de Mantenimiento:</span>
+                    <span class="font-semibold">{{ orden.tipo_mantenimiento|default:"N/A" }}</span>
+                </div>
+                {% if orden.categoria_falla %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Categoría de Falla:</span>
+                    <span class="font-semibold">{{ orden.categoria_falla.nombre }}</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Fecha Creación:</span>
+                    <span class="font-semibold">{{ orden.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                </div>
+                {% if orden.fecha_programada %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Fecha Programada:</span>
+                    <span class="font-semibold">{{ orden.fecha_programada|date:"d/m/Y" }}</span>
+                </div>
+                {% endif %}
+                {% if orden.fecha_inicio_real %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Inicio Real:</span>
+                    <span class="font-semibold">{{ orden.fecha_inicio_real|date:"d/m/Y H:i" }}</span>
+                </div>
+                {% endif %}
+                {% if orden.fecha_finalizacion %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Finalización:</span>
+                    <span class="font-semibold">{{ orden.fecha_finalizacion|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="flex justify-between border-t pt-2">
+                    <span class="text-gray-600">Tiempo Total:</span>
+                    <span class="font-semibold text-purple-600">{{ orden.horas_en_taller }} horas</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Descripción del Problema -->
+    <div class="info-card">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">📝 Descripción del Problema</h3>
+        <p class="text-gray-700 whitespace-pre-wrap">{{ orden.descripcion_problema }}</p>
+        
+        {% if orden.sintomas %}
+        <div class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+            <p class="text-sm font-semibold text-yellow-900 mb-1">Síntomas Observados:</p>
+            <p class="text-sm text-yellow-800 whitespace-pre-wrap">{{ orden.sintomas }}</p>
+        </div>
+        {% endif %}
+        
+        {% if orden.operador_reporta %}
+        <p class="text-sm text-gray-600 mt-3">
+            Reportado por: <span class="font-semibold">{{ orden.operador_reporta.nombre }}</span>
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Personal Asignado -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="info-card">
+            <h4 class="font-semibold text-gray-900 mb-2">👨‍🔧 Mecánico Asignado</h4>
+            <p class="text-gray-700">
+                {% if orden.mecanico_asignado %}
+                    {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
+                {% else %}
+                    <span class="text-gray-400">Sin asignar</span>
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="info-card">
+            <h4 class="font-semibold text-gray-900 mb-2">👨‍💼 Supervisor</h4>
+            <p class="text-gray-700">
+                {% if orden.supervisor %}
+                    {{ orden.supervisor.get_full_name|default:orden.supervisor.username }}
+                {% else %}
+                    <span class="text-gray-400">Sin asignar</span>
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="info-card">
+            <h4 class="font-semibold text-gray-900 mb-2">📝 Creada Por</h4>
+            <p class="text-gray-700">{{ orden.creada_por.get_full_name|default:orden.creada_por.username }}</p>
+        </div>
+    </div>
+
+    <!-- Piezas Requeridas -->
+    <div class="info-card">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">🔩 Piezas Requeridas</h3>
+            <div class="flex gap-2">
+                {% if perms.taller.change_ordentrabajo %}
+                <button onclick="openModal('agregarPiezaModal')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition">
+                    + Agregar Pieza
+                </button>
+                {% endif %}
+                {% if perms.compras.add_requisicion and piezas %}
+                <form method="post" action="{% url 'taller:generar_requisicion' orden.folio %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition">
+                        📦 Generar Requisición
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if piezas %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Uso</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Est.</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Real</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for pieza in piezas %}
+                    <tr>
+                        <td class="px-4 py-3 text-sm font-medium">{{ pieza.producto.nombre }}</td>
+                        <td class="px-4 py-3 text-sm">{{ pieza.cantidad }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ pieza.descripcion_uso|default:"-" }}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="pieza-badge pieza-{{ pieza.estado|lower }}">
+                                {{ pieza.get_estado_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right font-semibold">${{ pieza.subtotal_estimado|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-sm text-right font-semibold">
+                            {% if pieza.costo_real %}
+                                ${{ pieza.subtotal_real|floatformat:2 }}
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="4" class="px-4 py-3 text-sm font-bold text-right">Total Estimado:</td>
+                        <td class="px-4 py-3 text-sm font-bold text-right">${{ orden.costo_total_piezas_estimado|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-sm font-bold text-right">${{ orden.costo_total_piezas_real|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center text-gray-500 py-4">No se han agregado piezas a esta orden</p>
+        {% endif %}
+    </div>
+
+    <!-- Checklist de Mantenimiento -->
+    {% if checklist %}
+    <div class="info-card">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">✅ Checklist de Mantenimiento</h3>
+        <div class="space-y-2">
+            {% for item in checklist %}
+            <div class="checklist-item">
+                <span class="text-2xl mr-3 
+                    {% if item.estado == 'OK' %}check-ok
+                    {% elif item.estado == 'REQUIERE_ATENCION' %}check-atencion
+                    {% else %}check-pendiente{% endif %}">
+                    {% if item.estado == 'OK' %}✓
+                    {% elif item.estado == 'REQUIERE_ATENCION' %}⚠
+                    {% elif item.estado == 'REPARADO' %}🔧
+                    {% elif item.estado == 'NO_APLICA' %}-
+                    {% else %}○{% endif %}
+                </span>
+                <div class="flex-1">
+                    <p class="font-medium">{{ item.item_checklist.descripcion }}</p>
+                    {% if item.observaciones %}
+                    <p class="text-sm text-gray-600">{{ item.observaciones }}</p>
+                    {% endif %}
+                </div>
+                <span class="text-xs text-gray-500">{{ item.get_estado_display }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Costos -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="info-card bg-blue-50">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">💰 Costos Estimados</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span>Mano de Obra:</span>
+                    <span class="font-semibold">${{ orden.costo_estimado_mano_obra|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Piezas:</span>
+                    <span class="font-semibold">${{ orden.costo_total_piezas_estimado|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between border-t pt-2 text-lg">
+                    <span class="font-bold">Total:</span>
+                    <span class="font-bold text-blue-600">${{ orden.costo_total_estimado|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-card bg-green-50">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">💵 Costos Reales</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span>Mano de Obra:</span>
+                    <span class="font-semibold">${{ orden.costo_real_mano_obra|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Piezas:</span>
+                    <span class="font-semibold">${{ orden.costo_total_piezas_real|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between border-t pt-2 text-lg">
+                    <span class="font-bold">Total:</span>
+                    <span class="font-bold text-green-600">${{ orden.costo_total_real|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trabajo Realizado -->
+    {% if orden.trabajo_realizado %}
+    <div class="info-card bg-purple-50">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">✅ Trabajo Realizado</h3>
+        <p class="text-gray-700 whitespace-pre-wrap">{{ orden.trabajo_realizado }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Seguimientos -->
+    {% if seguimientos %}
+    <div class="info-card">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">📊 Historial de Seguimiento</h3>
+        <div class="space-y-3">
+            {% for seguimiento in seguimientos %}
+            <div class="border-l-4 border-blue-500 pl-4 py-2">
+                <div class="flex justify-between items-start mb-1">
+                    <p class="font-semibold text-gray-900">
+                        {{ seguimiento.estado_anterior }} → {{ seguimiento.estado_nuevo }}
+                    </p>
+                    <span class="text-xs text-gray-500">{{ seguimiento.fecha|date:"d/m/Y H:i" }}</span>
+                </div>
+                <p class="text-sm text-gray-700">{{ seguimiento.comentario }}</p>
+                <p class="text-xs text-gray-500 mt-1">Por: {{ seguimiento.usuario.get_full_name|default:seguimiento.usuario.username }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Observaciones -->
+    {% if orden.observaciones %}
+    <div class="info-card">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">📌 Observaciones</h3>
+        <p class="text-gray-700 whitespace-pre-wrap">{{ orden.observaciones }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal para Actualizar Diagnóstico -->
+<div id="diagnosticoModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('diagnosticoModal')">&times;</span>
+        <h2 class="text-2xl font-bold mb-4">🔍 Actualizar Diagnóstico</h2>
+        <form method="post" action="{% url 'taller:actualizar_diagnostico' orden.folio %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Diagnóstico Técnico *</label>
+                <textarea 
+                    name="diagnostico" 
+                    rows="6" 
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Describa el diagnóstico técnico completo..."
+                >{{ orden.diagnostico }}</textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Costo Estimado Mano de Obra</label>
+                <input 
+                    type="number" 
+                    name="costo_estimado_mano_obra" 
+                    step="0.01"
+                    value="{{ orden.costo_estimado_mano_obra }}"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+                    Guardar Diagnóstico
+                </button>
+                <button type="button" onclick="closeModal('diagnosticoModal')" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para Cambiar Estado -->
+<div id="cambiarEstadoModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('cambiarEstadoModal')">&times;</span>
+        <h2 class="text-2xl font-bold mb-4">🔄 Cambiar Estado de la Orden</h2>
+        <form method="post" action="{% url 'taller:cambiar_estado_orden' orden.folio %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nuevo Estado *</label>
+                <select 
+                    name="nuevo_estado" 
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    {% for valor, nombre in orden.ESTADO_CHOICES %}
+                    <option value="{{ valor }}" {% if orden.estado == valor %}selected{% endif %}>{{ nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Comentario</label>
+                <textarea 
+                    name="comentario" 
+                    rows="3"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Comentario sobre el cambio de estado..."
+                ></textarea>
+            </div>
+            
+            <!-- Campos adicionales si completa -->
+            <div id="completarCampos" style="display: none;">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Trabajo Realizado</label>
+                    <textarea 
+                        name="trabajo_realizado" 
+                        rows="4"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >{{ orden.trabajo_realizado }}</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Costo Real Mano de Obra</label>
+                        <input 
+                            type="number" 
+                            name="costo_real_mano_obra" 
+                            step="0.01"
+                            value="{{ orden.costo_real_mano_obra }}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kilometraje Salida</label>
+                        <input 
+                            type="number" 
+                            name="kilometraje_salida" 
+                            value="{{ orden.kilometraje_salida|default:orden.unidad.kilometraje_actual }}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        >
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+                    Cambiar Estado
+                </button>
+                <button type="button" onclick="closeModal('cambiarEstadoModal')" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para Agregar Pieza -->
+<div id="agregarPiezaModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('agregarPiezaModal')">&times;</span>
+        <h2 class="text-2xl font-bold mb-4">🔩 Agregar Pieza Requerida</h2>
+        <form method="post" action="{% url 'taller:agregar_pieza' orden.folio %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Producto *</label>
+                <input 
+                    type="number" 
+                    name="producto" 
+                    required
+                    placeholder="ID del producto"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                <p class="text-xs text-gray-500 mt-1">Ingrese el ID del producto del catálogo</p>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad *</label>
+                <input 
+                    type="number" 
+                    name="cantidad" 
+                    step="0.01"
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Descripción de Uso</label>
+                <textarea 
+                    name="descripcion_uso" 
+                    rows="2"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="¿Dónde/cómo se usará esta pieza?"
+                ></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Costo Estimado Unitario</label>
+                <input 
+                    type="number" 
+                    name="costo_estimado" 
+                    step="0.01"
+                    value="0"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+                    Agregar Pieza
+                </button>
+                <button type="button" onclick="closeModal('agregarPiezaModal')" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal(modalId) {
+    document.getElementById(modalId).style.display = 'block';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// Cerrar modal al hacer clic fuera
+window.onclick = function(event) {
+    const modals = document.getElementsByClassName('modal');
+    for (let modal of modals) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+}
+
+// Mostrar campos adicionales al seleccionar estado COMPLETADA
+document.querySelector('select[name="nuevo_estado"]')?.addEventListener('change', function() {
+    const completarCampos = document.getElementById('completarCampos');
+    if (this.value === 'COMPLETADA') {
+        completarCampos.style.display = 'block';
+    } else {
+        completarCampos.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

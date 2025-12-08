@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Entrada {{ entrada.folio }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">⬇️ Entrada {{ entrada.folio }}</h1>
+                <span class="px-3 py-1 text-sm rounded bg-green-100 text-green-800">{{ entrada.get_tipo_display }}</span>
+            </div>
+            <a href="{% url 'almacen:entrada_list' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">← Volver</a>
+        </div>
+
+        <!-- Información general -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+                <p class="text-sm text-gray-600">Fecha de Entrada</p>
+                <p class="text-lg font-semibold">{{ entrada.fecha_entrada|date:"d/m/Y H:i" }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Recibido Por</p>
+                <p class="text-lg font-semibold">{{ entrada.recibido_por.get_full_name|default:entrada.recibido_por.username }}</p>
+            </div>
+            {% if entrada.orden_compra %}
+            <div>
+                <p class="text-sm text-gray-600">Orden de Compra</p>
+                <p class="text-lg font-semibold">{{ entrada.orden_compra.folio }}</p>
+            </div>
+            {% endif %}
+            {% if entrada.orden_trabajo %}
+            <div>
+                <p class="text-sm text-gray-600">Orden de Trabajo</p>
+                <p class="text-lg font-semibold">{{ entrada.orden_trabajo.folio }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if entrada.observaciones %}
+        <div class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <p class="text-sm font-semibold text-gray-700">Observaciones:</p>
+            <p class="text-gray-600">{{ entrada.observaciones }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Items de la entrada -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Productos Recibidos</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lote</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in items %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">{{ item.producto_almacen.descripcion }}</div>
+                            <div class="text-xs text-gray-500">SKU: {{ item.producto_almacen.sku }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                            +{{ item.cantidad_recibida }} {{ item.producto_almacen.unidad_medida }}
+                        </td>
+                        <td class="px-6 py-4 text-sm">{{ item.lote|default:"N/A" }}</td>
+                        <td class="px-6 py-4 text-sm">{{ item.ubicacion_destino }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay items registrados</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

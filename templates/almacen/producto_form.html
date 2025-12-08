@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Producto{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="mb-6">
+    <ol class="flex items-center space-x-2 text-sm text-gray-600">
+        <li><a href="{% url 'admin:index' %}" class="hover:text-blue-600">Inicio</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li><a href="{% url 'almacen:dashboard' %}" class="hover:text-blue-600">Almacén</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li><a href="{% url 'almacen:producto_list' %}" class="hover:text-blue-600">Productos</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li class="text-gray-900 font-medium">{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %}</li>
+    </ol>
+</nav>
+
+<!-- Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+        {% if form.instance.pk %}
+            <span class="text-2xl">✏️</span> Editar Producto {{ form.instance.sku }}
+        {% else %}
+            <span class="text-2xl">➕</span> Nuevo Producto
+        {% endif %}
+    </h1>
+    <p class="text-gray-600">Complete los datos del producto</p>
+</div>
+
+<!-- Formulario -->
+<div class="max-w-4xl mx-auto">
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Errores generales del formulario -->
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+            <div class="flex items-center">
+                <span class="text-2xl mr-3">⚠️</span>
+                <div>
+                    <h3 class="text-red-800 font-medium">Errores en el formulario:</h3>
+                    <ul class="list-disc list-inside text-red-700 text-sm mt-1">
+                        {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Sección: Información Básica -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
+                📦 Información Básica
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- SKU -->
+                <div>
+                    <label for="id_sku" class="block text-sm font-medium text-gray-700 mb-2">
+                        SKU <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.sku }}
+                    {% if form.sku.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.sku.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Código único del producto</p>
+                </div>
+
+                <!-- Código de Barras -->
+                <div>
+                    <label for="id_codigo_barras" class="block text-sm font-medium text-gray-700 mb-2">
+                        Código de Barras
+                    </label>
+                    {{ form.codigo_barras }}
+                    {% if form.codigo_barras.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.codigo_barras.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Descripción -->
+                <div class="md:col-span-2">
+                    <label for="id_descripcion" class="block text-sm font-medium text-gray-700 mb-2">
+                        Descripción <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.descripcion }}
+                    {% if form.descripcion.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.descripcion.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Categoría -->
+                <div>
+                    <label for="id_categoria" class="block text-sm font-medium text-gray-700 mb-2">
+                        Categoría <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.categoria }}
+                    {% if form.categoria.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.categoria.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Subcategoría -->
+                <div>
+                    <label for="id_subcategoria" class="block text-sm font-medium text-gray-700 mb-2">
+                        Subcategoría
+                    </label>
+                    {{ form.subcategoria }}
+                    {% if form.subcategoria.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.subcategoria.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Ubicación -->
+                <div class="md:col-span-2">
+                    <label for="id_localidad" class="block text-sm font-medium text-gray-700 mb-2">
+                        Ubicación en Almacén <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.localidad }}
+                    {% if form.localidad.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.localidad.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Ej: Pasillo A, Estante 3</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Control de Stock -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
+                📊 Control de Stock
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Cantidad -->
+                <div>
+                    <label for="id_cantidad" class="block text-sm font-medium text-gray-700 mb-2">
+                        Cantidad Actual <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.cantidad }}
+                    {% if form.cantidad.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.cantidad.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Unidad de Medida -->
+                <div>
+                    <label for="id_unidad_medida" class="block text-sm font-medium text-gray-700 mb-2">
+                        Unidad de Medida <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.unidad_medida }}
+                    {% if form.unidad_medida.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.unidad_medida.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Ej: Pieza, Litro, Kg</p>
+                </div>
+
+                <!-- Stock Mínimo -->
+                <div>
+                    <label for="id_stock_minimo" class="block text-sm font-medium text-gray-700 mb-2">
+                        Stock Mínimo <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.stock_minimo }}
+                    {% if form.stock_minimo.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.stock_minimo.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Se generará alerta al alcanzar este nivel</p>
+                </div>
+
+                <!-- Stock Máximo -->
+                <div>
+                    <label for="id_stock_maximo" class="block text-sm font-medium text-gray-700 mb-2">
+                        Stock Máximo
+                    </label>
+                    {{ form.stock_maximo }}
+                    {% if form.stock_maximo.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.stock_maximo.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Costo Unitario -->
+                <div>
+                    <label for="id_costo_unitario" class="block text-sm font-medium text-gray-700 mb-2">
+                        Costo Unitario ($) <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.costo_unitario }}
+                    {% if form.costo_unitario.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.costo_unitario.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Tiempo de Reorden -->
+                <div>
+                    <label for="id_tiempo_reorden_dias" class="block text-sm font-medium text-gray-700 mb-2">
+                        Tiempo de Reorden (días)
+                    </label>
+                    {{ form.tiempo_reorden_dias }}
+                    {% if form.tiempo_reorden_dias.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.tiempo_reorden_dias.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Caducidad -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
+                📅 Control de Caducidad
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tiene Caducidad -->
+                <div class="flex items-center space-x-3">
+                    {{ form.tiene_caducidad }}
+                    <label for="id_tiene_caducidad" class="text-sm font-medium text-gray-700">
+                        Este producto tiene fecha de caducidad
+                    </label>
+                </div>
+
+                <!-- Fecha de Caducidad -->
+                <div>
+                    <label for="id_fecha_caducidad" class="block text-sm font-medium text-gray-700 mb-2">
+                        Fecha de Caducidad
+                    </label>
+                    {{ form.fecha_caducidad }}
+                    {% if form.fecha_caducidad.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.fecha_caducidad.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Solo si el producto tiene caducidad</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Referencias -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
+                🔗 Referencias
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Producto Compra -->
+                <div>
+                    <label for="id_producto_compra" class="block text-sm font-medium text-gray-700 mb-2">
+                        Producto de Compras
+                    </label>
+                    {{ form.producto_compra }}
+                    {% if form.producto_compra.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.producto_compra.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Vínculo con catálogo de compras</p>
+                </div>
+
+                <!-- Proveedor Principal -->
+                <div>
+                    <label for="id_proveedor_principal" class="block text-sm font-medium text-gray-700 mb-2">
+                        Proveedor Principal
+                    </label>
+                    {{ form.proveedor_principal }}
+                    {% if form.proveedor_principal.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.proveedor_principal.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Imagen y Notas -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
+                📝 Información Adicional
+            </h2>
+            
+            <div class="grid grid-cols-1 gap-6">
+                <!-- Imagen -->
+                <div>
+                    <label for="id_imagen" class="block text-sm font-medium text-gray-700 mb-2">
+                        Imagen del Producto
+                    </label>
+                    {{ form.imagen }}
+                    {% if form.imagen.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.imagen.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.instance.imagen %}
+                    <div class="mt-2">
+                        <img src="{{ form.instance.imagen.url }}" alt="Imagen actual" class="h-32 w-auto border rounded">
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Notas -->
+                <div>
+                    <label for="id_notas" class="block text-sm font-medium text-gray-700 mb-2">
+                        Notas
+                    </label>
+                    {{ form.notas }}
+                    {% if form.notas.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.notas.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Activo -->
+                <div class="flex items-center space-x-3">
+                    {{ form.activo }}
+                    <label for="id_activo" class="text-sm font-medium text-gray-700">
+                        Producto Activo
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex justify-end space-x-4 pt-4">
+            <a href="{% url 'almacen:producto_list' %}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
+                Cancelar
+            </a>
+            <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+                {% if form.instance.pk %}
+                    💾 Guardar Cambios
+                {% else %}
+                    ➕ Crear Producto
+                {% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Personalización de campos de formulario con Tailwind */
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="file"],
+    select,
+    textarea {
+        @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200;
+    }
+    
+    input[type="checkbox"] {
+        @apply w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500;
+    }
+    
+    textarea {
+        @apply min-h-[100px];
+    }
+</style>
+{% endblock %}

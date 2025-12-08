@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Resolver Alerta{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Resolver Alerta</h1>
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <p class="font-semibold">{{ alerta.get_tipo_display }}</p>
+            <p class="text-sm">{{ alerta.mensaje }}</p>
+            <p class="text-xs text-gray-500 mt-2">{{ alerta.fecha_generacion|date:"d/m/Y H:i" }}</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <p class="text-sm text-gray-600 mb-4">¿Confirma que desea marcar esta alerta como resuelta?</p>
+            <div class="flex justify-end space-x-4">
+                <a href="{% url 'almacen:alerta_list' %}" class="px-6 py-3 bg-gray-200 rounded-lg">Cancelar</a>
+                <button type="submit" class="px-6 py-3 bg-green-600 text-white rounded-lg">Resolver Alerta</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

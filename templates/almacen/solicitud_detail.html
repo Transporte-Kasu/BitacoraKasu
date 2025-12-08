@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitud {{ solicitud.folio }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">📝 Solicitud {{ solicitud.folio }}</h1>
+                <span class="px-3 py-1 text-sm rounded {% if solicitud.estado == 'PENDIENTE' %}bg-yellow-100 text-yellow-800{% elif solicitud.estado == 'AUTORIZADA' %}bg-green-100 text-green-800{% elif solicitud.estado == 'RECHAZADA' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                    {{ solicitud.get_estado_display }}
+                </span>
+            </div>
+            <div class="space-x-2">
+                {% if solicitud.estado == 'PENDIENTE' and perms.almacen.autorizar_salida_almacen %}
+                <a href="{% url 'almacen:solicitud_autorizar' solicitud.pk %}" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">Autorizar</a>
+                {% endif %}
+                {% if solicitud.estado == 'AUTORIZADA' %}
+                <a href="{% url 'almacen:solicitud_procesar_entrega' solicitud.pk %}" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">Procesar Entrega</a>
+                {% endif %}
+                <a href="{% url 'almacen:solicitud_list' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">← Volver</a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+                <p class="text-sm text-gray-600">Tipo</p>
+                <p class="text-lg font-semibold">{{ solicitud.get_tipo_display }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Solicitante</p>
+                <p class="text-lg font-semibold">{{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Fecha de Solicitud</p>
+                <p class="text-lg font-semibold">{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</p>
+            </div>
+            {% if solicitud.fecha_necesidad %}
+            <div>
+                <p class="text-sm text-gray-600">Fecha de Necesidad</p>
+                <p class="text-lg font-semibold">{{ solicitud.fecha_necesidad|date:"d/m/Y" }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if solicitud.observaciones %}
+        <div class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <p class="text-sm font-semibold">Observaciones:</p>
+            <p class="text-gray-600">{{ solicitud.observaciones }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Productos Solicitados</h2>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad Solicitada</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for item in items %}
+                <tr>
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium">{{ item.producto_almacen.descripcion }}</div>
+                        <div class="text-xs text-gray-500">SKU: {{ item.producto_almacen.sku }}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm">{{ item.cantidad_solicitada }} {{ item.producto_almacen.unidad_medida }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

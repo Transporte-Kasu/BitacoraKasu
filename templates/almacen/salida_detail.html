@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Salida {{ salida.folio }}{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-start mb-4">
+            <h1 class="text-3xl font-bold text-gray-900">⬆️ Salida {{ salida.folio }}</h1>
+            <a href="{% url 'almacen:salida_list' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg">← Volver</a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div><p class="text-sm text-gray-600">Fecha de Salida</p><p class="text-lg font-semibold">{{ salida.fecha_salida|date:"d/m/Y H:i" }}</p></div>
+            <div><p class="text-sm text-gray-600">Entregado A</p><p class="text-lg font-semibold">{{ salida.entregado_a.get_full_name|default:salida.entregado_a.username }}</p></div>
+            <div><p class="text-sm text-gray-600">Entregado Por</p><p class="text-lg font-semibold">{{ salida.entregado_por.get_full_name|default:salida.entregado_por.username }}</p></div>
+            {% if salida.solicitud_salida %}
+            <div><p class="text-sm text-gray-600">Solicitud</p><p class="text-lg font-semibold">{{ salida.solicitud_salida.folio }}</p></div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Productos Entregados</h2>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lote</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for item in items %}
+                <tr>
+                    <td class="px-6 py-4"><div class="text-sm font-medium">{{ item.producto_almacen.descripcion }}</div></td>
+                    <td class="px-6 py-4 text-sm font-semibold text-red-600">-{{ item.cantidad_entregada }} {{ item.producto_almacen.unidad_medida }}</td>
+                    <td class="px-6 py-4 text-sm">{{ item.lote|default:"N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

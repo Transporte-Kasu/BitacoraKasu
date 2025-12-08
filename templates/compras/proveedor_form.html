@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Editar{% else %}Nuevo{% endif %} Proveedor{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">{% if object %}Editar{% else %}Nuevo{% endif %} Proveedor</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}<p class="text-red-600 text-sm mt-1">{{ form.nombre.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">RFC *</label>
+                    {{ form.rfc }}
+                    {% if form.rfc.errors %}<p class="text-red-600 text-sm mt-1">{{ form.rfc.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Contacto *</label>
+                    {{ form.contacto }}
+                    {% if form.contacto.errors %}<p class="text-red-600 text-sm mt-1">{{ form.contacto.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono *</label>
+                    {{ form.telefono }}
+                    {% if form.telefono.errors %}<p class="text-red-600 text-sm mt-1">{{ form.telefono.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<p class="text-red-600 text-sm mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Dirección *</label>
+                    {{ form.direccion }}
+                    {% if form.direccion.errors %}<p class="text-red-600 text-sm mt-1">{{ form.direccion.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="flex items-center">
+                        {{ form.activo }}
+                        <span class="ml-2 text-sm text-gray-700">Proveedor activo</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-4">
+                <a href="{% url 'compras:proveedor_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold transition">Cancelar</a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

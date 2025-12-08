@@ -1,44 +1,176 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Dashboard de Compras{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto py-6">
+    <!-- Encabezado -->
     <h1 class="text-3xl font-bold text-gray-900 mb-6">🛒 Dashboard de Compras</h1>
     
-    <!-- Estadísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-lg shadow">
-            <p class="text-sm text-gray-600">Proveedores</p>
+    <!-- Estadísticas Principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+            <p class="text-sm text-gray-600 mb-1">Proveedores Activos</p>
             <p class="text-3xl font-bold text-blue-600">{{ total_proveedores }}</p>
+            <a href="{% url 'compras:proveedor_list' %}" class="text-xs text-blue-600 hover:underline mt-2 inline-block">Ver todos →</a>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow">
-            <p class="text-sm text-gray-600">Productos</p>
+        <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+            <p class="text-sm text-gray-600 mb-1">Productos en Catálogo</p>
             <p class="text-3xl font-bold text-green-600">{{ total_productos }}</p>
+            <a href="{% url 'compras:producto_list' %}" class="text-xs text-green-600 hover:underline mt-2 inline-block">Ver todos →</a>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow">
-            <p class="text-sm text-gray-600">Requisiciones Pendientes</p>
+        <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition border-l-4 {% if requisiciones_pendientes > 0 %}border-yellow-500{% else %}border-gray-300{% endif %}">
+            <p class="text-sm text-gray-600 mb-1">Requisiciones Pendientes</p>
             <p class="text-3xl font-bold text-yellow-600">{{ requisiciones_pendientes }}</p>
+            <a href="{% url 'compras:requisicion_list' %}?estado=PENDIENTE" class="text-xs text-yellow-600 hover:underline mt-2 inline-block">Ver pendientes →</a>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow">
-            <p class="text-sm text-gray-600">Órdenes Activas</p>
+        <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition border-l-4 {% if ordenes_activas > 0 %}border-purple-500{% else %}border-gray-300{% endif %}">
+            <p class="text-sm text-gray-600 mb-1">Órdenes Activas</p>
             <p class="text-3xl font-bold text-purple-600">{{ ordenes_activas }}</p>
+            <a href="{% url 'compras:ordencompra_list' %}" class="text-xs text-purple-600 hover:underline mt-2 inline-block">Ver todas →</a>
         </div>
     </div>
     
-    <!-- Enlaces rápidos -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <a href="{% url 'compras:proveedor_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition">
+    <!-- Últimas Requisiciones -->
+    {% if ultimas_requisiciones %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📄 Últimas Requisiciones</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Folio</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Solicitante</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Solicitud</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Requerida</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for req in ultimas_requisiciones %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-mono text-blue-600">{{ req.folio }}</td>
+                        <td class="px-4 py-3 text-sm">{{ req.solicitante.get_full_name|default:req.solicitante.username }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ req.fecha_solicitud|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ req.fecha_requerida|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full font-medium
+                                {% if req.estado == 'PENDIENTE' %}bg-yellow-100 text-yellow-800
+                                {% elif req.estado == 'APROBADA' %}bg-green-100 text-green-800
+                                {% elif req.estado == 'RECHAZADA' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ req.get_estado_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4">
+            <a href="{% url 'compras:requisicion_list' %}" class="text-blue-600 hover:underline font-semibold">Ver todas las requisiciones →</a>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Últimas Órdenes de Compra -->
+    {% if ultimas_ordenes %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">🛒 Últimas Órdenes de Compra</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Folio</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requisición</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Factura</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for orden in ultimas_ordenes %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-mono text-purple-600">{{ orden.folio }}</td>
+                        <td class="px-4 py-3 text-sm font-semibold">{{ orden.proveedor.nombre }}</td>
+                        <td class="px-4 py-3 text-sm font-mono text-gray-600">{{ orden.requisicion.folio }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ orden.fecha_creacion|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full font-medium
+                                {% if orden.estado == 'PENDIENTE' %}bg-gray-100 text-gray-800
+                                {% elif orden.estado == 'CONFIRMADA' %}bg-blue-100 text-blue-800
+                                {% elif orden.estado == 'EN_TRANSITO' %}bg-yellow-100 text-yellow-800
+                                {% elif orden.estado == 'RECIBIDA' %}bg-green-100 text-green-800
+                                {% elif orden.estado == 'CANCELADA' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ orden.get_estado_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            {% if orden.factura_numero %}
+                                <span class="text-green-600 font-semibold">{{ orden.factura_numero }}</span>
+                            {% else %}
+                                <span class="text-gray-400">Sin factura</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4">
+            <a href="{% url 'compras:ordencompra_list' %}" class="text-purple-600 hover:underline font-semibold">Ver todas las órdenes →</a>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Recepciones Recientes -->
+    {% if recepciones_recientes %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Recepciones Recientes</h2>
+        <div class="space-y-3">
+            {% for recepcion in recepciones_recientes %}
+            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold text-gray-900">OC: {{ recepcion.orden_compra.folio }}</p>
+                        <p class="text-sm text-gray-600">Proveedor: {{ recepcion.orden_compra.proveedor.nombre }}</p>
+                        <p class="text-xs text-gray-500 mt-1">Recibido por: {{ recepcion.recibido_por.get_full_name|default:recepcion.recibido_por.username }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">{{ recepcion.fecha_recepcion|date:"d/m/Y" }}</p>
+                        <span class="inline-block mt-1 px-2 py-1 text-xs rounded-full font-medium
+                            {% if recepcion.estado == 'COMPLETA' %}bg-green-100 text-green-800
+                            {% elif recepcion.estado == 'PARCIAL' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ recepcion.get_estado_display }}
+                        </span>
+                    </div>
+                </div>
+                {% if recepcion.ubicacion_almacen %}
+                <p class="text-xs text-gray-500 mt-2">📍 {{ recepcion.ubicacion_almacen }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Enlaces Rápidos -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="{% url 'compras:proveedor_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition font-semibold">
             🏢 Proveedores
         </a>
-        <a href="{% url 'compras:producto_list' %}" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center transition">
+        <a href="{% url 'compras:producto_list' %}" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center transition font-semibold">
             📦 Productos
         </a>
-        <a href="{% url 'compras:requisicion_list' %}" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg text-center transition">
+        <a href="{% url 'compras:requisicion_list' %}" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg text-center transition font-semibold">
             📄 Requisiciones
         </a>
-        <a href="{% url 'compras:ordencompra_list' %}" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition">
-            🛒 Órdenes
+        <a href="{% url 'compras:ordencompra_list' %}" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition font-semibold">
+            🛒 Órdenes de Compra
         </a>
     </div>
 </div>

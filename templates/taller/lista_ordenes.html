@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Órdenes de Trabajo - Taller{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .priority-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .priority-baja { background-color: #d1fae5; color: #065f46; }
+    .priority-media { background-color: #fef3c7; color: #92400e; }
+    .priority-alta { background-color: #fed7aa; color: #9a3412; }
+    .priority-critica { background-color: #fee2e2; color: #991b1b; }
+    
+    .estado-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .estado-pendiente { background-color: #e5e7eb; color: #374151; }
+    .estado-en_diagnostico { background-color: #dbeafe; color: #1e40af; }
+    .estado-esperando_piezas { background-color: #fef3c7; color: #92400e; }
+    .estado-en_reparacion { background-color: #ddd6fe; color: #5b21b6; }
+    .estado-en_pruebas { background-color: #bfdbfe; color: #1e3a8a; }
+    .estado-completada { background-color: #d1fae5; color: #065f46; }
+    .estado-cancelada { background-color: #fee2e2; color: #991b1b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <!-- Encabezado -->
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">📋 Órdenes de Trabajo</h1>
+            <p class="text-gray-600 mt-1">Gestión de órdenes del taller</p>
+        </div>
+        <a href="{% url 'taller:crear_orden' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+            + Nueva Orden
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-card">
+        <form method="get" class="space-y-4">
+            <!-- Búsqueda general -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                <input 
+                    type="text" 
+                    name="q" 
+                    value="{{ request.GET.q }}"
+                    placeholder="Buscar por folio, descripción, unidad o placa..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+            </div>
+
+            <!-- Filtros en grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Filtro por Estado -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                    <select name="estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Todos los estados</option>
+                        {% for valor, nombre in estados %}
+                        <option value="{{ valor }}" {% if request.GET.estado == valor %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro por Prioridad -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Prioridad</label>
+                    <select name="prioridad" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Todas las prioridades</option>
+                        {% for valor, nombre in prioridades %}
+                        <option value="{{ valor }}" {% if request.GET.prioridad == valor %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro por Unidad -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Unidad</label>
+                    <select name="unidad" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Todas las unidades</option>
+                        {% for unidad in unidades %}
+                        <option value="{{ unidad.id }}" {% if request.GET.unidad|stringformat:"s" == unidad.id|stringformat:"s" %}selected{% endif %}>
+                            {{ unidad.numero_economico }} - {{ unidad.placa }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro por Mecánico -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Mecánico</label>
+                    <input 
+                        type="text" 
+                        name="mecanico" 
+                        value="{{ request.GET.mecanico }}"
+                        placeholder="ID del mecánico"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+                    🔍 Filtrar
+                </button>
+                <a href="{% url 'taller:lista_ordenes' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold transition">
+                    ✖ Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de Órdenes -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Folio</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidad</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mecánico</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Días</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for orden in ordenes %}
+                    <tr class="hover:bg-gray-50 {% if orden.dias_en_taller > 7 %}bg-red-50{% endif %}">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <a href="{% url 'taller:detalle_orden' orden.folio %}" class="text-blue-600 hover:underline font-semibold">
+                                {{ orden.folio }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ orden.unidad.numero_economico }}</div>
+                            <div class="text-xs text-gray-500">{{ orden.unidad.placa }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            {% if orden.tipo_mantenimiento %}
+                                <span title="{{ orden.tipo_mantenimiento.nombre }}">
+                                    {{ orden.tipo_mantenimiento.nombre|truncatewords:2 }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-400">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="max-w-xs truncate" title="{{ orden.descripcion_problema }}">
+                                {{ orden.descripcion_problema|truncatewords:8 }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="estado-badge estado-{{ orden.estado|lower }}">
+                                {{ orden.get_estado_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="priority-badge priority-{{ orden.prioridad|lower }}">
+                                {{ orden.get_prioridad_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            {% if orden.mecanico_asignado %}
+                                {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
+                            {% else %}
+                                <span class="text-gray-400">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                            {{ orden.fecha_creacion|date:"d/m/Y" }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            {% if orden.dias_en_taller > 7 %}
+                                <span class="text-red-600 font-semibold">{{ orden.dias_en_taller }}</span>
+                            {% elif orden.dias_en_taller > 0 %}
+                                <span class="text-yellow-600">{{ orden.dias_en_taller }}</span>
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="{% url 'taller:detalle_orden' orden.folio %}" class="text-blue-600 hover:text-blue-900">
+                                Ver →
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="px-4 py-8 text-center text-gray-500">
+                            <div class="text-4xl mb-4">🔍</div>
+                            <p>No se encontraron órdenes de trabajo con los filtros aplicados</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Contador de resultados -->
+    {% if ordenes %}
+    <div class="mt-4 text-sm text-gray-600">
+        Mostrando {{ ordenes|length }} orden{{ ordenes|length|pluralize:"es" }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

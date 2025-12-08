@@ -1,26 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Productos - Compras{% endblock %}
+{% block title %}Productos{% endblock %}
 {% block content %}
 <div class="max-w-7xl mx-auto py-6">
-    <h1 class="text-3xl font-bold mb-6">📦 Catálogo de Productos</h1>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">📦 Catálogo de Productos</h1>
+        <a href="{% url 'compras:producto_crear' %}" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+            + Nuevo Producto
+        </a>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="get" class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Buscar producto..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <input type="text" name="categoria" value="{{ request.GET.categoria }}" placeholder="Categoría" class="px-4 py-2 border border-gray-300 rounded-lg">
+            <select name="activo" class="px-4 py-2 border border-gray-300 rounded-lg">
+                <option value="">Todos</option>
+                <option value="true" {% if request.GET.activo == 'true' %}selected{% endif %}>Activos</option>
+                <option value="false" {% if request.GET.activo == 'false' %}selected{% endif %}>Inactivos</option>
+            </select>
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold">🔍 Buscar</button>
+            <a href="{% url 'compras:producto_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold">↻ Limpiar</a>
+        </form>
+    </div>
+    
     <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for producto in productos %}
-                <tr>
-                    <td class="px-6 py-4">{{ producto.nombre }}</td>
-                    <td class="px-6 py-4 text-sm">{{ producto.categoria }}</td>
-                    <td class="px-6 py-4 text-sm">{{ producto.unidad_medida }}</td>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ producto.nombre }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ producto.categoria }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ producto.unidad_medida }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ producto.descripcion|default:"-"|truncatewords:10 }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-3 py-1 text-xs rounded-full font-medium {% if producto.activo %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if producto.activo %}✓ Activo{% else %}✗ Inactivo{% endif %}
+                        </span>
+                    </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">No hay productos</td></tr>
+                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No se encontraron productos</td></tr>
                 {% endfor %}
             </tbody>
         </table>

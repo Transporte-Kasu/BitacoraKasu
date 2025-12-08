@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Historial de Mantenimiento - {{ unidad.numero_economico }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-left: 2rem;
+        padding-bottom: 2rem;
+        border-left: 2px solid #e5e7eb;
+    }
+    
+    .timeline-item:last-child {
+        border-left-color: transparent;
+        padding-bottom: 0;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -0.5rem;
+        top: 0;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background-color: #3b82f6;
+        border: 2px solid white;
+        box-shadow: 0 0 0 2px #3b82f6;
+    }
+    
+    .timeline-marker.preventivo {
+        background-color: #10b981;
+        box-shadow: 0 0 0 2px #10b981;
+    }
+    
+    .timeline-marker.correctivo {
+        background-color: #ef4444;
+        box-shadow: 0 0 0 2px #ef4444;
+    }
+    
+    .timeline-marker.predictivo {
+        background-color: #8b5cf6;
+        box-shadow: 0 0 0 2px #8b5cf6;
+    }
+    
+    .historial-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <!-- Encabezado -->
+    <div class="mb-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">📜 Historial de Mantenimiento</h1>
+                <div class="mt-2 flex items-center gap-4">
+                    <p class="text-xl text-gray-700">
+                        <span class="font-semibold">{{ unidad.numero_economico }}</span> - {{ unidad.placa }}
+                    </p>
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                        {{ unidad.marca }} {{ unidad.modelo }}
+                    </span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'unidades:dashboard' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+                    ← Volver a Unidades
+                </a>
+                <a href="{% url 'taller:crear_orden' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                    + Nueva Orden
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card bg-blue-50">
+            <p class="text-sm text-gray-600 mb-1">Total Órdenes</p>
+            <p class="text-3xl font-bold text-blue-600">{{ total_ordenes }}</p>
+        </div>
+        
+        <div class="stat-card bg-green-50">
+            <p class="text-sm text-gray-600 mb-1">Costo Total</p>
+            <p class="text-2xl font-bold text-green-600">${{ costo_total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 mt-1">Todos los servicios</p>
+        </div>
+        
+        <div class="stat-card bg-purple-50">
+            <p class="text-sm text-gray-600 mb-1">Tiempo Promedio</p>
+            <p class="text-3xl font-bold text-purple-600">{{ dias_promedio }}</p>
+            <p class="text-xs text-gray-500 mt-1">días en taller</p>
+        </div>
+        
+        <div class="stat-card bg-orange-50">
+            <p class="text-sm text-gray-600 mb-1">Kilometraje Actual</p>
+            <p class="text-2xl font-bold text-orange-600">{{ unidad.kilometraje_actual|floatformat:0 }}</p>
+            <p class="text-xs text-gray-500 mt-1">km</p>
+        </div>
+    </div>
+
+    <!-- Información Adicional de la Unidad -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">🚛 Información de la Unidad</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+                <p class="text-gray-600">Tipo:</p>
+                <p class="font-semibold">{{ unidad.tipo|default:"N/A" }}</p>
+            </div>
+            <div>
+                <p class="text-gray-600">Año:</p>
+                <p class="font-semibold">{{ unidad.año|default:"N/A" }}</p>
+            </div>
+            <div>
+                <p class="text-gray-600">Capacidad Combustible:</p>
+                <p class="font-semibold">{{ unidad.capacidad_combustible|default:"N/A" }} L</p>
+            </div>
+            <div>
+                <p class="text-gray-600">Estado:</p>
+                <p class="font-semibold">
+                    {% if unidad.activa %}
+                        <span class="text-green-600">Activa</span>
+                    {% else %}
+                        <span class="text-red-600">Inactiva</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        {% if unidad.ultimo_mantenimiento or unidad.proximo_mantenimiento %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t">
+            {% if unidad.ultimo_mantenimiento %}
+            <div>
+                <p class="text-sm text-gray-600">Último Mantenimiento:</p>
+                <p class="font-semibold text-lg">{{ unidad.ultimo_mantenimiento|date:"d/m/Y" }}</p>
+            </div>
+            {% endif %}
+            {% if unidad.proximo_mantenimiento %}
+            <div>
+                <p class="text-sm text-gray-600">Próximo Mantenimiento:</p>
+                <p class="font-semibold text-lg 
+                    {% if unidad.proximo_mantenimiento < today %}text-red-600
+                    {% elif unidad.proximo_mantenimiento < proxima_semana %}text-yellow-600
+                    {% else %}text-green-600{% endif %}">
+                    {{ unidad.proximo_mantenimiento|date:"d/m/Y" }}
+                    {% if unidad.proximo_mantenimiento < today %}
+                        <span class="text-xs">(Vencido)</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Historial de Servicios (Timeline) -->
+    {% if historial %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">📋 Historial de Servicios</h2>
+        
+        <div class="space-y-0">
+            {% for item in historial %}
+            <div class="timeline-item">
+                <div class="timeline-marker 
+                    {% if 'PREVENTIVO' in item.tipo_servicio|upper %}preventivo
+                    {% elif 'CORRECTIVO' in item.tipo_servicio|upper %}correctivo
+                    {% elif 'PREDICTIVO' in item.tipo_servicio|upper %}predictivo
+                    {% endif %}">
+                </div>
+                
+                <div class="historial-card">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">
+                                <a href="{% url 'taller:detalle_orden' item.orden_trabajo.folio %}" class="text-blue-600 hover:underline">
+                                    {{ item.orden_trabajo.folio }}
+                                </a>
+                            </h3>
+                            <p class="text-sm text-gray-600">{{ item.fecha_servicio|date:"d/m/Y" }}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold
+                                {% if 'PREVENTIVO' in item.tipo_servicio|upper %}bg-green-100 text-green-800
+                                {% elif 'CORRECTIVO' in item.tipo_servicio|upper %}bg-red-100 text-red-800
+                                {% elif 'PREDICTIVO' in item.tipo_servicio|upper %}bg-purple-100 text-purple-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ item.tipo_servicio }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-gray-700 mb-3">{{ item.descripcion_breve }}</p>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm pt-3 border-t">
+                        <div>
+                            <p class="text-gray-600">Km Ingreso:</p>
+                            <p class="font-semibold">{{ item.kilometraje_ingreso|floatformat:0 }} km</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Km Salida:</p>
+                            <p class="font-semibold">
+                                {% if item.kilometraje_salida %}
+                                    {{ item.kilometraje_salida|floatformat:0 }} km
+                                {% else %}
+                                    <span class="text-gray-400">N/A</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Tiempo Fuera:</p>
+                            <p class="font-semibold">
+                                {% if item.tiempo_fuera_servicio_dias > 0 %}
+                                    {{ item.tiempo_fuera_servicio_dias }} días
+                                {% else %}
+                                    {{ item.tiempo_fuera_servicio_horas }} horas
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Costo Total:</p>
+                            <p class="font-semibold text-green-600">${{ item.costo_total|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if item.kilometros_en_taller > 0 %}
+                    <div class="mt-2 text-xs text-gray-500">
+                        <span class="inline-flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                                <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ item.kilometros_en_taller }} km recorridos en taller (pruebas)
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">📭</div>
+        <p class="text-xl text-gray-700 font-semibold mb-2">No hay historial de mantenimiento</p>
+        <p class="text-gray-600 mb-6">Esta unidad aún no tiene servicios registrados en el taller</p>
+        <a href="{% url 'taller:crear_orden' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+            + Crear Primera Orden
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Resumen de Tipos de Mantenimiento -->
+    {% if historial %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div class="bg-green-50 rounded-lg shadow p-6 border-l-4 border-green-500">
+            <h3 class="font-bold text-gray-900 mb-2">🔧 Mantenimientos Preventivos</h3>
+            <p class="text-3xl font-bold text-green-600">
+                {{ historial|length }}
+            </p>
+            <p class="text-sm text-gray-600 mt-1">Total registrados</p>
+        </div>
+        
+        <div class="bg-red-50 rounded-lg shadow p-6 border-l-4 border-red-500">
+            <h3 class="font-bold text-gray-900 mb-2">🚨 Reparaciones Correctivas</h3>
+            <p class="text-3xl font-bold text-red-600">
+                0
+            </p>
+            <p class="text-sm text-gray-600 mt-1">Total registradas</p>
+        </div>
+        
+        <div class="bg-purple-50 rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <h3 class="font-bold text-gray-900 mb-2">🔮 Mantenimientos Predictivos</h3>
+            <p class="text-3xl font-bold text-purple-600">
+                0
+            </p>
+            <p class="text-sm text-gray-600 mt-1">Total registrados</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
