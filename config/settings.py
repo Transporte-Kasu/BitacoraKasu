@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_template_maths',
     # Apps del proyecto
     'modulos.operadores',
     'modulos.unidades',
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     'modulos.combustible',
     'modulos.compras',
     'modulos.taller',
+    'modulos.almacen',
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Órdenes de Compra{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <h1 class="text-3xl font-bold mb-6">🛒 Órdenes de Compra</h1>
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Folio</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for orden in ordenes %}
+                <tr>
+                    <td class="px-6 py-4 font-mono">{{ orden.folio }}</td>
+                    <td class="px-6 py-4">{{ orden.proveedor.nombre }}</td>
+                    <td class="px-6 py-4 text-sm">{{ orden.fecha_creacion|date:"d/m/Y" }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded bg-purple-100 text-purple-800">{{ orden.get_estado_display }}</span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay órdenes</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

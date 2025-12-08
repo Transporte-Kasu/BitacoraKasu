@@ -1,0 +1,267 @@
+CATEGORÍA,SUBCATEGORÍA,SKU,CÓDIGO DE BARRAS,DESCRIPCION,CANTIDAD,UdM,COSTO UNITARIO (MXN),TOTAL,Stock Min,Stock Max,¿REQUIERE REORDEN?,NOTAS
+Herramientas y Equipo de Taller,Levantamiento,CA-SKU-001,*CA-SKU-001*,GATAS,19,PZA,"$1,250.00","$23,750.00",1,,FALSE,"Alto stock, revisar estado."
+Herramientas y Equipo de Taller,Levantamiento,CA-SKU-002,*CA-SKU-002*,GATAS DE OTRO TIPO,3,PZA,$980.00,"$2,940.00",1,,FALSE,Stock moderado.
+Lubricantes y Fluidos,Aceite,CA-SKU-003,*CA-SKU-003*,VALVOLINE DE 19 LTS 15W40,1,BOTE,"$2,850.00","$2,850.00",1,,TRUE,"Stock muy bajo, reordenar urgente."
+Lubricantes y Fluidos,Aceite,CA-SKU-004,*CA-SKU-004*,MOBIL 15W40 19LTS,9,BOTE,"$3,100.00","$27,900.00",1,,FALSE,Stock regular.
+Lubricantes y Fluidos,Grasa,CA-SKU-005,*CA-SKU-005*,"MEX LUB , GRASA MULTIUSOS",1,PZA,$450.00,$450.00,1,,TRUE,"Stock muy bajo, reordenar."
+Equipo de Seguridad,Vial,CA-SKU-006,*CA-SKU-006*,CONOS DE SEGURIDAD,58,PZA,$120.00,"$6,960.00",1,,FALSE,Buen stock para señalización.
+Equipo de Seguridad,Extintores,CA-SKU-007,*CA-SKU-007*,EXTINTOR 4.5KG,4,UND,"$1,100.00","$4,400.00",1,,FALSE,Revisar fechas de caducidad/recarga.
+Equipo de Seguridad,Extintores,CA-SKU-008,*CA-SKU-008*,EXTINTOR 1KG,2,UND,$480.00,$960.00,1,,TRUE,Revisar fechas de caducidad/recarga.
+Equipo de Seguridad,Extintores,CA-SKU-009,*CA-SKU-009*,EXTINTOR 2KG,5,UND,$650.00,"$3,250.00",1,,FALSE,Revisar fechas de caducidad/recarga.
+Equipo de Taller y Mantenimiento,Equipo de Jardín,CA-SKU-010,*CA-SKU-010*,DESBROZADORA,1,UND,"$4,500.00","$4,500.00",1,,TRUE,"Pieza única, verificar funcionalidad."
+Equipo de Taller y Mantenimiento,Equipo de Jardín,CA-SKU-011,*CA-SKU-011*,BOMBA PARA FUMUGAR,1,UND,"$1,800.00","$1,800.00",1,,TRUE,"Pieza única, verificar funcionalidad."
+Equipo de Seguridad,Vial,CA-SKU-012,*CA-SKU-012*,TRIANGULOS DE SEGURIDAD,2,PZA,$350.00,$700.00,1,,TRUE,Mínimo requerido.
+Misceláneos,Comunicación,CA-SKU-013,*CA-SKU-013*,RADIOS BANDA CORTA,5,PZA,$950.00,"$4,750.00",1,,FALSE,Radios en uso.
+Misceláneos,Comunicación,CA-SKU-014,*CA-SKU-014*,RADIO BANDA ANCHA MARCA COBRA LTD,2,PZA,"$2,100.00","$4,200.00",1,,TRUE,"Radios en uso, bajo stock."
+Oficina y Administración,Equipo de Cómputo,CA-SKU-015,*CA-SKU-015*,IMPRESORA SAMSUNG,1,UND,"$3,500.00","$3,500.00",1,,FALSE,Activo fijo.
+Refacciones y Piezas de Motor,Transmisión y Ejes,CA-SKU-016,*CA-SKU-016*,DIFERENCIAL GD,1,UND,"$28,000.00","$28,000.00",1,,TRUE,Refacción crítica.
+Refacciones y Piezas de Motor,Transmisión y Ejes,CA-SKU-017,*CA-SKU-017*,DIFERENCIAL CH,1,UND,"$25,500.00","$25,500.00",1,,TRUE,Refacción crítica.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-018,*CA-SKU-018*,CADENA DE 6 MTS C/GANCHO,8,PZA,$850.00,"$6,800.00",1,,FALSE,Uso en remolque/taller.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-019,*CA-SKU-019*,CADENA DE 6 MTS S/GANCHO,1,PZA,$600.00,$600.00,1,,TRUE,Uso en remolque/taller.
+Refacciones y Piezas de Motor,Freno y Suspensión,CA-SKU-020,*CA-SKU-020*,BALATA 4707,27,PZA,$750.00,"$20,250.00",1,,FALSE,Stock regular de consumo.
+Refacciones y Piezas de Motor,Freno y Suspensión,CA-SKU-021,*CA-SKU-021*,BALATA 4515,21,PZA,$690.00,"$14,490.00",1,,FALSE,Stock regular de consumo.
+Refacciones y Piezas de Motor,Misceláneo,CA-SKU-022,*CA-SKU-022*,LLANTA P/PATIN ELECTRICO,1,PZA,"$1,200.00","$1,200.00",1,,TRUE,"Especializada, reordenar."
+Misceláneos,Accesorios de Chasis,CA-SKU-023,*CA-SKU-023*,TIRAS REFLEJANTES P/ CHASIS,5,PZA,$55.00,$275.00,1,,FALSE,Seguridad vial.
+Refacciones y Piezas de Motor,Combustible,CA-SKU-024,*CA-SKU-024*,TAPON PARA DIESEL,2,PZA,$250.00,$500.00,1,,TRUE,Bajo stock.
+Misceláneos,Accesorios de Chasis,CA-SKU-025,*CA-SKU-025*,BANDERINES PARA CHASIS,7,PZA,$80.00,$560.00,1,,FALSE,Stock adecuado.
+Carrocería e Iluminación,Carrocería,CA-SKU-026,*CA-SKU-026*,PORTA FARO T600,2,PZA,"$1,800.00","$3,600.00",1,,TRUE,Pieza específica de carrocería.
+Carrocería e Iluminación,Carrocería,CA-SKU-027,*CA-SKU-027*,"CONCAVO 8""",1,PZA,$350.00,$350.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Partes de Cabina,CA-SKU-028,*CA-SKU-028*,BRAZO N28722A FRTLNR,1,PZA,$950.00,$950.00,1,,TRUE,Pieza específica de cabina.
+Carrocería e Iluminación,Espejos,CA-SKU-029,*CA-SKU-029*,1/4 ESPEJO CON RETROVISOR,3,PZA,$450.00,"$1,350.00",1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Espejos,CA-SKU-030,*CA-SKU-030*,CONCHA P/ RETROVISOR,3,PZA,$180.00,$540.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Espejos,CA-SKU-031,*CA-SKU-031*,BRAZO SOPORTA RETROVISOR,1,PZA,$550.00,$550.00,1,,TRUE,Pieza única.
+Misceláneos,Taller y Limpieza,CA-SKU-032,*CA-SKU-032*,TUVO DE DRENAJE,1,PZA,$150.00,$150.00,1,,FALSE,Item de mantenimiento.
+Refacciones y Piezas de Motor,Motor,CA-SKU-033,*CA-SKU-033*,VARILLA DE NIVEL DE ACEITE,1,PZA,$180.00,$180.00,1,,TRUE,"Pieza única, reordenar."
+Equipo de Seguridad,Inspección,CA-SKU-034,*CA-SKU-034*,ESPEJO DE INSPECCION VEHICULAR,1,PZA,"$1,500.00","$1,500.00",1,,TRUE,Equipo de seguridad especializada.
+Equipo de Seguridad,Personal,CA-SKU-035,*CA-SKU-035*,CASCO DE SEGURIDAD,1,PZA,$600.00,$600.00,1,,TRUE,"Pieza única, reordenar."
+Carrocería e Iluminación,Espejos,CA-SKU-036,*CA-SKU-036*,BRAZO C/ ESPEJO RETROVISOR,1,PZA,$750.00,$750.00,1,,TRUE,Pieza única.
+Carrocería e Iluminación,Limpiaparabrisas,CA-SKU-037,*CA-SKU-037*,"PLUMA LIMPIA PARABRISAS 22""",2,PZA,$220.00,$440.00,1,,TRUE,Bajo stock.
+Carrocería e Iluminación,Limpiaparabrisas,CA-SKU-038,*CA-SKU-038*,BRAZO LIMPIA PARABRISAS,2,PZA,$310.00,$620.00,1,,TRUE,Bajo stock.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-039,*CA-SKU-039*,"CAJA DE ESLINGAS , USADAS.",1,CAJA,$400.00,$400.00,1,,FALSE,Estado: Usadas. (Cantidad estandarizada a 1 caja)
+Carrocería e Iluminación,Carrocería (Usado/Reparado),CA-SKU-040,*CA-SKU-040*,SALPICADERA -USADA,1,PZA,$900.00,$900.00,1,,FALSE,Inventario de usados.
+Carrocería e Iluminación,Eléctrico (Usado/Reparado),CA-SKU-041,*CA-SKU-041*,TAPA DEL PORTA PILAS- USADO,1,PZA,$50.00,$50.00,1,,FALSE,Inventario de usados.
+Carrocería e Iluminación,Iluminación (Usado/Reparado),CA-SKU-042,*CA-SKU-042*,FARO DELANTERO - USADO (ECO 27),1,PZA,"$1,500.00","$1,500.00",1,,FALSE,Inventario de usados.
+Carrocería e Iluminación,Carrocería (Usado/Reparado),CA-SKU-043,*CA-SKU-043*,RENTE DE PARRILLA KW-REPARADO (ECO 01),1,PZA,"$3,500.00","$3,500.00",1,,FALSE,Inventario de reparados.
+Equipo de Seguridad,Personal (Chalecos),CA-SKU-044,*CA-SKU-044*,CHALECOS MR TALLA XL,3,PZA,$180.00,$540.00,1,,FALSE,Ropa de seguridad.
+Equipo de Seguridad,Personal (Chalecos),CA-SKU-045,*CA-SKU-045*,CHALECOS KASU,5,PZA,$160.00,$800.00,1,,FALSE,Ropa de seguridad.
+Equipo de Seguridad,Personal (Chalecos),CA-SKU-046,*CA-SKU-046*,CHALECOS ESPERANZA 2XL,3,PZA,$180.00,$540.00,1,,FALSE,Ropa de seguridad.
+Equipo de Seguridad,Personal (Chalecos),CA-SKU-047,*CA-SKU-047*,CHALECOS ESPERANZA XL,4,PZA,$180.00,$720.00,1,,FALSE,Ropa de seguridad.
+Equipo de Seguridad,Personal (Chalecos),CA-SKU-048,*CA-SKU-048*,CHALECOS ESPERANZA L,3,PZA,$180.00,$540.00,1,,FALSE,Ropa de seguridad.
+Equipo de Seguridad,Personal (Chalecos),CA-SKU-049,*CA-SKU-049*,CHALECOS ROJOS DE SEGURIDAD,7,PZA,$150.00,"$1,050.00",1,,FALSE,Ropa de seguridad.
+Misceláneos,Uniformes (Camisas),CA-SKU-050,*CA-SKU-050*,CAMISA AZUL XG,3,PZA,$250.00,$750.00,1,,TRUE,Bajo stock de esta talla/color.
+Misceláneos,Uniformes (Camisas),CA-SKU-051,*CA-SKU-051*,CAMISA AZUL GD,4,PZA,$250.00,"$1,000.00",1,,TRUE,Bajo stock de esta talla/color.
+Misceláneos,Uniformes (Camisas),CA-SKU-052,*CA-SKU-052*,CAMISA AZUL CH,7,PZA,$250.00,"$1,750.00",1,,FALSE,Stock adecuado.
+Misceláneos,Uniformes (Camisas),CA-SKU-053,*CA-SKU-053*,CAMISA GRIS CH,11,PZA,$250.00,"$2,750.00",1,,FALSE,Stock adecuado.
+Misceláneos,Uniformes (Camisas),CA-SKU-054,*CA-SKU-054*,CAMISA GRIS 2XL,13,PZA,$250.00,"$3,250.00",1,,FALSE,Stock adecuado.
+Misceláneos,Uniformes (Camisas),CA-SKU-055,*CA-SKU-055*,CAMISA GRIS MP,23,PZA,$250.00,"$5,750.00",1,,FALSE,Alto stock de esta talla.
+Misceláneos,Uniformes (Camisas),CA-SKU-056,*CA-SKU-056*,CAMISA GRIS GD,3,PZA,$250.00,$750.00,1,,TRUE,Bajo stock de esta talla/color.
+Misceláneos,Uniformes (Camisas),CA-SKU-057,*CA-SKU-057*,CAMISA GRIS XG,40,PZA,$250.00,"$10,000.00",1,,FALSE,Alto stock de esta talla.
+Carrocería e Iluminación,Focos,CA-SKU-058,*CA-SKU-058*,FOCO OPTIMUS 112202,1,PZA,$120.00,$120.00,1,,TRUE,"Bajo stock, específico."
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-059,*CA-SKU-059*,MANGUERA FDMCOC227C,1,PZA,$450.00,$450.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-060,*CA-SKU-060*,TAPA DE MANGUERA NPT1/2,1,PZA,$80.00,$80.00,1,,TRUE,Pieza única.
+Misceláneos,Lubricantes/Químicos,CA-SKU-061,*CA-SKU-061*,GONER 1430589,1,PZA,$280.00,$280.00,1,,TRUE,Químico específico.
+Refacciones y Piezas de Motor,Freno y Suspensión,CA-SKU-062,*CA-SKU-062*,BALATA NTN,1,PZA,$780.00,$780.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Motor,CA-SKU-063,*CA-SKU-063*,INYECTORES MOTOR X15,4,PZA,"$12,500.00","$50,000.00",1,,FALSE,Componente crítico.
+Refacciones y Piezas de Motor,Motor,CA-SKU-064,*CA-SKU-064*,JUEGO DE BUJES 563630,1,JGO,$950.00,$950.00,1,,TRUE,Kit único.
+Refacciones y Piezas de Motor,Sensores,CA-SKU-065,*CA-SKU-065*,SENSOR DE PRESION,1,PZA,"$1,800.00","$1,800.00",1,,TRUE,Sensor único.
+Refacciones y Piezas de Motor,Sensores,CA-SKU-066,*CA-SKU-066*,SENSORES DE TEMPERATURA,3,PZA,$550.00,"$1,650.00",1,,FALSE,Stock bajo.
+Refacciones y Piezas de Motor,Motor,CA-SKU-067,*CA-SKU-067*,TUERCA MMOD271,1,PZA,$45.00,$45.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Motor,CA-SKU-068,*CA-SKU-068*,KIT HCVAM SIN REGRASO,0,KIT,"$2,100.00",$0.00,1,,TRUE,"Sin cantidad especificada, reordenar. (Asumido 0)"
+Refacciones y Piezas de Motor,Baleros y Rodamientos,CA-SKU-069,*CA-SKU-069*,RODAMIENTO KOYO JM511910E,1,PZA,$850.00,$850.00,1,,TRUE,Rodamiento único.
+Refacciones y Piezas de Motor,Baleros y Rodamientos,CA-SKU-070,*CA-SKU-070*,NRB BUM NEO 1509001,2,PZA,$380.00,$760.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Motor,CA-SKU-071,*CA-SKU-071*,ADAPTADOR PARA BUJE 14956,1,PZA,$150.00,$150.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Motor,CA-SKU-072,*CA-SKU-072*,DRETROIT DDE P0159974946,1,PZA,"$9,500.00","$9,500.00",1,,TRUE,Pieza única.
+Carrocería e Iluminación,Eléctrico,CA-SKU-073,*CA-SKU-073*,ALARMA DE MARCHA 38322550,1,PZA,"$1,300.00","$1,300.00",1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Baleros y Rodamientos,CA-SKU-074,*CA-SKU-074*,RODAMIENTODE COJINES,2,PZA,$650.00,"$1,300.00",1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Baleros y Rodamientos,CA-SKU-075,*CA-SKU-075*,TIMKEN SET 414,2,PZA,$480.00,$960.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Baleros y Rodamientos,CA-SKU-076,*CA-SKU-076*,TINKEN SET 413,2,PZA,$480.00,$960.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Juntas y Empaques,CA-SKU-077,*CA-SKU-077*,JUNTAS MATOPLASTICAS 3683537,2,PZA,$180.00,$360.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Motor,CA-SKU-078,*CA-SKU-078*,KIT SUBKIN29,2,KIT,"$2,500.00","$5,000.00",1,,TRUE,Kit único.
+Refacciones y Piezas de Motor,Motor,CA-SKU-079,*CA-SKU-079*,EL TURBO 3678762,1,PZA,"$42,000.00","$42,000.00",1,,TRUE,"Componente crítico, reordenar."
+Refacciones y Piezas de Motor,Juntas y Empaques,CA-SKU-080,*CA-SKU-080*,GASKET -REGUL 100817,1,PZA,$150.00,$150.00,1,,TRUE,Empaque único.
+Refacciones y Piezas de Motor,Juntas y Empaques,CA-SKU-081,*CA-SKU-081*,EMPAQUE 100816,1,PZA,$150.00,$150.00,1,,TRUE,Empaque único.
+Herramientas y Equipo de Taller,Taller,CA-SKU-082,*CA-SKU-082*,GRASERAS,7,PZA,$90.00,$630.00,1,,FALSE,Herramienta/accesorio.
+Carrocería e Iluminación,Eléctrico,CA-SKU-083,*CA-SKU-083*,PORTA FUSIBLE 3198600,1,PZA,$75.00,$75.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Juntas y Empaques,CA-SKU-084,*CA-SKU-084*,JUNTA ESCAPE CODO 1639810,1,PZA,$280.00,$280.00,1,,TRUE,Empaque único.
+Refacciones y Piezas de Motor,Motor,CA-SKU-085,*CA-SKU-085*,ANILLOS 359643,2,JGO,"$1,200.00","$2,400.00",1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Motor,CA-SKU-086,*CA-SKU-086*,KIT SUB K/SPIN 27,1,KIT,$850.00,$850.00,1,,TRUE,Kit único.
+Refacciones y Piezas de Motor,Motor,CA-SKU-087,*CA-SKU-087*,KIT TAPON K172902,1,KIT,$120.00,$120.00,1,,TRUE,Kit único.
+Herramientas y Equipo de Taller,Taller,CA-SKU-088,*CA-SKU-088*,TORNILLOS SUELTOS,2,PZA,$10.00,$20.00,1,,TRUE,Bajo stock.
+Herramientas y Equipo de Taller,Taller,CA-SKU-089,*CA-SKU-089*,MILMO P/TUBI,1,PZA,$850.00,$850.00,1,,TRUE,Herramienta única.
+Refacciones y Piezas de Motor,Suspensión Neumática,CA-SKU-090,*CA-SKU-090*,VALVULA NIVELADORA PARA BOLSAS D AIRE,1,PZA,"$3,500.00","$3,500.00",1,,TRUE,Válvula crítica.
+Refacciones y Piezas de Motor,Suspensión Neumática,CA-SKU-091,*CA-SKU-091*,BARRILLA NIVELADORA,12,PZA,$150.00,"$1,800.00",1,,FALSE,Stock adecuado.
+Misceláneos,Lubricantes/Químicos,CA-SKU-092,*CA-SKU-092*,AFLOJA TODO WURTH,5,BOTE,$180.00,$900.00,1,,FALSE,Uso constante en taller.
+Misceláneos,Lubricantes/Químicos,CA-SKU-093,*CA-SKU-093*,LIMPIA CONTACTOS WURTH,5,BOTE,$150.00,$750.00,1,,FALSE,Uso constante en taller.
+Misceláneos,Lubricantes/Químicos,CA-SKU-094,*CA-SKU-094*,ARRANCADOR WURTH,5,BOTE,$160.00,$800.00,1,,FALSE,Uso constante en taller.
+Oficina y Administración,Limpieza,CA-SKU-095,*CA-SKU-095*,PAPEL HIGIENICO,1,CAJA,$350.00,$350.00,1,,FALSE,Consumible de oficina.
+Oficina y Administración,Limpieza,CA-SKU-096,*CA-SKU-096*,PAPEL TOALLA,1,CAJA,$380.00,$380.00,1,,FALSE,Consumible de oficina.
+Oficina y Administración,Limpieza,CA-SKU-097,*CA-SKU-097*,SHAMPO PARA MANOS,1,GALON,$120.00,$120.00,1,,FALSE,Consumible de taller.
+Refacciones y Piezas de Motor,Suspensión Neumática,CA-SKU-098,*CA-SKU-098*,BOLSA DE AIRE SP558829KP,1,PZA,"$5,500.00","$5,500.00",1,,TRUE,Repuesto crítico.
+Refacciones y Piezas de Motor,Suspensión Neumática,CA-SKU-099,*CA-SKU-099*,BOLSA DE AIRE IR12-615,2,PZA,"$4,800.00","$9,600.00",1,,TRUE,Repuesto crítico.
+Refacciones y Piezas de Motor,Suspensión Neumática,CA-SKU-100,*CA-SKU-100*,BOLSA DE AIRE 1 R11-268,1,PZA,"$6,100.00","$6,100.00",1,,TRUE,Repuesto crítico.
+Refacciones y Piezas de Motor,Suspensión Neumática,CA-SKU-101,*CA-SKU-101*,BOLSA DE AIRE SP 557897,1,PZA,"$5,900.00","$5,900.00",1,,TRUE,Repuesto crítico.
+Refacciones y Piezas de Motor,Suspensión Neumática,CA-SKU-102,*CA-SKU-102*,BOLSA DE AIRE SP558050-KA,1,PZA,"$5,500.00","$5,500.00",1,,TRUE,Repuesto crítico.
+Refacciones y Piezas de Motor,Eléctrico/Motor,CA-SKU-103,*CA-SKU-103*,ALTERNADOR 212-011,1,PZA,"$8,500.00","$8,500.00",1,,TRUE,Componente eléctrico crítico.
+Refacciones y Piezas de Motor,Freno,CA-SKU-104,*CA-SKU-104*,ROTOCHAMBER DOBLE,2,PZA,"$2,200.00","$4,400.00",1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Freno,CA-SKU-105,*CA-SKU-105*,ROTOCHAMBER SENCILLO,2,PZA,"$1,800.00","$3,600.00",1,,TRUE,Bajo stock.
+Misceláneos,Sujeción,CA-SKU-106,*CA-SKU-106*,CINCHOS 200X4.5,2,PZA,$15.00,$30.00,1,,TRUE,"Stock muy bajo, consumible."
+Misceláneos,Sujeción,CA-SKU-107,*CA-SKU-107*,CINCHOS 150X2.5,4,PZA,$10.00,$40.00,1,,TRUE,"Stock bajo, consumible."
+Misceláneos,Sujeción,CA-SKU-108,*CA-SKU-108*,CINCHOS 200X3.5,1,PZA,$12.00,$12.00,1,,TRUE,"Stock muy bajo, consumible."
+Misceláneos,Sujeción,CA-SKU-109,*CA-SKU-109*,CINCHOS 200 X 4.5,2,PZA,$15.00,$30.00,1,,TRUE,"Stock muy bajo, consumible."
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-110,*CA-SKU-110*,TAPAS,3,PZA,$80.00,$240.00,1,,FALSE,Accesorios.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-111,*CA-SKU-111*,TAPAS PARA MASA CHICA,11,PZA,$65.00,$715.00,1,,FALSE,Stock adecuado.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-112,*CA-SKU-112*,TAPAS PARA MASA CHICA GAMUSA,1,PZA,$75.00,$75.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-113,*CA-SKU-113*,"TAPAS PARA MASA MEDIANA 4""",18,PZA,$90.00,"$1,620.00",1,,FALSE,Stock adecuado.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-114,*CA-SKU-114*,TAPAS PARA MASA MEDIANA GAMUSA,2,PZA,$100.00,$200.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-115,*CA-SKU-115*,TAPAS PARA MASA GRANDE ASBESTO,4,PZA,$120.00,$480.00,1,,FALSE,Stock bajo.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-116,*CA-SKU-116*,TAPAS PARA FLECHA,3,PZA,$95.00,$285.00,1,,FALSE,Stock bajo.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-117,*CA-SKU-117*,TAPAS PARA FLECHA GRANDE,8,PZA,$110.00,$880.00,1,,FALSE,Stock adecuado.
+Refacciones y Piezas de Motor,Freno y Suspensión,CA-SKU-118,*CA-SKU-118*,AMORTIGUADOR M85937,4,PZA,"$1,500.00","$6,000.00",1,,FALSE,Bajo stock.
+Refacciones y Piezas de Motor,Freno y Suspensión,CA-SKU-119,*CA-SKU-119*,AMORTIGUADOR 65158MM,1,PZA,"$1,700.00","$1,700.00",1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Freno y Suspensión,CA-SKU-120,*CA-SKU-120*,AMORTIGUADOR 671963-2,4,PZA,"$1,650.00","$6,600.00",1,,FALSE,Bajo stock (repetido en lista).
+Refacciones y Piezas de Motor,Freno y Suspensión,CA-SKU-121,*CA-SKU-121*,AMORTIGUADOR B91-1001,5,PZA,"$1,400.00","$7,000.00",1,,FALSE,Bajo stock.
+Refacciones y Piezas de Motor,Freno y Suspensión,CA-SKU-122,*CA-SKU-122*,AMORTIGUADOR 671963-2,4,PZA,"$1,650.00","$6,600.00",1,,FALSE,Bajo stock (repetido en lista).
+Herramientas y Equipo de Taller,Taller (Consumibles),CA-SKU-123,*CA-SKU-123*,BROCAS 3/16,10,PZA,$40.00,$400.00,1,,FALSE,Consumible de taller.
+Herramientas y Equipo de Taller,Taller (Consumibles),CA-SKU-124,*CA-SKU-124*,REMACHES 3/16 PQT,5,PAQ,$70.00,$350.00,1,,FALSE,Consumible de taller.
+Herramientas y Equipo de Taller,Taller (Consumibles),CA-SKU-125,*CA-SKU-125*,BROCA GRANDE,1,PZA,$150.00,$150.00,1,,TRUE,Pieza única.
+Equipo de Seguridad,Vial,CA-SKU-126,*CA-SKU-126*,TAPONES DE SEGURIDAD,8,PZA,$25.00,$200.00,1,,FALSE,Stock adecuado.
+Misceláneos,Pegamentos y Selladores,CA-SKU-127,*CA-SKU-127*,SILICON NEGRO,3,BOTE,$80.00,$240.00,1,,FALSE,Consumible de taller.
+Carrocería e Iluminación,Eléctrico,CA-SKU-128,*CA-SKU-128*,CONECTORES P/ CABLE MACHO,12,PZA,$15.00,$180.00,1,,FALSE,Consumible eléctrico.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-129,*CA-SKU-129*,MANGUERA P/SOPLETEAR EN ESPIRAL,2,PZA,$350.00,$700.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-130,*CA-SKU-130*,MANGUERA P/ POSENFRIADOR COLOR AZUL,3,PZA,$450.00,"$1,350.00",1,,FALSE,Stock bajo.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-131,*CA-SKU-131*,KIT DE MANGUERA C/MANITA Y SARGENTO AMARILLA,2,KIT,"$1,200.00","$2,400.00",1,,TRUE,"Kit completo, bajo stock."
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-132,*CA-SKU-132*,BOLSA DE GOMAS PARA MANITA,1,BOLSA,$150.00,$150.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-133,*CA-SKU-133*,TAPONES PARA MASA ROJAS,0.5,PAQ,$40.00,$40.00,1,,TRUE,"Bajo stock, verificar unidad. (1/2 PAQ = 0.5 PAQ)"
+Herramientas y Equipo de Taller,Taller (Consumibles),CA-SKU-134,*CA-SKU-134*,DISCO PARA CORTE,11,PZA,$60.0ABLE,$660.00,1,,FALSE,Consumible.
+Herramientas y Equipo de Taller,Taller (Consumibles),CA-SKU-135,*CA-SKU-135*,DISCO DE ASBASTO,3,PZA,$75.00,$225.00,1,,FALSE,Consumible.
+Carrocería e Iluminación,Focos,CA-SKU-136,*CA-SKU-136*,FOCO H11,4,PZA,$80.00,$320.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Focos,CA-SKU-137,*CA-SKU-137*,FOCO 9005,2,PZA,$65.00,$130.00,1,,TRUE,Stock muy bajo.
+Carrocería e Iluminación,Focos,CA-SKU-138,*CA-SKU-138*,FOCO 9007,2,PZA,$65.00,$130.00,1,,TRUE,Stock muy bajo.
+Carrocería e Iluminación,Focos,CA-SKU-139,*CA-SKU-139*,FOCO 3157NA,0,PZA,$50.00,$0.00,1,,TRUE,"No hay stock, reordenar urgente."
+Carrocería e Iluminación,Focos,CA-SKU-140,*CA-SKU-140*,FOCO 1141,1,PZA,$35.00,$35.00,1,,TRUE,Pieza única.
+Carrocería e Iluminación,Focos,CA-SKU-141,*CA-SKU-141*,FOCO 0053,9,PZA,$45.00,$405.00,1,,FALSE,Stock adecuado.
+Carrocería e Iluminación,Focos,CA-SKU-142,*CA-SKU-142*,FOCO 0258,4,PZA,$45.00,$180.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Focos,CA-SKU-143,*CA-SKU-143*,FOCO 1948006,2,PZA,$55.00,$110.00,1,,TRUE,Stock muy bajo.
+Carrocería e Iluminación,Focos,CA-SKU-144,*CA-SKU-144*,FOCO1943500,1,PZA,$55.00,$55.00,1,,TRUE,Pieza única.
+Carrocería e Iluminación,Focos,CA-SKU-145,*CA-SKU-145*,FOCO 42123,3,PZA,$60.00,$180.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Focos,CA-SKU-146,*CA-SKU-146*,FOCO 42156,1,PZA,$60.00,$60.00,1,,TRUE,Pieza única.
+Carrocería e Iluminación,Focos,CA-SKU-147,*CA-SKU-147*,FOCO H4656,4,PZA,$110.00,$440.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Focos,CA-SKU-148,*CA-SKU-148*,FOCO H4651,3,PZA,$110.00,$330.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Eléctrico,CA-SKU-149,*CA-SKU-149*,PUENTE PARA BATERIA,9,PZA,$450.00,"$4,050.00",1,,FALSE,Herramienta de carga.
+Refacciones y Piezas de Motor,Eléctrico/Baterías,CA-SKU-150,*CA-SKU-150*,BATERIAS LTH PARA CAMION,4,PZA,"$3,800.00","$15,200.00",1,,FALSE,Stock adecuado para recambio.
+Herramientas y Equipo de Taller,Taller (Consumibles),CA-SKU-151,*CA-SKU-151*,REPUESTO P/SEGUETA,1,PZA,$35.00,$35.00,1,,TRUE,Pieza única.
+Carrocería e Iluminación,Eléctrico,CA-SKU-152,*CA-SKU-152*,PORTA CIRCUITO,1,PZA,$150.00,$150.00,1,,TRUE,Pieza única.
+Carrocería e Iluminación,Eléctrico,CA-SKU-153,*CA-SKU-153*,CONECTOR TIPO HEMBRA,18,PZA,$20.00,$360.00,1,,FALSE,Consumible.
+Refacciones y Piezas de Motor,Freno,CA-SKU-154,*CA-SKU-154*,MANITAS AZULES,20,PZA,$150.00,"$3,000.00",1,,FALSE,Stock alto.
+Refacciones y Piezas de Motor,Freno,CA-SKU-155,*CA-SKU-155*,MANITAS ROJAS,15,PZA,$150.00,"$2,250.00",1,,FALSE,Stock alto.
+Refacciones y Piezas de Motor,Suspensión Neumática,CA-SKU-156,*CA-SKU-156*,VALVULA NIVELADORA,2,PZA,"$3,200.00","$6,400.00",1,,TRUE,Bajo stock.
+Carrocería e Iluminación,Plafones,CA-SKU-157,*CA-SKU-157*,PLAFON OVALADO,1,PZA,$90.00,$90.00,1,,TRUE,Pieza única.
+Carrocería e Iluminación,Plafones,CA-SKU-158,*CA-SKU-158*,PLAFON OVALADO PULIDO,5,PZA,$110.00,$550.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Plafones,CA-SKU-159,*CA-SKU-159*,PLAFON AMBAR,8,PZA,$75.00,$600.00,1,,FALSE,Stock adecuado.
+Carrocería e Iluminación,Plafones,CA-SKU-160,*CA-SKU-160*,PLAFON ROJO,7,PZA,$75.00,$525.00,1,,FALSE,Stock adecuado.
+Carrocería e Iluminación,Plafones,CA-SKU-161,*CA-SKU-161*,PLAFON AMBAR MULTI,4,PZA,$85.00,$340.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Plafones,CA-SKU-162,*CA-SKU-162*,"PLAFON AMBAR 2""",4,PZA,$60.00,$240.00,1,,FALSE,Stock bajo.
+Carrocería e Iluminación,Plafones,CA-SKU-163,*CA-SKU-163*,PLAFON LED ROJO,1,PZA,$180.00,$180.00,1,,TRUE,"Pieza única, LED."
+Carrocería e Iluminación,Plafones,CA-SKU-164,*CA-SKU-164*,PLAFON ROJO TRANSPARENTE,6,PZA,$65.00,$390.00,1,,FALSE,Stock adecuado.
+Carrocería e Iluminación,Plafones,CA-SKU-165,*CA-SKU-165*,PLAFON AMBAR TRANSPARENTE,6,PZA,$65.00,$390.00,1,,FALSE,Stock adecuado.
+Refacciones y Piezas de Motor,Bandas,CA-SKU-166,*CA-SKU-166*,BANDA M52,2,PZA,$250.00,$500.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Bandas,CA-SKU-167,*CA-SKU-167*,BANDA A57,1,PZA,$280.00,$280.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Bandas,CA-SKU-168,*CA-SKU-168*,BANDA BA 52,1,PZA,$310.00,$310.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Bandas,CA-SKU-169,*CA-SKU-169*,BANDA AX59,1,PZA,$300.00,$300.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Bandas,CA-SKU-170,*CA-SKU-170*,BANDA 0721MX,1,PZA,$240.00,$240.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-171,*CA-SKU-171*,MANGUERA LISA,3,PZA,$80.00,$240.00,1,,FALSE,Manguera genérica.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-172,*CA-SKU-172*,MANGUERA 3687221,2,PZA,$550.00,"$1,100.00",1,,TRUE,Manguera específica.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-173,*CA-SKU-173*,MANGUERA 4719970,2,PZA,$610.00,"$1,220.00",1,,TRUE,Manguera específica.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-174,*CA-SKU-174*,MANGUERA 2872782,2,PZA,$580.00,"$1,160.00",1,,TRUE,Manguera específica.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-175,*CA-SKU-175*,MANGUERA 2 1/4-11CM,1,PZA,$450.00,$450.00,1,,TRUE,Manguera específica.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-176,*CA-SKU-176*,"MANGUERA 2"" -10.5 CM",1,PZA,$420.00,$420.00,1,,TRUE,Manguera específica.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-177,*CA-SKU-177*,MSNGUERA,4,PZA,$90.00,$360.00,1,,FALSE,Manguera genérica.
+Oficina y Administración,Limpieza,CA-SKU-178,*CA-SKU-178*,BOLSA P/BASURA,1,CAJA,$150.00,$150.00,1,,FALSE,Consumible de limpieza.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-179,*CA-SKU-179*,MANGUERAS EN ESPIRAL ROJAS Y AZULES,6,PARES,"$1,500.00","$9,000.00",1,,FALSE,Stock adecuado.
+Refacciones y Piezas de Motor,Motor,CA-SKU-180,*CA-SKU-180*,"SEPARADOR DE ACEITE OEM,DETROIT.",1,PZA,"$1,800.00","$1,800.00",1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Eléctrico/Motor,CA-SKU-181,*CA-SKU-181*,COMPUTADORA CUMMINS ISX ROJA,1,PZA,"$35,000.00","$35,000.00",1,,TRUE,Componente electrónico crítico.
+Refacciones y Piezas de Motor,Mangueras y Conexiones,CA-SKU-182,*CA-SKU-182*,MANGUERA P/TURBO,1,PZA,$750.00,$750.00,1,,TRUE,Manguera única.
+Refacciones y Piezas de Motor,Motor,CA-SKU-183,*CA-SKU-183*,SEPARADOR DEL CARTER,1,PZA,"$1,100.00","$1,100.00",1,,TRUE,Pieza única.
+Herramientas y Equipo de Taller,Taller,CA-SKU-184,*CA-SKU-184*,MATRACA ACP,1,PZA,$750.00,$750.00,1,,TRUE,Herramienta única.
+Herramientas y Equipo de Taller,Taller,CA-SKU-185,*CA-SKU-185*,MATRACA TRO,2,PZA,$850.00,"$1,700.00",1,,TRUE,Bajo stock.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-186,*CA-SKU-186*,JALON TIPO PERICO,3,PZA,$600.00,"$1,800.00",1,,FALSE,Equipo de remolque.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-187,*CA-SKU-187*,JALON TIPO PERICO /INCOMPLETO,2,PZA,$300.00,$600.00,1,,TRUE,Verificar si son utilizables.
+Refacciones y Piezas de Motor,Juntas y Empaques,CA-SKU-188,*CA-SKU-188*,JUNTA PARA PUNTERIA ISK,2,PZA,$150.00,$300.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-189,*CA-SKU-189*,TAPA P/MASA GRANDE,2,PZA,$110.00,$220.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Ejes y Masa,CA-SKU-190,*CA-SKU-190*,TAPA P/MASA MEDIANA,1,PZA,$90.00,$90.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Eléctrico/Motor,CA-SKU-191,*CA-SKU-191*,ALTERNADOR (L-06),1,PZA,"$7,900.00","$7,900.00",1,,TRUE,Componente crítico.
+Refacciones y Piezas de Motor,Freno,CA-SKU-192,*CA-SKU-192*,VALVULA DE DESCARGA,1,PZA,"$1,800.00","$1,800.00",1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Freno,CA-SKU-193,*CA-SKU-193*,KIT DE REPARACION 880 RA,2,KIT,$950.00,"$1,900.00",1,,TRUE,Kits de reparación.
+Refacciones y Piezas de Motor,Freno,CA-SKU-194,*CA-SKU-194*,"VALVULA DE FRENADO ,MUELLE,BENDIX.",1,PZA,"$2,500.00","$2,500.00",1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Freno,CA-SKU-195,*CA-SKU-195*,"VALVULA DE FRENADO DE PIE,E-6 BENDIX",3,PZA,"$3,100.00","$9,300.00",1,,FALSE,Bajo stock.
+Refacciones y Piezas de Motor,Motor,CA-SKU-196,*CA-SKU-196*,COJINETE BIELA 2882087 CUMMINS,6,PZA,$850.00,"$5,100.00",1,,FALSE,Repuesto crítico.
+Refacciones y Piezas de Motor,Motor,CA-SKU-197,*CA-SKU-197*,KIT LINER-5693706 CUMMINS,6,KIT,"$2,100.00","$12,600.00",1,,FALSE,Repuesto crítico.
+Refacciones y Piezas de Motor,Motor,CA-SKU-198,*CA-SKU-198*,TORNILLO DE CABEZA CON BRIDA-3678804-CUMMINS,4,PZA,$120.00,$480.00,1,,FALSE,Repuesto crítico.
+Herramientas y Equipo de Taller,Levantamiento,CA-SKU-199,*CA-SKU-199*,JACK STAND,2,PZA,$650.00,"$1,300.00",1,,TRUE,"Bases de seguridad, bajo stock."
+Refacciones y Piezas de Motor,Motor (Emisiones),CA-SKU-200,*CA-SKU-200*,VALVULA EGR (ECO 13 ),1,PZA,"$18,000.00","$18,000.00",1,,TRUE,Válvula crítica.
+Refacciones y Piezas de Motor,Baleros y Rodamientos,CA-SKU-201,*CA-SKU-201*,BALERO DE CENTRO,1,PZA,"$1,500.00","$1,500.00",1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Retenes,CA-SKU-202,*CA-SKU-202*,RETEN TRASERO FP-496569,1,PZA,$250.00,$250.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Tren Motriz,CA-SKU-203,*CA-SKU-203*,CRUCETA,2,PZA,$450.00,$900.00,1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Partes de Cabina,CA-SKU-204,*CA-SKU-204*,BUJE -MONTAJE DE CABINA/NAVISTAR-INTER,1,PZA,$850.00,$850.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Eléctrico/Motor,CA-SKU-205,*CA-SKU-205*,SOLEDOIDE DE MARCHA,1,PZA,"$1,200.00","$1,200.00",1,,TRUE,Pieza única.
+Carrocería e Iluminación,Eléctrico,CA-SKU-206,*CA-SKU-206*,INTERRUPTOR DE REVERSA/246704 FREIGHTLINER,1,PZA,$350.00,$350.00,1,,TRUE,Pieza única.
+Refacciones y Piezas de Motor,Sensores,CA-SKU-207,*CA-SKU-207*,SENSOR DE POSICION,1,PZA,"$1,500.00","$1,500.00",1,,TRUE,Sensor único.
+Refacciones y Piezas de Motor,Motor,CA-SKU-208,*CA-SKU-208*,SOPORTE DE MOTOR TRASERO /CASCADIA,1,PZA,"$2,800.00","$2,800.00",1,,TRUE,Pieza única.
+Carrocería e Iluminación,Eléctrico,CA-SKU-209,*CA-SKU-209*,CAJA DE DISTRIBUCIONELECTRICA,6,PZA,$450.00,"$2,700.00",1,,FALSE,Stock adecuado.
+Refacciones y Piezas de Motor,Juntas y Empaques,CA-SKU-210,*CA-SKU-210*,JUNTA DE MONTAJEP/COMPRESOR CUMMINS,1,PZA,$150.00,$150.00,1,,TRUE,Empaque único.
+Refacciones y Piezas de Motor,Suspensión,CA-SKU-211,*CA-SKU-211*,BARRA DE TORCION/FREITHLINER,2,PZA,"$3,500.00","$7,000.00",1,,TRUE,Bajo stock.
+Refacciones y Piezas de Motor,Suspensión,CA-SKU-212,*CA-SKU-212*,BARRA DE TORCION/INTERNACIONAL,1,PZA,"$3,200.00","$3,200.00",1,,TRUE,Pieza única.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-213,*CA-SKU-213*,ESLINGAS 03,4,PZA,$450.00,"$1,800.00",1,,FALSE,Uso en taller.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-214,*CA-SKU-214*,ESLINGAS 02,4,PZA,$400.00,"$1,600.00",1,,FALSE,Uso en taller.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-215,*CA-SKU-215*,ESLINGAS BOLSA NEGRA,3,PZA,$350.00,"$1,050.00",1,,FALSE,Uso en taller.
+Herramientas y Equipo de Taller,Izaje y Sujeción,CA-SKU-216,*CA-SKU-216*,ESLINGAS 01,4,PZA,$380.00,"$1,520.00",1,,FALSE,Uso en taller.
+Carrocería e Iluminación,Eléctrico,CA-SKU-217,*CA-SKU-217*,CABLE TIPO MACHO,3,PZA,$15.00,$45.00,1,,FALSE,Consumible.
+Refacciones y Piezas de Motor,Tren Motriz,CA-SKU-218,*CA-SKU-218*,CLUCHT,2,PZA,"$15,000.00","$30,000.00",1,,TRUE,Repuesto crítico.
+Carrocería e Iluminación,Carrocería,CA-SKU-219,*CA-SKU-219*,LODERARAS,20,PZA,$90.00,"$1,800.00",1,,FALSE,Stock adecuado.
+Refacciones y Piezas de Motor,Motor,CA-SKU-220,*CA-SKU-220*,VALVULA VGT,1,PZA,"$22,000.00","$22,000.00",1,,TRUE,Válvula crítica.
+Refacciones y Piezas de Motor,Eléctrico/Motor,CA-SKU-221,*CA-SKU-221*,MARCHA POWER EDGE,2,PZA,"$5,500.00","$11,000.00",1,,TRUE,Bajo stock.
+Filtros,Aire,CA-SKU-222,*CA-SKU-222*,FILTRO AF26657,4,PZA,$350.00,"$1,400.00",1,,FALSE,Filtro de aire.
+Filtros,Aire,CA-SKU-223,*CA-SKU-223*,FILTRO AF 27688,10,PZA,$400.00,"$4,000.00",1,,FALSE,Filtro de aire.
+Filtros,Aire,CA-SKU-224,*CA-SKU-224*,FILTRO AF 25667,2,PZA,$380.00,$760.00,1,,TRUE,Filtro de aire.
+Filtros,Aire,CA-SKU-225,*CA-SKU-225*,FILTRO AF26163 M,1,PZA,$420.00,$420.00,1,,TRUE,Filtro de aire.
+Filtros,Aire,CA-SKU-226,*CA-SKU-226*,FILTRO AF26103,6,PZA,$310.00,"$1,860.00",1,,FALSE,Filtro de aire.
+Filtros,Aire,CA-SKU-227,*CA-SKU-227*,FILTRO AF1968,3,PZA,$250.00,$750.00,1,,FALSE,Filtro de aire.
+Filtros,Aire,CA-SKU-228,*CA-SKU-228*,FILTRO P 621725,6,PZA,$330.00,"$1,980.00",1,,FALSE,Filtro de aire.
+Filtros,Aire,CA-SKU-229,*CA-SKU-229*,FILTRO P 11696,2,PZA,$280.00,$560.00,1,,TRUE,Filtro de aire.
+Filtros,Aire,CA-SKU-230,*CA-SKU-230*,FILTRO P 781399,1,PZA,$380.00,$380.00,1,,TRUE,Filtro de aire.
+Filtros,Aire,CA-SKU-231,*CA-SKU-231*,FILTRO P 781378,1,PZA,$380.00,$380.00,1,,TRUE,Filtro de aire.
+Filtros,Aceite,CA-SKU-232,*CA-SKU-232*,FILTRO LF14000 NN,36,PZA,$450.00,"$16,200.00",1,,FALSE,"Alto stock, filtro de aceite."
+Filtros,Combustible,CA-SKU-233,*CA-SKU-233*,FILTRO FS19541,5,PZA,$350.00,"$1,750.00",1,,FALSE,Filtro de combustible.
+Filtros,Aceite,CA-SKU-234,*CA-SKU-234*,FILTRO LF691A,1,PZA,$380.00,$380.00,1,,TRUE,Filtro de aceite.
+Filtros,Aceite,CA-SKU-235,*CA-SKU-235*,FILTRO LF300,1,PZA,$320.00,$320.00,1,,TRUE,Filtro de aceite.
+Filtros,Combustible,CA-SKU-236,*CA-SKU-236*,FILTRO FS 1040,2,PZA,$410.00,$820.00,1,,TRUE,Filtro de combustible.
+Filtros,Combustible,CA-SKU-237,*CA-SKU-237*,FILTRO FS 175511,2,PZA,$480.00,$960.00,1,,TRUE,Filtro de combustible.
+Filtros,Combustible,CA-SKU-238,*CA-SKU-238*,FILTRO FS2040,6,PZA,$390.00,"$2,340.00",1,,FALSE,Filtro de combustible.
+Filtros,Combustible,CA-SKU-239,*CA-SKU-239*,FILTRO FF 5776,26,PZA,$250.00,"$6,500.00",1,,FALSE,Filtro de combustible.
+Filtros,Combustible,CA-SKU-240,*CA-SKU-240*,FILTRO FF 5319,2,PZA,$280.00,$560.00,1,,TRUE,Filtro de combustible.
+Filtros,Combustible,CA-SKU-241,*CA-SKU-241*,FILTRO FF 2200,13,PZA,$320.00,"$4,160.00",1,,FALSE,Filtro de combustible.
+Filtros,Aceite,CA-SKU-242,*CA-SKU-242*,FILTRO P 550866,1,PZA,$420.00,$420.00,1,,TRUE,Filtro de aceite.
+Filtros,Aceite,CA-SKU-243,*CA-SKU-243*,FILTRO P 551000,1,PZA,$390.00,$390.00,1,,TRUE,Filtro de aceite.
+Filtros,Aceite,CA-SKU-244,*CA-SKU-244*,FILTRO P 552200,3,PZA,$450.00,"$1,350.00",1,,FALSE,Filtro de aceite.
+Filtros,Combustible,CA-SKU-245,*CA-SKU-245*,FILTRO FF 2203,17,PZA,$280.00,"$4,760.00",1,,FALSE,Filtro de combustible.
+Filtros,Partes de Motor,CA-SKU-246,*CA-SKU-246*,FILTRO FK48556,2,PZA,$550.00,"$1,100.00",1,,TRUE,Filtro específico (motor/turbo).
+Filtros,Partes de Motor,CA-SKU-247,*CA-SKU-247*,FILTRO FK13850NN,3,PZA,$610.00,"$1,830.00",1,,FALSE,Filtro específico (motor/turbo).
+Filtros,Refrigerante,CA-SKU-248,*CA-SKU-248*,FILTRO WF 2127,45,PZA,$180.00,"$8,100.00",1,,FALSE,"Alto stock, filtro de refrigerante/agua."
+Filtros,Partes de Motor,CA-SKU-249,*CA-SKU-249*,FILTRO CV 50633,9,PZA,$210.00,"$1,890.00",1,,FALSE,Filtro específico.
+Filtros,Combustible,CA-SKU-250,*CA-SKU-250*,FILTRO FS20176,4,PZA,$450.00,"$1,800.00",1,,FALSE,Filtro de combustible.
+Filtros,Combustible,CA-SKU-251,*CA-SKU-251*,FILTRO FS 19765,8,PZA,$420.00,"$3,360.00",1,,FALSE,Filtro de combustible.
+Filtros,Combustible,CA-SKU-252,*CA-SKU-252*,FILTRO FS 19763,13,PZA,$380.00,"$4,940.00",1,,FALSE,Filtro de combustible.
+Filtros,Aire,CA-SKU-253,*CA-SKU-253*,FILTRO AF26430,9,PZA,$410.00,"$3,690.00",1,,FALSE,Filtro de aire.
+Filtros,Aire,CA-SKU-254,*CA-SKU-254*,FILTRO AF 55839,1,PZA,$550.00,$550.00,1,,TRUE,Filtro de aire.
+Filtros,Aire,CA-SKU-255,*CA-SKU-255*,FILTRO MACK 84723783,2,PZA,$650.00,"$1,300.00",1,,TRUE,"Filtro de aire, específico Mack."
+Filtros,Aire,CA-SKU-256,*CA-SKU-256*,FILTRO DDE A4731800909,1,PZA,$750.00,$750.00,1,,TRUE,"Filtro de aire, específico Detroit."
+Filtros,Aire,CA-SKU-257,*CA-SKU-257*,FILTRO AC 1001,2,PZA,$350.00,$700.00,1,,TRUE,Filtro de aire.
+Filtros,Aire,CA-SKU-258,*CA-SKU-258*,FILTRO PE 0224233,1,PZA,$480.00,$480.00,1,,TRUE,Filtro de aire.
+Filtros,Combustible,CA-SKU-259,*CA-SKU-259*,FILTRO FS 19532,1,PZA,$380.00,$380.00,1,,TRUE,Filtro de combustible.
+Filtros,Refrigerante,CA-SKU-260,*CA-SKU-260*,FILTRO WF 2126,1,PZA,$190.00,$190.00,1,,TRUE,Filtro de refrigerante/agua.
+Filtros,Aire,CA-SKU-261,*CA-SKU-261*,FILTRO AS 2474,1,PZA,$310.00,$310.00,1,,TRUE,Filtro de aire.
+Filtros,Combustible,CA-SKU-262,*CA-SKU-262*,FILTRO FS19915,1,PZA,$350.00,$350.00,1,,TRUE,Filtro de combustible.
+Filtros,Aceite,CA-SKU-263,*CA-SKU-263*,FILTRO P 552409,1,PZA,$420.00,$420.00,1,,TRUE,Filtro de aceite.
+Refacciones y Piezas de Motor,Motor,CA-SKU-264,*CA-SKU-264*,VENTILADOR PARA TRACTO,3,PZA,"$2,500.00","$7,500.00",1,,FALSE,"Bajo stock, componente crítico."
+Oficina y Administración,Mobiliario,CA-SKU-265,*CA-SKU-265*,MESAS,3,UND,$800.00,"$2,400.00",1,,FALSE,Mobiliario.
+,,,,,,,,"$807,777.00",,,,

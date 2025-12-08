@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard de Almacén{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">📦 Dashboard de Almacén</h1>
+    
+    <!-- Estadísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <p class="text-sm text-gray-600">Total Productos</p>
+            <p class="text-3xl font-bold text-blue-600">{{ total_productos }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <p class="text-sm text-gray-600">Stock Bajo</p>
+            <p class="text-3xl font-bold text-yellow-600">{{ productos_stock_bajo }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <p class="text-sm text-gray-600">Agotados</p>
+            <p class="text-3xl font-bold text-red-600">{{ productos_agotados }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <p class="text-sm text-gray-600">Alertas Activas</p>
+            <p class="text-3xl font-bold text-orange-600">{{ total_alertas }}</p>
+        </div>
+    </div>
+    
+    <!-- Enlaces rápidos -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <a href="{% url 'almacen:producto_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition">
+            📦 Productos
+        </a>
+        <a href="{% url 'almacen:entrada_list' %}" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center transition">
+            ⬇️ Entradas
+        </a>
+        <a href="{% url 'almacen:solicitud_list' %}" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition">
+            📝 Solicitudes
+        </a>
+        <a href="{% url 'almacen:alerta_list' %}" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg text-center transition">
+            ⚠️ Alertas
+        </a>
+    </div>
+    
+    <!-- Alertas activas -->
+    {% if alertas_activas %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-bold mb-4">⚠️ Alertas Activas</h2>
+        <div class="space-y-2">
+            {% for alerta in alertas_activas %}
+            <div class="bg-white p-3 rounded border-l-4 border-orange-500">
+                <span class="font-semibold">{{ alerta.producto_almacen.sku }}</span>: {{ alerta.mensaje }}
+            </div>
+            {% endfor %}
+        </div>
+        <a href="{% url 'almacen:alerta_list' %}" class="text-blue-600 hover:underline mt-4 inline-block">Ver todas las alertas →</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

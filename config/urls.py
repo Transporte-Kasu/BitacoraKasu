@@ -29,6 +29,8 @@ urlpatterns = [
     path('operadores/', include('modulos.operadores.urls'), name='dashboard_operadores'),
     path('combustible/', include('modulos.combustible.urls'), name='dashboard_combustible'),
     path('taller/', include('modulos.taller.urls')),
+    path('compras/', include('modulos.compras.urls')),
+    path('almacen/', include('modulos.almacen.urls')),
 ]
 
 # Servir archivos media en desarrollo

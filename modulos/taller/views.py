@@ -18,46 +18,162 @@ from modulos.unidades.models import Unidad
 @login_required
 def dashboard_taller(request):
     """Dashboard principal del taller"""
-    # Estadísticas generales
+    hoy = timezone.now().date()
+    hace_30_dias = hoy - timedelta(days=30)
+    hace_7_dias = hoy - timedelta(days=7)
+    
+    # ========== Estadísticas Generales ==========
+    total_ordenes = OrdenTrabajo.objects.count()
     ordenes_activas = OrdenTrabajo.objects.exclude(
         estado__in=['COMPLETADA', 'CANCELADA']
     )
-
+    
     ordenes_pendientes = ordenes_activas.filter(estado='PENDIENTE').count()
     ordenes_en_diagnostico = ordenes_activas.filter(estado='EN_DIAGNOSTICO').count()
     ordenes_esperando_piezas = ordenes_activas.filter(estado='ESPERANDO_PIEZAS').count()
     ordenes_en_reparacion = ordenes_activas.filter(estado='EN_REPARACION').count()
-
-    # Órdenes críticas (más de 7 días en taller)
-    fecha_limite = timezone.now() - timedelta(days=7)
-    ordenes_criticas = ordenes_activas.filter(
-        fecha_inicio_real__lte=fecha_limite
+    ordenes_en_pruebas = ordenes_activas.filter(estado='EN_PRUEBAS').count()
+    
+    # Totales activas
+    total_ordenes_activas = ordenes_activas.count()
+    
+    # Órdenes completadas este mes
+    ordenes_completadas_mes = OrdenTrabajo.objects.filter(
+        estado='COMPLETADA',
+        fecha_finalizacion__gte=hace_30_dias
     ).count()
-
-    # Últimas órdenes
-    ultimas_ordenes = OrdenTrabajo.objects.all()[:10]
-
-    # Piezas pendientes de solicitar
-    piezas_pendientes = PiezaRequerida.objects.filter(
-        estado='PENDIENTE'
-    ).select_related('orden_trabajo', 'producto')[:10]
-
-    # Unidades en taller
+    
+    # Órdenes críticas (más de 7 días en taller)
+    ordenes_criticas = ordenes_activas.filter(
+        fecha_inicio_real__lte=hace_7_dias
+    ).select_related('unidad', 'mecanico_asignado')[:5]
+    ordenes_criticas_count = ordenes_criticas.count()
+    
+    # ========== Unidades ==========
     unidades_en_taller = Unidad.objects.filter(
         ordenes_trabajo__estado__in=['EN_DIAGNOSTICO', 'EN_REPARACION', 'EN_PRUEBAS']
     ).distinct()
-
+    unidades_en_taller_count = unidades_en_taller.count()
+    
+    # ========== Piezas ==========
+    piezas_pendientes = PiezaRequerida.objects.filter(
+        estado='PENDIENTE'
+    ).select_related('orden_trabajo', 'producto')[:5]
+    piezas_pendientes_count = PiezaRequerida.objects.filter(estado='PENDIENTE').count()
+    
+    piezas_solicitadas = PiezaRequerida.objects.filter(
+        estado__in=['SOLICITADA', 'EN_COMPRA']
+    ).count()
+    
+    # ========== Costos ==========
+    # Costo total estimado de órdenes activas
+    costo_total_estimado = sum(
+        orden.costo_total_estimado for orden in ordenes_activas
+    )
+    
+    # Costo total real de órdenes completadas este mes
+    ordenes_completadas = OrdenTrabajo.objects.filter(
+        estado='COMPLETADA',
+        fecha_finalizacion__gte=hace_30_dias
+    )
+    costo_total_mes = sum(
+        orden.costo_total_real for orden in ordenes_completadas
+    )
+    
+    # ========== Tiempos Promedio ==========
+    ordenes_con_tiempo = ordenes_completadas.filter(
+        fecha_inicio_real__isnull=False,
+        fecha_finalizacion__isnull=False
+    )
+    if ordenes_con_tiempo.exists():
+        tiempo_promedio_dias = ordenes_con_tiempo.aggregate(
+            Avg('dias_en_taller')
+        )['dias_en_taller__avg'] or 0
+    else:
+        tiempo_promedio_dias = 0
+    
+    # ========== Últimas Órdenes ==========
+    ultimas_ordenes = OrdenTrabajo.objects.select_related(
+        'unidad', 'mecanico_asignado', 'tipo_mantenimiento'
+    ).order_by('-fecha_creacion')[:10]
+    
+    # ========== Datos para Gráficas ==========
+    
+    # Gráfica: Órdenes por estado
+    ordenes_por_estado = OrdenTrabajo.objects.values('estado').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # Gráfica: Órdenes por prioridad (activas)
+    ordenes_por_prioridad = ordenes_activas.values('prioridad').annotate(
+        count=Count('id')
+    ).order_by('prioridad')
+    
+    # Gráfica: Órdenes por tipo de mantenimiento (mes actual)
+    ordenes_por_tipo = OrdenTrabajo.objects.filter(
+        fecha_creacion__gte=hace_30_dias
+    ).values('tipo_mantenimiento__nombre').annotate(
+        count=Count('id')
+    ).order_by('-count')[:5]
+    
+    # Gráfica: Órdenes creadas por día (últimos 7 días)
+    ordenes_por_dia = []
+    labels_dias = []
+    for i in range(6, -1, -1):
+        dia = hoy - timedelta(days=i)
+        count = OrdenTrabajo.objects.filter(
+            fecha_creacion__date=dia
+        ).count()
+        ordenes_por_dia.append(count)
+        labels_dias.append(dia.strftime('%d/%m'))
+    
+    # Gráfica: Top 5 mecánicos por órdenes completadas (mes)
+    top_mecanicos = ordenes_completadas.filter(
+        mecanico_asignado__isnull=False
+    ).values(
+        'mecanico_asignado__first_name',
+        'mecanico_asignado__last_name'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')[:5]
+    
     context = {
+        # Estadísticas principales
+        'total_ordenes': total_ordenes,
+        'total_ordenes_activas': total_ordenes_activas,
+        'ordenes_completadas_mes': ordenes_completadas_mes,
         'ordenes_pendientes': ordenes_pendientes,
         'ordenes_en_diagnostico': ordenes_en_diagnostico,
         'ordenes_esperando_piezas': ordenes_esperando_piezas,
         'ordenes_en_reparacion': ordenes_en_reparacion,
+        'ordenes_en_pruebas': ordenes_en_pruebas,
+        'ordenes_criticas_count': ordenes_criticas_count,
         'ordenes_criticas': ordenes_criticas,
-        'ultimas_ordenes': ultimas_ordenes,
-        'piezas_pendientes': piezas_pendientes,
+        
+        # Unidades y piezas
+        'unidades_en_taller_count': unidades_en_taller_count,
         'unidades_en_taller': unidades_en_taller,
+        'piezas_pendientes_count': piezas_pendientes_count,
+        'piezas_pendientes': piezas_pendientes,
+        'piezas_solicitadas': piezas_solicitadas,
+        
+        # Costos y tiempos
+        'costo_total_estimado': round(float(costo_total_estimado), 2),
+        'costo_total_mes': round(float(costo_total_mes), 2),
+        'tiempo_promedio_dias': round(tiempo_promedio_dias, 1),
+        
+        # Listas
+        'ultimas_ordenes': ultimas_ordenes,
+        
+        # Datos para gráficas
+        'ordenes_por_estado': list(ordenes_por_estado),
+        'ordenes_por_prioridad': list(ordenes_por_prioridad),
+        'ordenes_por_tipo': list(ordenes_por_tipo),
+        'ordenes_por_dia': ordenes_por_dia,
+        'labels_dias': labels_dias,
+        'top_mecanicos': list(top_mecanicos),
     }
-
+    
     return render(request, 'taller/dashboard.html', context)
 
 

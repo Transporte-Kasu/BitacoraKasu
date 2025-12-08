@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard de Compras{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">🛒 Dashboard de Compras</h1>
+    
+    <!-- Estadísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <p class="text-sm text-gray-600">Proveedores</p>
+            <p class="text-3xl font-bold text-blue-600">{{ total_proveedores }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <p class="text-sm text-gray-600">Productos</p>
+            <p class="text-3xl font-bold text-green-600">{{ total_productos }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <p class="text-sm text-gray-600">Requisiciones Pendientes</p>
+            <p class="text-3xl font-bold text-yellow-600">{{ requisiciones_pendientes }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <p class="text-sm text-gray-600">Órdenes Activas</p>
+            <p class="text-3xl font-bold text-purple-600">{{ ordenes_activas }}</p>
+        </div>
+    </div>
+    
+    <!-- Enlaces rápidos -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <a href="{% url 'compras:proveedor_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition">
+            🏢 Proveedores
+        </a>
+        <a href="{% url 'compras:producto_list' %}" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center transition">
+            📦 Productos
+        </a>
+        <a href="{% url 'compras:requisicion_list' %}" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg text-center transition">
+            📄 Requisiciones
+        </a>
+        <a href="{% url 'compras:ordencompra_list' %}" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition">
+            🛒 Órdenes
+        </a>
+    </div>
+</div>
+{% endblock %}

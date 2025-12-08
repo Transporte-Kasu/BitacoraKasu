@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard de Taller{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .priority-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .priority-baja { background-color: #d1fae5; color: #065f46; }
+    .priority-media { background-color: #fef3c7; color: #92400e; }
+    .priority-alta { background-color: #fed7aa; color: #9a3412; }
+    .priority-critica { background-color: #fee2e2; color: #991b1b; }
+    
+    .estado-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .estado-pendiente { background-color: #e5e7eb; color: #374151; }
+    .estado-diagnostico { background-color: #dbeafe; color: #1e40af; }
+    .estado-esperando { background-color: #fef3c7; color: #92400e; }
+    .estado-reparacion { background-color: #ddd6fe; color: #5b21b6; }
+    .estado-pruebas { background-color: #bfdbfe; color: #1e3a8a; }
+    .estado-completada { background-color: #d1fae5; color: #065f46; }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+    
+    .orden-critica {
+        border-left: 4px solid #ef4444;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <!-- Encabezado -->
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-900">🔧 Dashboard de Taller</h1>
+        <a href="{% url 'taller:crear_orden' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+            + Nueva Orden
+        </a>
+    </div>
+    
+    <!-- Estadísticas Principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card">
+            <p class="text-sm text-gray-600 mb-1">Total Órdenes</p>
+            <p class="text-3xl font-bold text-gray-900">{{ total_ordenes }}</p>
+        </div>
+        
+        <div class="stat-card">
+            <p class="text-sm text-gray-600 mb-1">Órdenes Activas</p>
+            <p class="text-3xl font-bold text-blue-600">{{ total_ordenes_activas }}</p>
+            <p class="text-xs text-gray-500 mt-1">En proceso</p>
+        </div>
+        
+        <div class="stat-card">
+            <p class="text-sm text-gray-600 mb-1">Completadas (Mes)</p>
+            <p class="text-3xl font-bold text-green-600">{{ ordenes_completadas_mes }}</p>
+            <p class="text-xs text-gray-500 mt-1">Últimos 30 días</p>
+        </div>
+        
+        <div class="stat-card border-l-4 {% if ordenes_criticas_count > 0 %}border-red-500{% else %}border-gray-300{% endif %}">
+            <p class="text-sm text-gray-600 mb-1">⚠️ Órdenes Críticas</p>
+            <p class="text-3xl font-bold text-red-600">{{ ordenes_criticas_count }}</p>
+            <p class="text-xs text-gray-500 mt-1">Más de 7 días en taller</p>
+        </div>
+    </div>
+    
+    <!-- Estadísticas por Estado -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div class="stat-card bg-gray-50">
+            <p class="text-xs text-gray-600 mb-2">Pendientes</p>
+            <p class="text-2xl font-bold text-gray-700">{{ ordenes_pendientes }}</p>
+        </div>
+        
+        <div class="stat-card bg-blue-50">
+            <p class="text-xs text-gray-600 mb-2">En Diagnóstico</p>
+            <p class="text-2xl font-bold text-blue-700">{{ ordenes_en_diagnostico }}</p>
+        </div>
+        
+        <div class="stat-card bg-yellow-50">
+            <p class="text-xs text-gray-600 mb-2">Esperando Piezas</p>
+            <p class="text-2xl font-bold text-yellow-700">{{ ordenes_esperando_piezas }}</p>
+        </div>
+        
+        <div class="stat-card bg-purple-50">
+            <p class="text-xs text-gray-600 mb-2">En Reparación</p>
+            <p class="text-2xl font-bold text-purple-700">{{ ordenes_en_reparacion }}</p>
+        </div>
+        
+        <div class="stat-card bg-indigo-50">
+            <p class="text-xs text-gray-600 mb-2">En Pruebas</p>
+            <p class="text-2xl font-bold text-indigo-700">{{ ordenes_en_pruebas }}</p>
+        </div>
+    </div>
+    
+    <!-- Información de Unidades y Piezas -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat-card">
+            <p class="text-sm text-gray-600 mb-1">🚛 Unidades en Taller</p>
+            <p class="text-3xl font-bold text-orange-600">{{ unidades_en_taller_count }}</p>
+        </div>
+        
+        <div class="stat-card">
+            <p class="text-sm text-gray-600 mb-1">🔧 Piezas Pendientes</p>
+            <p class="text-3xl font-bold text-yellow-600">{{ piezas_pendientes_count }}</p>
+        </div>
+        
+        <div class="stat-card">
+            <p class="text-sm text-gray-600 mb-1">📦 Piezas Solicitadas</p>
+            <p class="text-3xl font-bold text-blue-600">{{ piezas_solicitadas }}</p>
+        </div>
+    </div>
+    
+    <!-- Costos y Tiempos -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat-card bg-green-50">
+            <p class="text-sm text-gray-600 mb-1">💰 Costo Estimado Activas</p>
+            <p class="text-2xl font-bold text-green-700">${{ costo_total_estimado|floatformat:2 }}</p>
+        </div>
+        
+        <div class="stat-card bg-blue-50">
+            <p class="text-sm text-gray-600 mb-1">💵 Costo Real (Mes)</p>
+            <p class="text-2xl font-bold text-blue-700">${{ costo_total_mes|floatformat:2 }}</p>
+        </div>
+        
+        <div class="stat-card bg-purple-50">
+            <p class="text-sm text-gray-600 mb-1">⏱️ Tiempo Promedio</p>
+            <p class="text-2xl font-bold text-purple-700">{{ tiempo_promedio_dias }} días</p>
+        </div>
+    </div>
+    
+    <!-- Órdenes Críticas (más de 7 días) -->
+    {% if ordenes_criticas %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-bold text-red-900 mb-4">⚠️ Órdenes Críticas (Más de 7 días en taller)</h2>
+        <div class="space-y-3">
+            {% for orden in ordenes_criticas %}
+            <div class="bg-white p-4 rounded-lg shadow-sm orden-critica">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <a href="{% url 'taller:detalle_orden' orden.folio %}" class="text-lg font-bold text-blue-600 hover:underline">
+                            {{ orden.folio }}
+                        </a>
+                        <p class="text-sm text-gray-600">{{ orden.unidad.numero_economico }} - {{ orden.unidad.placa }}</p>
+                    </div>
+                    <span class="priority-badge priority-{{ orden.prioridad|lower }}">
+                        {{ orden.get_prioridad_display }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-700 mb-2">{{ orden.descripcion_problema|truncatewords:20 }}</p>
+                <div class="flex justify-between items-center">
+                    <span class="estado-badge estado-{{ orden.estado|lower }}">
+                        {{ orden.get_estado_display }}
+                    </span>
+                    <span class="text-sm text-red-600 font-semibold">
+                        {{ orden.dias_en_taller }} días en taller
+                    </span>
+                </div>
+                {% if orden.mecanico_asignado %}
+                <p class="text-xs text-gray-500 mt-2">Mecánico: {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <a href="{% url 'taller:lista_ordenes' %}?estado=EN_REPARACION" class="text-red-600 hover:underline mt-4 inline-block font-semibold">Ver todas las órdenes activas →</a>
+    </div>
+    {% endif %}
+    
+    <!-- Piezas Pendientes -->
+    {% if piezas_pendientes %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-bold text-yellow-900 mb-4">🔧 Piezas Pendientes de Solicitar</h2>
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orden</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Costo Est.</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for pieza in piezas_pendientes %}
+                    <tr>
+                        <td class="px-4 py-3 text-sm">
+                            <a href="{% url 'taller:detalle_orden' pieza.orden_trabajo.folio %}" class="text-blue-600 hover:underline">
+                                {{ pieza.orden_trabajo.folio }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 text-sm">{{ pieza.producto.nombre }}</td>
+                        <td class="px-4 py-3 text-sm">{{ pieza.cantidad }}</td>
+                        <td class="px-4 py-3 text-sm font-semibold">${{ pieza.subtotal_estimado|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-xs text-gray-600 mt-2">Mostrando las primeras 5 piezas. Total: {{ piezas_pendientes_count }}</p>
+    </div>
+    {% endif %}
+    
+    <!-- Últimas Órdenes de Trabajo -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📋 Últimas Órdenes de Trabajo</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Folio</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prioridad</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mecánico</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for orden in ultimas_ordenes %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">
+                            <a href="{% url 'taller:detalle_orden' orden.folio %}" class="text-blue-600 hover:underline font-semibold">
+                                {{ orden.folio }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            {{ orden.unidad.numero_economico }}
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            {% if orden.tipo_mantenimiento %}
+                                {{ orden.tipo_mantenimiento.nombre|truncatewords:3 }}
+                            {% else %}
+                                <span class="text-gray-400">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="estado-badge estado-{{ orden.estado|lower }}">
+                                {{ orden.get_estado_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="priority-badge priority-{{ orden.prioridad|lower }}">
+                                {{ orden.get_prioridad_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            {% if orden.mecanico_asignado %}
+                                {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username|truncatewords:2 }}
+                            {% else %}
+                                <span class="text-gray-400">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ orden.fecha_creacion|date:"d/m/Y" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            No hay órdenes de trabajo registradas
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4">
+            <a href="{% url 'taller:lista_ordenes' %}" class="text-blue-600 hover:underline font-semibold">Ver todas las órdenes →</a>
+        </div>
+    </div>
+    
+    <!-- Enlaces Rápidos -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="{% url 'taller:lista_ordenes' %}" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition font-semibold">
+            📋 Ver Todas las Órdenes
+        </a>
+        <a href="{% url 'taller:crear_orden' %}" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center transition font-semibold">
+            ➕ Nueva Orden
+        </a>
+        <a href="{% url 'taller:lista_ordenes' %}?estado=PENDIENTE" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg text-center transition font-semibold">
+            ⏳ Órdenes Pendientes
+        </a>
+        <a href="{% url 'taller:lista_ordenes' %}?estado=EN_REPARACION" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition font-semibold">
+            🔧 En Reparación
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Script para auto-refrescar el dashboard cada 5 minutos (opcional)
+    // setTimeout(function() {
+    //     window.location.reload();
+    // }, 300000);
+</script>
+{% endblock %}

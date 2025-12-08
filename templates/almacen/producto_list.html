@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load django_template_maths %}
+
+{% block title %}Productos del Almacén{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">📦 Productos del Almacén</h1>
+        <a href="{% url 'almacen:producto_create' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+            ➕ Nuevo Producto
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white p-4 rounded-lg shadow mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input type="text" name="sku" placeholder="Buscar por SKU..." value="{{ request.GET.sku }}" class="px-4 py-2 border rounded">
+            <input type="text" name="categoria" placeholder="Categoría..." value="{{ request.GET.categoria }}" class="px-4 py-2 border rounded">
+            <select name="activo" class="px-4 py-2 border rounded">
+                <option value="">Todos</option>
+                <option value="True" {% if request.GET.activo == 'True' %}selected{% endif %}>Activos</option>
+                <option value="False" {% if request.GET.activo == 'False' %}selected{% endif %}>Inactivos</option>
+            </select>
+            <button type="submit" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">Filtrar</button>
+        </form>
+    </div>
+
+    <!-- Tabla de productos -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                    {% if user.groups.all|length > 0 %}
+                        {% for group in user.groups.all %}
+                            {% if group.name == "Gerencia General" or group.name == "Compras" %}
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Costo Unit.</th>
+
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for producto in productos %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap font-mono text-sm">{{ producto.sku }}</td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-gray-900">{{ producto.descripcion|truncatewords:10 }}</div>
+                        <div class="text-xs text-gray-500">{{ producto.subcategoria }}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm">{{ producto.categoria }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm {% if producto.stock_bajo %}text-red-600 font-bold{% elif producto.cantidad <= producto.stock_minimo|mul:1.2 %}text-yellow-600{% else %}text-green-600{% endif %}">
+                            {{ producto.cantidad }} {{ producto.unidad_medida }}
+                        </span>
+                        <div class="text-xs text-gray-500">Min: {{ producto.stock_minimo }}</div>
+                    </td>
+                    {% if user.groups.all|length > 0 %}
+                        {% for group in user.groups.all %}
+                            {% if group.name == "Gerencia General" or group.name == "Compras" %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${{ producto.costo_unitario|floatformat:2 }}</td>
+
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <a href="{% url 'almacen:producto_detail' producto.pk %}" class="text-blue-600 hover:underline">Ver</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">No hay productos registrados</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="mt-6 flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page=1" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Primera</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Anterior</a>
+            {% endif %}
+            <span class="px-3 py-2 bg-blue-500 text-white border rounded">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Siguiente</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Última</a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
