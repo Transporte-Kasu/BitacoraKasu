@@ -20,13 +20,16 @@
         border-radius: 0.5rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    .chart-container > #chartUnidades{
+        height: 235px !important;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto py-6">
     <h1 class="text-3xl font-bold text-gray-900 mb-6">📊 Dashboard Principal - ProyectoKasu</h1>
-    
+
     <!-- Resumen Ejecutivo -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <!-- Operadores -->
@@ -40,7 +43,7 @@
                 <span class="text-4xl">👤</span>
             </div>
         </div>
-        
+
         <!-- Unidades -->
         <div class="stat-card" style="border-color: #f59e0b;">
             <div class="flex justify-between items-start">
@@ -52,7 +55,7 @@
                 <span class="text-4xl">🚛</span>
             </div>
         </div>
-        
+
         <!-- Viajes -->
         <div class="stat-card" style="border-color: #10b981;">
             <div class="flex justify-between items-start">
@@ -64,7 +67,7 @@
                 <span class="text-4xl">📋</span>
             </div>
         </div>
-        
+
         <!-- Combustible -->
         <div class="stat-card" style="border-color: #8b5cf6;">
             <div class="flex justify-between items-start">
@@ -77,7 +80,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Segunda fila de estadísticas -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <!-- Taller -->
@@ -91,7 +94,7 @@
                 <span class="text-4xl">🔧</span>
             </div>
         </div>
-        
+
         <!-- Compras -->
         <div class="stat-card" style="border-color: #ec4899;">
             <div class="flex justify-between items-start">
@@ -103,7 +106,7 @@
                 <span class="text-4xl">🛒</span>
             </div>
         </div>
-        
+
         <!-- Almacén -->
         <div class="stat-card" style="border-color: #06b6d4;">
             <div class="flex justify-between items-start">
@@ -115,20 +118,21 @@
                 <span class="text-4xl">📦</span>
             </div>
         </div>
-        
-        <!-- Valor Inventario -->
-        <div class="stat-card" style="border-color: #14b8a6;">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm text-gray-600">Valor Inventario</p>
-                    <p class="text-2xl font-bold text-gray-900">${{ valor_inventario|floatformat:0 }}</p>
-                    <p class="text-xs text-gray-500">{{ alertas_almacen }} alertas</p>
+        {% if group.name == "Gerencia General" %}
+            <!-- Valor Inventario -->
+            <div class="stat-card" style="border-color: #14b8a6;">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm text-gray-600">Valor Inventario</p>
+                        <p class="text-2xl font-bold text-gray-900">${{ valor_inventario|floatformat:0 }}</p>
+                        <p class="text-xs text-gray-500">{{ alertas_almacen }} alertas</p>
+                    </div>
+                    <span class="text-4xl">💰</span>
                 </div>
-                <span class="text-4xl">💰</span>
             </div>
-        </div>
+        {% endif %}
     </div>
-    
+
     <!-- Alertas Críticas -->
     {% if alertas_criticas %}
     <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded">
@@ -148,7 +152,7 @@
         </div>
     </div>
     {% endif %}
-    
+
     <!-- Gráficas -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Viajes por día -->
@@ -156,28 +160,28 @@
             <h3 class="font-bold text-gray-700 mb-4">📈 Viajes por Día (últimos 7 días)</h3>
             <canvas id="chartViajes"></canvas>
         </div>
-        
+
         <!-- Combustible por día -->
         <div class="chart-container">
             <h3 class="font-bold text-gray-700 mb-4">⛽ Combustible por Día (últimos 7 días)</h3>
             <canvas id="chartCombustible"></canvas>
         </div>
     </div>
-    
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Estado de Unidades -->
         <div class="chart-container">
             <h3 class="font-bold text-gray-700 mb-4">🚛 Estado de Unidades</h3>
             <canvas id="chartUnidades"></canvas>
         </div>
-        
+
         <!-- Top Categorías Almacén -->
         <div class="chart-container">
             <h3 class="font-bold text-gray-700 mb-4">📦 Top 5 Categorías en Almacén</h3>
             <canvas id="chartCategorias"></canvas>
         </div>
     </div>
-    
+
     <!-- Accesos Rápidos -->
     <div class="bg-white p-6 rounded-lg shadow">
         <h2 class="text-xl font-bold text-gray-900 mb-4">🚀 Accesos Rápidos a Módulos</h2>

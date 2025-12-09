@@ -24,7 +24,7 @@ The application manages three primary entities:
 
 ### Virtual Environment
 ```bash
-source .venv_bitaKasu/bin/activate
+source .venvKasu/bin/activate
 ```
 
 ### Database
@@ -83,7 +83,7 @@ All Django apps use a modular structure under the `apps/` directory:
 - **Forms**: `OperadorForm` with validations (phone format, active/inactive state logic)
 - **URLs**: `/operadores/`, `/operadores/lista/`, `/operadores/crear/`, `/operadores/<id>/`, etc.
 
-#### 2. **unidades** - Vehicle/Fleet Management  
+#### 2. **unidades** - Vehicle/Fleet Management
 - **Model**: `Unidad` with vehicle specifications
 - **Key Fields**: numero_economico (unique), placa, tipo, marca, modelo, año, capacidad_combustible, rendimiento_esperado, kilometraje_actual
 - **Methods**: `rendimiento_promedio_real()`, `eficiencia_combustible()`, `requiere_mantenimiento()`
@@ -129,7 +129,7 @@ Models use string references for cross-app ForeignKeys to avoid circular imports
 # In operadores/models.py
 unidad_asignada = models.ForeignKey('unidades.Unidad', on_delete=models.SET_NULL, null=True, related_name='operadores')
 
-# In bitacoras/models.py  
+# In bitacoras/models.py
 operador = models.ForeignKey('operadores.Operador', on_delete=models.PROTECT, related_name='bitacoras')
 unidad = models.ForeignKey('unidades.Unidad', on_delete=models.PROTECT, related_name='bitacoras')
 ```
