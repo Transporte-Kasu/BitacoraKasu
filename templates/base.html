@@ -274,7 +274,7 @@
         <div class="navbar-container">
             <div class="navbar-brand">
                 <a href="{% url 'inicio' %}" class="flex items-center">
-                    <img src="https://disco-kasu.sfo3.digitaloceanspaces.com/media/logoKasu.png" alt="Logo Kasu" class="logo">
+                    <img src="{% static 'img/logo.png' %}" alt="Logo Kasu" class="logo">
                 </a>
             </div>
 
@@ -343,9 +343,12 @@
                             <span class="user-icon">👨‍💼</span>
                             <span class="user-name">{{ user.username }}</span>
                         </div>
-                        <a href="{% url 'admin:logout' %}" class="btn btn-logout">Salir</a>
+                        <form method="post" action="{% url 'logout' %}" style="display: inline; margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-logout">Salir</button>
+                        </form>
                     {% else %}
-                        <a href="{% url 'admin:login' %}" class="btn btn-primary">Iniciar sesión</a>
+                        <a href="{% url 'login' %}" class="btn btn-primary">Iniciar sesión</a>
                     {% endif %}
                 </div>
             </nav>
