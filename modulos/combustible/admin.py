@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Despachador, CargaCombustible
+from .models import Despachador, CargaCombustible, FotoCandadoNuevo
 
 
 @admin.register(Despachador)
@@ -29,8 +29,16 @@ class DespachadorAdmin(admin.ModelAdmin):
     total_cargas.short_description = 'Total cargas'
 
 
+class FotoCandadoNuevoInline(admin.TabularInline):
+    model = FotoCandadoNuevo
+    extra = 1
+    fields = ['foto', 'descripcion']
+    readonly_fields = []
+
+
 @admin.register(CargaCombustible)
 class CargaCombustibleAdmin(admin.ModelAdmin):
+    inlines = [FotoCandadoNuevoInline]
     list_display = [
         'id', 'unidad_info', 'despachador', 'cantidad_litros',
         'estado_badge', 'alerta_badge', 'fecha_hora_inicio', 'tiempo_carga'
@@ -134,9 +142,18 @@ class CargaCombustibleAdmin(admin.ModelAdmin):
             ('Número Económico', obj.foto_numero_economico),
             ('Tablero', obj.foto_tablero),
             ('Candado Anterior', obj.foto_candado_anterior),
-            ('Candado Nuevo', obj.foto_candado_nuevo),
-            ('Ticket', obj.foto_ticket),
         ]
+
+        # Agregar fotos del modelo relacionado
+        fotos_candado = obj.fotos_candado_nuevo.all()
+        if fotos_candado.exists():
+            for foto_obj in fotos_candado:
+                fotos.append((foto_obj.descripcion or 'Candado Nuevo', foto_obj.foto))
+        elif obj.foto_candado_nuevo:
+            # Fallback al campo legacy
+            fotos.append(('Candado Nuevo', obj.foto_candado_nuevo))
+
+        fotos.append(('Ticket', obj.foto_ticket))
 
         for nombre, foto in fotos:
             if foto:

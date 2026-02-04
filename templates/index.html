@@ -5,228 +5,544 @@
 
 {% block extra_css %}
 <style>
+    /* Variables de colores por módulo */
+    :root {
+        --color-operadores: #3b82f6;
+        --color-unidades: #f59e0b;
+        --color-viajes: #10b981;
+        --color-combustible: #8b5cf6;
+        --color-taller: #ef4444;
+        --color-compras: #ec4899;
+        --color-almacen: #06b6d4;
+    }
+
+    /* Header del dashboard */
+    .dashboard-header {
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .dashboard-header p {
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+
+    /* Secciones */
+    .section {
+        margin-bottom: 2rem;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .section-header h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+    }
+
+    .section-header .section-icon {
+        font-size: 1.25rem;
+    }
+
+    /* Tarjetas de estadísticas mejoradas */
     .stat-card {
         background: white;
+        border-radius: 1rem;
         padding: 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border-left: 4px solid;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .stat-card.operadores::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .stat-card.unidades::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .stat-card.viajes::before { background: linear-gradient(90deg, #10b981, #34d399); }
+    .stat-card.combustible::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .stat-card.taller::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .stat-card.compras::before { background: linear-gradient(90deg, #ec4899, #f472b6); }
+    .stat-card.almacen::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+
+    .stat-card-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .stat-card-info h3 {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        margin: 0 0 0.5rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-card-value {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+    }
+
+    .stat-card-subtitle {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.5rem;
+    }
+
+    .stat-card-subtitle.warning {
+        color: #f59e0b;
+    }
+
+    .stat-card-subtitle.danger {
+        color: #ef4444;
+    }
+
+    .stat-card-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-card.operadores .stat-card-icon { background: rgba(59, 130, 246, 0.1); }
+    .stat-card.unidades .stat-card-icon { background: rgba(245, 158, 11, 0.1); }
+    .stat-card.viajes .stat-card-icon { background: rgba(16, 185, 129, 0.1); }
+    .stat-card.combustible .stat-card-icon { background: rgba(139, 92, 246, 0.1); }
+    .stat-card.taller .stat-card-icon { background: rgba(239, 68, 68, 0.1); }
+    .stat-card.compras .stat-card-icon { background: rgba(236, 72, 153, 0.1); }
+    .stat-card.almacen .stat-card-icon { background: rgba(6, 182, 212, 0.1); }
+
+    /* Link en tarjeta */
+    .stat-card-link {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    /* Alertas mejoradas */
+    .alert-banner {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border: 1px solid #fecaca;
+        border-radius: 1rem;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .alert-banner-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .alert-banner-content {
+        flex: 1;
+    }
+
+    .alert-banner h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #991b1b;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .alert-banner ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .alert-banner li {
+        font-size: 0.875rem;
+        color: #b91c1c;
+        padding: 0.25rem 0;
+    }
+
+    .alert-banner-link {
+        display: inline-block;
+        margin-top: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #991b1b;
+        text-decoration: none;
+    }
+
+    .alert-banner-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Gráficas */
+    .chart-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .chart-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
     .chart-container {
         position: relative;
-        height: 300px;
-        background: white;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: 200px;
     }
-    .chart-container > #chartUnidades{
-        height: 235px !important;
+
+    /* Accesos rápidos */
+    .quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .quick-access-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .quick-access-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1.5rem 1rem;
+        background: white;
+        border-radius: 1rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .quick-access-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+
+    .quick-access-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .quick-access-item.operadores .quick-access-icon { background: rgba(59, 130, 246, 0.1); }
+    .quick-access-item.unidades .quick-access-icon { background: rgba(245, 158, 11, 0.1); }
+    .quick-access-item.viajes .quick-access-icon { background: rgba(16, 185, 129, 0.1); }
+    .quick-access-item.combustible .quick-access-icon { background: rgba(139, 92, 246, 0.1); }
+    .quick-access-item.taller .quick-access-icon { background: rgba(239, 68, 68, 0.1); }
+    .quick-access-item.compras .quick-access-icon { background: rgba(236, 72, 153, 0.1); }
+    .quick-access-item.almacen .quick-access-icon { background: rgba(6, 182, 212, 0.1); }
+    .quick-access-item.admin .quick-access-icon { background: rgba(107, 114, 128, 0.1); }
+
+    .quick-access-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    /* Grid responsivo */
+    .stats-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+
+    .stats-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .stats-grid-4 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .stats-grid-3 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid-4,
+        .stats-grid-3,
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-6">
-    <h1 class="text-3xl font-bold text-gray-900 mb-6">📊 Dashboard Principal - ProyectoKasu</h1>
+<div class="max-w-7xl mx-auto py-6 px-4">
 
-    <!-- Resumen Ejecutivo -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <!-- Operadores -->
-        <div class="stat-card" style="border-color: #3b82f6;">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm text-gray-600">Operadores</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ operadores_activos }}</p>
-                    <p class="text-xs text-gray-500">de {{ total_operadores }} total</p>
-                </div>
-                <span class="text-4xl">👤</span>
-            </div>
-        </div>
-
-        <!-- Unidades -->
-        <div class="stat-card" style="border-color: #f59e0b;">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm text-gray-600">Unidades</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ unidades_activas }}</p>
-                    <p class="text-xs text-gray-500">{{ unidades_en_taller }} en taller</p>
-                </div>
-                <span class="text-4xl">🚛</span>
-            </div>
-        </div>
-
-        <!-- Viajes -->
-        <div class="stat-card" style="border-color: #10b981;">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm text-gray-600">Viajes (mes)</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ viajes_ultimo_mes }}</p>
-                    <p class="text-xs text-gray-500">{{ viajes_en_curso }} en curso</p>
-                </div>
-                <span class="text-4xl">📋</span>
-            </div>
-        </div>
-
-        <!-- Combustible -->
-        <div class="stat-card" style="border-color: #8b5cf6;">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm text-gray-600">Combustible (hoy)</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ total_litros_hoy|floatformat:0 }}</p>
-                    <p class="text-xs text-gray-500">litros cargados</p>
-                </div>
-                <span class="text-4xl">⛽</span>
-            </div>
-        </div>
+    <!-- Header del Dashboard -->
+    <div class="dashboard-header">
+        <h1>Bienvenido{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+        <p>{% now "l, j \d\e F \d\e Y" %}</p>
     </div>
 
-    <!-- Segunda fila de estadísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <!-- Taller -->
-        <div class="stat-card" style="border-color: #ef4444;">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm text-gray-600">Órdenes Taller</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ ordenes_taller_pendientes }}</p>
-                    <p class="text-xs text-gray-500">pendientes</p>
-                </div>
-                <span class="text-4xl">🔧</span>
-            </div>
+    <!-- Sección: Operaciones Principales -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-icon">📊</span>
+            <h2>Operaciones</h2>
         </div>
-
-        <!-- Compras -->
-        <div class="stat-card" style="border-color: #ec4899;">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm text-gray-600">Requisiciones</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ requisiciones_pendientes }}</p>
-                    <p class="text-xs text-gray-500">{{ ordenes_compra_activas }} OC activas</p>
-                </div>
-                <span class="text-4xl">🛒</span>
-            </div>
-        </div>
-
-        <!-- Almacén -->
-        <div class="stat-card" style="border-color: #06b6d4;">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm text-gray-600">Productos</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ productos_almacen }}</p>
-                    <p class="text-xs text-red-600">{{ productos_stock_bajo }} con stock bajo</p>
-                </div>
-                <span class="text-4xl">📦</span>
-            </div>
-        </div>
-        {% if group.name == "Gerencia General" %}
-            <!-- Valor Inventario -->
-            <div class="stat-card" style="border-color: #14b8a6;">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-sm text-gray-600">Valor Inventario</p>
-                        <p class="text-2xl font-bold text-gray-900">${{ valor_inventario|floatformat:0 }}</p>
-                        <p class="text-xs text-gray-500">{{ alertas_almacen }} alertas</p>
+        <div class="stats-grid-4">
+            <!-- Operadores -->
+            <a href="{% url 'operadores:dashboard' %}" class="stat-card-link">
+                <div class="stat-card operadores">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Operadores</h3>
+                            <div class="stat-card-value">{{ operadores_activos }}</div>
+                            <p class="stat-card-subtitle">de {{ total_operadores }} registrados</p>
+                        </div>
+                        <div class="stat-card-icon">👤</div>
                     </div>
-                    <span class="text-4xl">💰</span>
                 </div>
-            </div>
-        {% endif %}
+            </a>
+
+            <!-- Unidades -->
+            <a href="{% url 'unidades:dashboard' %}" class="stat-card-link">
+                <div class="stat-card unidades">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Unidades</h3>
+                            <div class="stat-card-value">{{ unidades_activas }}</div>
+                            <p class="stat-card-subtitle {% if unidades_en_taller > 0 %}warning{% endif %}">
+                                {% if unidades_en_taller > 0 %}{{ unidades_en_taller }} en taller{% else %}Todas operativas{% endif %}
+                            </p>
+                        </div>
+                        <div class="stat-card-icon">🚛</div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Viajes -->
+            <a href="{% url 'bitacoras:dashboard' %}" class="stat-card-link">
+                <div class="stat-card viajes">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Viajes del Mes</h3>
+                            <div class="stat-card-value">{{ viajes_ultimo_mes }}</div>
+                            <p class="stat-card-subtitle {% if viajes_en_curso > 0 %}warning{% endif %}">
+                                {% if viajes_en_curso > 0 %}{{ viajes_en_curso }} en curso{% else %}Sin viajes activos{% endif %}
+                            </p>
+                        </div>
+                        <div class="stat-card-icon">📋</div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Combustible -->
+            <a href="{% url 'combustible:dashboard' %}" class="stat-card-link">
+                <div class="stat-card combustible">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Combustible Hoy</h3>
+                            <div class="stat-card-value">{{ total_litros_hoy|floatformat:0 }}<span style="font-size: 1rem; font-weight: 400;"> lts</span></div>
+                            <p class="stat-card-subtitle">{{ cargas_completadas_hoy }} cargas completadas</p>
+                        </div>
+                        <div class="stat-card-icon">⛽</div>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
 
-    <!-- Alertas Críticas -->
+    <!-- Sección: Alertas Críticas -->
     {% if alertas_criticas %}
-    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded">
-        <div class="flex items-start">
-            <span class="text-2xl mr-3">⚠️</span>
-            <div class="flex-1">
-                <h3 class="font-bold text-red-800 mb-2">Alertas Críticas del Almacén</h3>
-                <ul class="space-y-1">
+    <div class="section">
+        <div class="alert-banner">
+            <span class="alert-banner-icon">⚠️</span>
+            <div class="alert-banner-content">
+                <h3>Alertas que requieren atención</h3>
+                <ul>
                     {% for alerta in alertas_criticas %}
-                    <li class="text-sm text-red-700">
-                        <strong>{{ alerta.producto_almacen.sku }}</strong>: {{ alerta.mensaje }}
-                    </li>
+                    <li><strong>{{ alerta.producto_almacen.sku }}</strong>: {{ alerta.mensaje }}</li>
                     {% endfor %}
                 </ul>
-                <a href="{% url 'almacen:alerta_list' %}" class="text-red-800 hover:underline text-sm mt-2 inline-block">Ver todas las alertas →</a>
+                <a href="{% url 'almacen:alerta_list' %}" class="alert-banner-link">Ver todas las alertas →</a>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Gráficas -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Viajes por día -->
-        <div class="chart-container">
-            <h3 class="font-bold text-gray-700 mb-4">📈 Viajes por Día (últimos 7 días)</h3>
-            <canvas id="chartViajes"></canvas>
+    <!-- Sección: Actividad Reciente -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-icon">📈</span>
+            <h2>Actividad de los últimos 7 días</h2>
         </div>
-
-        <!-- Combustible por día -->
-        <div class="chart-container">
-            <h3 class="font-bold text-gray-700 mb-4">⛽ Combustible por Día (últimos 7 días)</h3>
-            <canvas id="chartCombustible"></canvas>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Estado de Unidades -->
-        <div class="chart-container">
-            <h3 class="font-bold text-gray-700 mb-4">🚛 Estado de Unidades</h3>
-            <canvas id="chartUnidades"></canvas>
-        </div>
-
-        <!-- Top Categorías Almacén -->
-        <div class="chart-container">
-            <h3 class="font-bold text-gray-700 mb-4">📦 Top 5 Categorías en Almacén</h3>
-            <canvas id="chartCategorias"></canvas>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3><span>🚛</span> Viajes realizados</h3>
+                <div class="chart-container">
+                    <canvas id="chartViajes"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3><span>⛽</span> Litros cargados</h3>
+                <div class="chart-container">
+                    <canvas id="chartCombustible"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Accesos Rápidos -->
-    <div class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">🚀 Accesos Rápidos a Módulos</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            <a href="{% url 'operadores:dashboard' %}" class="text-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
-                <div class="text-3xl mb-2">👤</div>
-                <div class="text-xs font-medium">Operadores</div>
+    <!-- Sección: Módulos de Soporte -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-icon">🔧</span>
+            <h2>Soporte y Logística</h2>
+        </div>
+        <div class="stats-grid-3">
+            <!-- Taller -->
+            <a href="{% url 'taller:dashboard' %}" class="stat-card-link">
+                <div class="stat-card taller">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Taller</h3>
+                            <div class="stat-card-value">{{ ordenes_taller_pendientes }}</div>
+                            <p class="stat-card-subtitle {% if ordenes_taller_pendientes > 5 %}danger{% endif %}">
+                                órdenes pendientes
+                            </p>
+                        </div>
+                        <div class="stat-card-icon">🔧</div>
+                    </div>
+                </div>
             </a>
-            <a href="{% url 'unidades:dashboard' %}" class="text-center p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition">
-                <div class="text-3xl mb-2">🚛</div>
-                <div class="text-xs font-medium">Unidades</div>
+
+            <!-- Compras -->
+            <a href="{% url 'compras:dashboard' %}" class="stat-card-link">
+                <div class="stat-card compras">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Compras</h3>
+                            <div class="stat-card-value">{{ requisiciones_pendientes }}</div>
+                            <p class="stat-card-subtitle">requisiciones | {{ ordenes_compra_activas }} OC activas</p>
+                        </div>
+                        <div class="stat-card-icon">🛒</div>
+                    </div>
+                </div>
             </a>
-            <a href="{% url 'bitacoras:dashboard' %}" class="text-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition">
-                <div class="text-3xl mb-2">📋</div>
-                <div class="text-xs font-medium">Bitácoras</div>
-            </a>
-            <a href="{% url 'combustible:dashboard' %}" class="text-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition">
-                <div class="text-3xl mb-2">⛽</div>
-                <div class="text-xs font-medium">Combustible</div>
-            </a>
-            <a href="{% url 'taller:dashboard' %}" class="text-center p-4 bg-red-50 hover:bg-red-100 rounded-lg transition">
-                <div class="text-3xl mb-2">🔧</div>
-                <div class="text-xs font-medium">Taller</div>
-            </a>
-            <a href="{% url 'compras:dashboard' %}" class="text-center p-4 bg-pink-50 hover:bg-pink-100 rounded-lg transition">
-                <div class="text-3xl mb-2">🛒</div>
-                <div class="text-xs font-medium">Compras</div>
-            </a>
-            <a href="{% url 'almacen:dashboard' %}" class="text-center p-4 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition">
-                <div class="text-3xl mb-2">📦</div>
-                <div class="text-xs font-medium">Almacén</div>
-            </a>
-            <a href="{% url 'admin:index' %}" class="text-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
-                <div class="text-3xl mb-2">⚙️</div>
-                <div class="text-xs font-medium">Admin</div>
+
+            <!-- Almacén -->
+            <a href="{% url 'almacen:dashboard' %}" class="stat-card-link">
+                <div class="stat-card almacen">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Almacén</h3>
+                            <div class="stat-card-value">{{ productos_almacen }}</div>
+                            <p class="stat-card-subtitle {% if productos_stock_bajo > 0 %}danger{% endif %}">
+                                productos{% if productos_stock_bajo > 0 %} | {{ productos_stock_bajo }} con stock bajo{% endif %}
+                            </p>
+                        </div>
+                        <div class="stat-card-icon">📦</div>
+                    </div>
+                </div>
             </a>
         </div>
     </div>
+
+    <!-- Sección: Accesos Rápidos -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-icon">🚀</span>
+            <h2>Accesos Rápidos</h2>
+        </div>
+        <div class="quick-access-grid">
+            <a href="{% url 'operadores:list' %}" class="quick-access-item operadores">
+                <div class="quick-access-icon">👤</div>
+                <span class="quick-access-label">Ver Operadores</span>
+            </a>
+            <a href="{% url 'unidades:list' %}" class="quick-access-item unidades">
+                <div class="quick-access-icon">🚛</div>
+                <span class="quick-access-label">Ver Unidades</span>
+            </a>
+            <a href="{% url 'bitacoras:list' %}" class="quick-access-item viajes">
+                <div class="quick-access-icon">📋</div>
+                <span class="quick-access-label">Ver Bitácoras</span>
+            </a>
+            <a href="{% url 'combustible:wizard' %}" class="quick-access-item combustible">
+                <div class="quick-access-icon">⛽</div>
+                <span class="quick-access-label">Nueva Carga</span>
+            </a>
+            <a href="{% url 'taller:crear_orden' %}" class="quick-access-item taller">
+                <div class="quick-access-icon">🔧</div>
+                <span class="quick-access-label">Nueva Orden</span>
+            </a>
+            <a href="{% url 'compras:requisicion_crear' %}" class="quick-access-item compras">
+                <div class="quick-access-icon">🛒</div>
+                <span class="quick-access-label">Nueva Requisición</span>
+            </a>
+            <a href="{% url 'almacen:producto_list' %}" class="quick-access-item almacen">
+                <div class="quick-access-icon">📦</div>
+                <span class="quick-access-label">Ver Inventario</span>
+            </a>
+            <a href="{% url 'admin:index' %}" class="quick-access-item admin">
+                <div class="quick-access-icon">⚙️</div>
+                <span class="quick-access-label">Administración</span>
+            </a>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// Configuración de Chart.js en español
+// Configuración global de Chart.js
 Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
 Chart.defaults.color = '#6b7280';
 
@@ -241,8 +557,14 @@ new Chart(ctxViajes, {
             data: {{ viajes_por_dia|safe }},
             borderColor: '#10b981',
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
             tension: 0.4,
-            fill: true
+            fill: true,
+            pointBackgroundColor: '#10b981',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7
         }]
     },
     options: {
@@ -252,7 +574,14 @@ new Chart(ctxViajes, {
             legend: { display: false }
         },
         scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+                grid: { display: false }
+            }
         }
     }
 });
@@ -266,7 +595,9 @@ new Chart(ctxCombustible, {
         datasets: [{
             label: 'Litros',
             data: {{ combustible_por_dia|safe }},
-            backgroundColor: '#8b5cf6'
+            backgroundColor: 'rgba(139, 92, 246, 0.8)',
+            borderRadius: 6,
+            borderSkipped: false
         }]
     },
     options: {
@@ -276,53 +607,13 @@ new Chart(ctxCombustible, {
             legend: { display: false }
         },
         scales: {
-            y: { beginAtZero: true }
-        }
-    }
-});
-
-// Gráfica de Estado de Unidades
-const ctxUnidades = document.getElementById('chartUnidades').getContext('2d');
-new Chart(ctxUnidades, {
-    type: 'doughnut',
-    data: {
-        labels: ['Activas', 'Inactivas'],
-        datasets: [{
-            data: [{{ unidades_activas_count }}, {{ unidades_inactivas_count }}],
-            backgroundColor: ['#10b981', '#ef4444']
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false
-    }
-});
-
-// Gráfica de Top Categorías
-const ctxCategorias = document.getElementById('chartCategorias').getContext('2d');
-new Chart(ctxCategorias, {
-    type: 'bar',
-    data: {
-        labels: [
-            {% for cat in top_categorias_almacen %}'{{ cat.categoria|truncatechars:20 }}'{% if not forloop.last %},{% endif %}{% endfor %}
-        ],
-        datasets: [{
-            label: 'Productos',
-            data: [
-                {% for cat in top_categorias_almacen %}{{ cat.count }}{% if not forloop.last %},{% endif %}{% endfor %}
-            ],
-            backgroundColor: '#06b6d4'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        indexAxis: 'y',
-        plugins: {
-            legend: { display: false }
-        },
-        scales: {
-            x: { beginAtZero: true }
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+                grid: { display: false }
+            }
         }
     }
 });

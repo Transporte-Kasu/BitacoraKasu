@@ -160,15 +160,25 @@
             </a>
         </div>
 
-        {% if carga.foto_candado_nuevo %}
+        {% for foto_candado in carga.fotos_candado_nuevo.all %}
         <div>
-            <p class="font-semibold text-gray-700 mb-2">Candado Nuevo</p>
-            <a href="{{ carga.foto_candado_nuevo.url }}" target="_blank">
-                <img src="{{ carga.foto_candado_nuevo.url }}" alt="Candado nuevo"
+            <p class="font-semibold text-gray-700 mb-2">{{ foto_candado.descripcion|default:"Candado Nuevo" }}</p>
+            <a href="{{ foto_candado.foto.url }}" target="_blank">
+                <img src="{{ foto_candado.foto.url }}" alt="{{ foto_candado.descripcion|default:'Candado nuevo' }}"
                      class="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-75 transition">
             </a>
         </div>
-        {% endif %}
+        {% empty %}
+            {% if carga.foto_candado_nuevo %}
+            <div>
+                <p class="font-semibold text-gray-700 mb-2">Candado Nuevo</p>
+                <a href="{{ carga.foto_candado_nuevo.url }}" target="_blank">
+                    <img src="{{ carga.foto_candado_nuevo.url }}" alt="Candado nuevo"
+                         class="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-75 transition">
+                </a>
+            </div>
+            {% endif %}
+        {% endfor %}
 
         {% if carga.foto_ticket %}
         <div>

@@ -5,7 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.http import JsonResponse
-from .models import CargaCombustible, Despachador
+from .models import CargaCombustible, Despachador, FotoCandadoNuevo
 from .forms import (
     Paso1Form, Paso2Form, Paso3Form, Paso4Form, Paso5Form, Paso6Form
 )
@@ -131,9 +131,18 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
             form = Paso5Form(request.POST, request.FILES)
             if form.is_valid() and carga_id:
                 carga = get_object_or_404(CargaCombustible, id=carga_id)
-                carga.foto_candado_nuevo = form.cleaned_data['foto_candado_nuevo']
-                carga.save()
-                messages.success(request, '✓ Paso 5 completado: Candado nuevo registrado')
+                archivos = request.FILES.getlist('fotos_candado_nuevo')
+                for i, archivo in enumerate(archivos):
+                    FotoCandadoNuevo.objects.create(
+                        carga=carga,
+                        foto=archivo,
+                        descripcion=f"Candado {i + 1}"
+                    )
+                    # Guardar la primera foto en el campo legacy para compatibilidad
+                    if i == 0:
+                        carga.foto_candado_nuevo = archivo
+                        carga.save()
+                messages.success(request, f'✓ Paso 5 completado: {len(archivos)} foto(s) de candado nuevo registrada(s)')
                 return redirect('combustible:wizard', paso=6)
 
         elif paso == 6:

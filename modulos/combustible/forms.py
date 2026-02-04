@@ -1,6 +1,12 @@
 from django import forms
+from django.forms.widgets import FileInput
 from .models import CargaCombustible, Despachador
 from modulos.unidades.models import Unidad
+
+
+class MultipleFileInput(FileInput):
+    """Widget que permite seleccionar múltiples archivos"""
+    allow_multiple_selected = True
 
 
 class Paso1Form(forms.Form):
@@ -93,15 +99,18 @@ class Paso4Form(forms.Form):
 
 
 class Paso5Form(forms.Form):
-    """Paso 5: Foto del candado nuevo"""
-    foto_candado_nuevo = forms.ImageField(
-        widget=forms.FileInput(attrs={
+    """Paso 5: Fotos del candado nuevo (permite múltiples)"""
+    fotos_candado_nuevo = forms.FileField(
+        widget=MultipleFileInput(attrs={
             'class': 'hidden',
             'accept': 'image/*',
-            'capture': 'environment'
         }),
-        label="Foto del candado nuevo"
+        label="Fotos del candado nuevo"
     )
+
+    def clean_fotos_candado_nuevo(self):
+        """Validación básica - los archivos múltiples se manejan en la vista"""
+        return self.cleaned_data['fotos_candado_nuevo']
 
 
 class Paso6Form(forms.Form):

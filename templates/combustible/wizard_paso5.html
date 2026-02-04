@@ -11,6 +11,20 @@
     .navbar-menu{display:none}
     body { background: #f3f4f6; }
     .preview-image { max-width: 100%; height: auto; border-radius: 0.5rem; }
+    .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+    .preview-item { position: relative; border-radius: 0.5rem; overflow: hidden; border: 2px solid #e5e7eb; }
+    .preview-item img { width: 100%; height: 140px; object-fit: cover; }
+    .preview-item .remove-btn {
+        position: absolute; top: 4px; right: 4px;
+        background: rgba(239,68,68,0.9); color: white; border: none;
+        border-radius: 50%; width: 28px; height: 28px; cursor: pointer;
+        font-size: 14px; display: flex; align-items: center; justify-content: center;
+    }
+    .preview-item .photo-label {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        background: rgba(0,0,0,0.6); color: white;
+        font-size: 11px; padding: 2px 6px; text-align: center;
+    }
 </style>
 {% endblock %}
 
@@ -38,32 +52,37 @@
                     </svg>
                 </div>
                 <h1 class="text-2xl font-bold text-gray-800 mb-2">Candado Nuevo</h1>
-                <p class="text-gray-600">Instala y fotografía el nuevo candado de seguridad</p>
+                <p class="text-gray-600">Instala y fotografía los candados de seguridad nuevos</p>
             </div>
 
             <form method="post" enctype="multipart/form-data" id="paso5Form">
                 {% csrf_token %}
 
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-3">Fotografía del candado nuevo instalado</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Fotografías de los candados nuevos instalados</label>
                     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
                         <div id="preview-container" class="hidden mb-4">
-                            <img id="image-preview" class="preview-image mx-auto" alt="Vista previa">
+                            <div id="preview-grid" class="preview-grid"></div>
                         </div>
-                        <label for="id_foto_candado_nuevo" class="cursor-pointer">
+                        <div id="photo-counter" class="hidden mb-3">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                <span id="counter-text">0 fotos seleccionadas</span>
+                            </span>
+                        </div>
+                        <label for="id_fotos_candado_nuevo" class="cursor-pointer">
                             <div class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
                                 <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 </svg>
-                                <span id="btn-text">Tomar Foto del Candado Nuevo</span>
+                                <span id="btn-text">Tomar Fotos de Candados Nuevos</span>
                             </div>
                         </label>
-                        {{ form.foto_candado_nuevo }}
-                        <p class="text-xs text-gray-500 mt-2">El candado debe estar correctamente instalado</p>
+                        {{ form.fotos_candado_nuevo }}
+                        <p class="text-xs text-gray-500 mt-2">Puedes seleccionar varias fotos si hay más de un tanque</p>
                     </div>
-                    {% if form.foto_candado_nuevo.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.foto_candado_nuevo.errors.0 }}</p>
+                    {% if form.fotos_candado_nuevo.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.fotos_candado_nuevo.errors.0 }}</p>
                     {% endif %}
                 </div>
 
@@ -88,34 +107,93 @@
                 Instrucciones
             </h3>
             <ul class="text-sm text-green-800 space-y-1">
-                <li>• Instala el nuevo candado correctamente</li>
-                <li>• Verifica que esté bien cerrado</li>
-                <li>• Fotografía el candado instalado</li>
-                <li>• Asegura que el número sea visible</li>
+                <li>• Instala los candados nuevos correctamente</li>
+                <li>• Verifica que estén bien cerrados</li>
+                <li>• Fotografía cada candado instalado</li>
+                <li>• Asegura que los números sean visibles</li>
+                <li>• Si hay más de un tanque, selecciona varias fotos</li>
             </ul>
         </div>
     </div>
 </div>
 
 <script>
-    const fileInput = document.getElementById('id_foto_candado_nuevo');
+    const fileInput = document.getElementById('id_fotos_candado_nuevo');
     const previewContainer = document.getElementById('preview-container');
-    const imagePreview = document.getElementById('image-preview');
+    const previewGrid = document.getElementById('preview-grid');
+    const photoCounter = document.getElementById('photo-counter');
+    const counterText = document.getElementById('counter-text');
     const btnText = document.getElementById('btn-text');
     const submitBtn = document.getElementById('submitBtn');
 
+    // DataTransfer para manejar la lista de archivos
+    let selectedFiles = new DataTransfer();
+
     fileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        // Agregar nuevos archivos a la lista
+        files.forEach(file => {
+            selectedFiles.items.add(file);
+        });
+
+        updatePreviews();
+    });
+
+    function updatePreviews() {
+        previewGrid.innerHTML = '';
+        const files = Array.from(selectedFiles.files);
+
+        if (files.length === 0) {
+            previewContainer.classList.add('hidden');
+            photoCounter.classList.add('hidden');
+            btnText.textContent = 'Tomar Fotos de Candados Nuevos';
+            submitBtn.disabled = true;
+            fileInput.files = selectedFiles.files;
+            return;
+        }
+
+        files.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = function(e) {
-                imagePreview.src = e.target.result;
-                previewContainer.classList.remove('hidden');
-                btnText.textContent = 'Cambiar Foto';
-                submitBtn.disabled = false;
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.innerHTML = `
+                    <img src="${e.target.result}" alt="Candado ${index + 1}">
+                    <button type="button" class="remove-btn" data-index="${index}" title="Eliminar">&times;</button>
+                    <div class="photo-label">Candado ${index + 1}</div>
+                `;
+                previewGrid.appendChild(item);
+
+                // Agregar evento de eliminar
+                item.querySelector('.remove-btn').addEventListener('click', function() {
+                    removeFile(parseInt(this.dataset.index));
+                });
             };
             reader.readAsDataURL(file);
-        }
-    });
+        });
+
+        previewContainer.classList.remove('hidden');
+        photoCounter.classList.remove('hidden');
+        counterText.textContent = files.length === 1
+            ? '1 foto seleccionada'
+            : `${files.length} fotos seleccionadas`;
+        btnText.textContent = 'Agregar Más Fotos';
+        submitBtn.disabled = false;
+
+        // Actualizar el input con los archivos actuales
+        fileInput.files = selectedFiles.files;
+    }
+
+    function removeFile(index) {
+        const newDT = new DataTransfer();
+        const files = Array.from(selectedFiles.files);
+        files.forEach((file, i) => {
+            if (i !== index) newDT.items.add(file);
+        });
+        selectedFiles = newDT;
+        updatePreviews();
+    }
 </script>
 {% endblock %}
