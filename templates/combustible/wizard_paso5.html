@@ -130,8 +130,8 @@
     fileInput.removeAttribute('multiple');
     fileInput.setAttribute('capture', 'environment');
 
-    // DataTransfer para manejar la lista de archivos
-    let selectedFiles = new DataTransfer();
+    // Lista de archivos acumulados (no depender de DataTransfer para el envío)
+    let selectedFilesList = [];
 
     fileInput.addEventListener('change', function(e) {
         const files = Array.from(e.target.files);
@@ -139,7 +139,7 @@
 
         // Agregar nuevos archivos a la lista
         files.forEach(file => {
-            selectedFiles.items.add(file);
+            selectedFilesList.push(file);
         });
 
         updatePreviews();
@@ -147,18 +147,16 @@
 
     function updatePreviews() {
         previewGrid.innerHTML = '';
-        const files = Array.from(selectedFiles.files);
 
-        if (files.length === 0) {
+        if (selectedFilesList.length === 0) {
             previewContainer.classList.add('hidden');
             photoCounter.classList.add('hidden');
             btnText.textContent = 'Tomar Fotos de Candados Nuevos';
             submitBtn.disabled = true;
-            fileInput.files = selectedFiles.files;
             return;
         }
 
-        files.forEach((file, index) => {
+        selectedFilesList.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const item = document.createElement('div');
@@ -180,24 +178,50 @@
 
         previewContainer.classList.remove('hidden');
         photoCounter.classList.remove('hidden');
-        counterText.textContent = files.length === 1
+        counterText.textContent = selectedFilesList.length === 1
             ? '1 foto tomada'
-            : `${files.length} fotos tomadas`;
+            : `${selectedFilesList.length} fotos tomadas`;
         btnText.textContent = 'Tomar Otra Foto';
         submitBtn.disabled = false;
-
-        // Actualizar el input con los archivos actuales
-        fileInput.files = selectedFiles.files;
     }
 
     function removeFile(index) {
-        const newDT = new DataTransfer();
-        const files = Array.from(selectedFiles.files);
-        files.forEach((file, i) => {
-            if (i !== index) newDT.items.add(file);
-        });
-        selectedFiles = newDT;
+        selectedFilesList.splice(index, 1);
         updatePreviews();
     }
+
+    // Enviar formulario via JavaScript con FormData para garantizar que los archivos se envíen
+    document.getElementById('paso5Form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', this.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        selectedFilesList.forEach(file => {
+            formData.append('fotos_candado_nuevo', file);
+        });
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+
+        fetch(this.action || window.location.href, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                return response.text().then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                });
+            }
+        }).catch(() => {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Continuar →';
+            alert('Error al enviar. Verifica tu conexión e intenta de nuevo.');
+        });
+    });
 </script>
 {% endblock %}
