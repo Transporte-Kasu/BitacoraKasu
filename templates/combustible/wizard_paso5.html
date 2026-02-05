@@ -79,7 +79,7 @@
                             </div>
                         </label>
                         {{ form.fotos_candado_nuevo }}
-                        <p class="text-xs text-gray-500 mt-2">Puedes seleccionar varias fotos si hay más de un tanque</p>
+                        <p class="text-xs text-gray-500 mt-2">Toma una foto por cada candado. Puedes agregar varias.</p>
                     </div>
                     {% if form.fotos_candado_nuevo.errors %}
                         <p class="mt-1 text-sm text-red-600">{{ form.fotos_candado_nuevo.errors.0 }}</p>
@@ -111,7 +111,7 @@
                 <li>• Verifica que estén bien cerrados</li>
                 <li>• Fotografía cada candado instalado</li>
                 <li>• Asegura que los números sean visibles</li>
-                <li>• Si hay más de un tanque, selecciona varias fotos</li>
+                <li>• Si hay más de un tanque, toma una foto por cada candado</li>
             </ul>
         </div>
     </div>
@@ -125,6 +125,10 @@
     const counterText = document.getElementById('counter-text');
     const btnText = document.getElementById('btn-text');
     const submitBtn = document.getElementById('submitBtn');
+
+    // Configurar input para abrir cámara directamente en móvil
+    fileInput.removeAttribute('multiple');
+    fileInput.setAttribute('capture', 'environment');
 
     // DataTransfer para manejar la lista de archivos
     let selectedFiles = new DataTransfer();
@@ -177,9 +181,9 @@
         previewContainer.classList.remove('hidden');
         photoCounter.classList.remove('hidden');
         counterText.textContent = files.length === 1
-            ? '1 foto seleccionada'
-            : `${files.length} fotos seleccionadas`;
-        btnText.textContent = 'Agregar Más Fotos';
+            ? '1 foto tomada'
+            : `${files.length} fotos tomadas`;
+        btnText.textContent = 'Tomar Otra Foto';
         submitBtn.disabled = false;
 
         // Actualizar el input con los archivos actuales
