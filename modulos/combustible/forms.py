@@ -105,12 +105,9 @@ class Paso5Form(forms.Form):
             'class': 'hidden',
             'accept': 'image/*',
         }),
-        label="Fotos del candado nuevo"
+        label="Fotos del candado nuevo",
+        required=False
     )
-
-    def clean_fotos_candado_nuevo(self):
-        """Validación básica - los archivos múltiples se manejan en la vista"""
-        return self.cleaned_data['fotos_candado_nuevo']
 
 
 class Paso6Form(forms.Form):

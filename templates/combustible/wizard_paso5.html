@@ -38,7 +38,7 @@
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
                 <div class="bg-blue-600 h-2 rounded-full transition-all duration-300 progress-bar"
-                     data-progress="{{ progreso }}"></div>
+                     style="width: {{ progreso }}%"></div>
             </div>
         </div>
     </div>
@@ -130,25 +130,30 @@
     fileInput.removeAttribute('multiple');
     fileInput.setAttribute('capture', 'environment');
 
-    // Lista de archivos acumulados (no depender de DataTransfer para el envío)
-    let selectedFilesList = [];
+    // Almacenar fotos como data URLs en memoria para evitar que las
+    // referencias File se invaliden al reutilizar el input en móvil
+    let capturedPhotos = []; // [{dataUrl, name, type}, ...]
 
     fileInput.addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
+        const file = e.target.files[0];
+        if (!file) return;
 
-        // Agregar nuevos archivos a la lista
-        files.forEach(file => {
-            selectedFilesList.push(file);
-        });
-
-        updatePreviews();
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            capturedPhotos.push({
+                dataUrl: event.target.result,
+                name: file.name,
+                type: file.type
+            });
+            updatePreviews();
+        };
+        reader.readAsDataURL(file);
     });
 
     function updatePreviews() {
         previewGrid.innerHTML = '';
 
-        if (selectedFilesList.length === 0) {
+        if (capturedPhotos.length === 0) {
             previewContainer.classList.add('hidden');
             photoCounter.classList.add('hidden');
             btnText.textContent = 'Tomar Fotos de Candados Nuevos';
@@ -156,49 +161,57 @@
             return;
         }
 
-        selectedFilesList.forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const item = document.createElement('div');
-                item.className = 'preview-item';
-                item.innerHTML = `
-                    <img src="${e.target.result}" alt="Candado ${index + 1}">
-                    <button type="button" class="remove-btn" data-index="${index}" title="Eliminar">&times;</button>
-                    <div class="photo-label">Candado ${index + 1}</div>
-                `;
-                previewGrid.appendChild(item);
+        capturedPhotos.forEach((photo, index) => {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.innerHTML = `
+                <img src="${photo.dataUrl}" alt="Candado ${index + 1}">
+                <button type="button" class="remove-btn" data-index="${index}" title="Eliminar">&times;</button>
+                <div class="photo-label">Candado ${index + 1}</div>
+            `;
+            previewGrid.appendChild(item);
 
-                // Agregar evento de eliminar
-                item.querySelector('.remove-btn').addEventListener('click', function() {
-                    removeFile(parseInt(this.dataset.index));
-                });
-            };
-            reader.readAsDataURL(file);
+            item.querySelector('.remove-btn').addEventListener('click', function() {
+                capturedPhotos.splice(parseInt(this.dataset.index), 1);
+                updatePreviews();
+            });
         });
 
         previewContainer.classList.remove('hidden');
         photoCounter.classList.remove('hidden');
-        counterText.textContent = selectedFilesList.length === 1
+        counterText.textContent = capturedPhotos.length === 1
             ? '1 foto tomada'
-            : `${selectedFilesList.length} fotos tomadas`;
+            : `${capturedPhotos.length} fotos tomadas`;
         btnText.textContent = 'Tomar Otra Foto';
         submitBtn.disabled = false;
     }
 
-    function removeFile(index) {
-        selectedFilesList.splice(index, 1);
-        updatePreviews();
+    // Convertir data URL a Blob para enviar al servidor
+    function dataUrlToBlob(dataUrl) {
+        const parts = dataUrl.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const bstr = atob(parts[1]);
+        const u8arr = new Uint8Array(bstr.length);
+        for (let i = 0; i < bstr.length; i++) {
+            u8arr[i] = bstr.charCodeAt(i);
+        }
+        return new Blob([u8arr], { type: mime });
     }
 
-    // Enviar formulario via JavaScript con FormData para garantizar que los archivos se envíen
     document.getElementById('paso5Form').addEventListener('submit', function(e) {
         e.preventDefault();
+
+        if (capturedPhotos.length === 0) {
+            alert('Debes tomar al menos una foto del candado nuevo.');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('csrfmiddlewaretoken', this.querySelector('[name=csrfmiddlewaretoken]').value);
 
-        selectedFilesList.forEach(file => {
-            formData.append('fotos_candado_nuevo', file);
+        capturedPhotos.forEach((photo, i) => {
+            const blob = dataUrlToBlob(photo.dataUrl);
+            formData.append('fotos_candado_nuevo', blob, photo.name || 'candado_' + (i + 1) + '.jpg');
         });
 
         submitBtn.disabled = true;

@@ -129,9 +129,9 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
 
         elif paso == 5:
             form = Paso5Form(request.POST, request.FILES)
-            if form.is_valid() and carga_id:
+            archivos = request.FILES.getlist('fotos_candado_nuevo')
+            if archivos and carga_id:
                 carga = get_object_or_404(CargaCombustible, id=carga_id)
-                archivos = request.FILES.getlist('fotos_candado_nuevo')
                 for i, archivo in enumerate(archivos):
                     FotoCandadoNuevo.objects.create(
                         carga=carga,
@@ -144,6 +144,8 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
                         carga.save()
                 messages.success(request, f'✓ Paso 5 completado: {len(archivos)} foto(s) de candado nuevo registrada(s)')
                 return redirect('combustible:wizard', paso=6)
+            elif not archivos:
+                form.add_error('fotos_candado_nuevo', 'Debes tomar al menos una foto del candado nuevo.')
 
         elif paso == 6:
             form = Paso6Form(request.POST, request.FILES)
