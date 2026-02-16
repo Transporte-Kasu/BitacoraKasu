@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from .models import (
     ProductoAlmacen, EntradaAlmacen, ItemEntradaAlmacen,
     SolicitudSalida, ItemSolicitudSalida, SalidaAlmacen,
-    ItemSalidaAlmacen, AlertaStock
+    ItemSalidaAlmacen, AlertaStock, SalidaRapidaConsumible
 )
 
 
@@ -20,7 +20,7 @@ class ProductoAlmacenForm(forms.ModelForm):
             'localidad', 'cantidad', 'unidad_medida', 'stock_minimo', 'stock_maximo',
             'costo_unitario', 'tiene_caducidad', 'fecha_caducidad', 'imagen',
             'producto_compra', 'proveedor_principal', 'tiempo_reorden_dias',
-            'notas', 'activo'
+            'notas', 'es_consumible', 'activo'
         ]
         widgets = {
             'descripcion': forms.Textarea(attrs={'rows': 3}),
@@ -357,3 +357,33 @@ class ResolverAlertaForm(forms.Form):
         required=True,
         label='Confirmo que he revisado y resuelto esta alerta'
     )
+
+
+class SalidaRapidaConsumibleForm(forms.ModelForm):
+    """Formulario para salida rápida de consumibles"""
+
+    class Meta:
+        model = SalidaRapidaConsumible
+        fields = ['producto', 'cantidad', 'solicitante', 'motivo']
+        widgets = {
+            'motivo': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['producto'].queryset = ProductoAlmacen.objects.filter(
+            es_consumible=True, activo=True, cantidad__gt=0
+        ).order_by('descripcion')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        producto = cleaned_data.get('producto')
+        cantidad = cleaned_data.get('cantidad')
+
+        if producto and cantidad:
+            if cantidad > producto.cantidad:
+                raise ValidationError({
+                    'cantidad': f'No hay suficiente stock. Disponible: {producto.cantidad} {producto.unidad_medida}'
+                })
+
+        return cleaned_data

@@ -107,6 +107,12 @@ class ProductoAlmacen(models.Model):
     )
     notas = models.TextField(blank=True)
     
+    # Tipo de producto
+    es_consumible = models.BooleanField(
+        default=False,
+        help_text="Indica si es un producto consumible de taller (trapos, gasolina blanca, desengrasante, etc.)"
+    )
+
     # Metadata
     activo = models.BooleanField(default=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
@@ -713,3 +719,64 @@ class AlertaStock(models.Model):
         self.resuelta_por = usuario
         self.fecha_resolucion = timezone.now()
         self.save()
+
+
+class SalidaRapidaConsumible(models.Model):
+    """Salida rápida de productos consumibles sin flujo de autorización"""
+    folio = models.CharField(max_length=20, unique=True, editable=False)
+    producto = models.ForeignKey(
+        ProductoAlmacen,
+        on_delete=models.CASCADE,
+        related_name='salidas_rapidas',
+        limit_choices_to={'es_consumible': True, 'activo': True}
+    )
+    cantidad = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    entregado_por = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='salidas_rapidas_entregadas'
+    )
+    solicitante = models.CharField(
+        max_length=200,
+        help_text="Nombre de quien solicita el consumible"
+    )
+    motivo = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Motivo o uso del consumible (opcional)"
+    )
+    fecha_salida = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "Salida Rápida de Consumible"
+        verbose_name_plural = "Salidas Rápidas de Consumibles"
+        ordering = ['-fecha_salida']
+        indexes = [
+            models.Index(fields=['-fecha_salida']),
+            models.Index(fields=['folio']),
+            models.Index(fields=['producto']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.folio:
+            from django.db.models import Max
+            fecha = timezone.now().strftime('%Y%m%d')
+            ultimo = SalidaRapidaConsumible.objects.filter(
+                folio__startswith=f'CON-{fecha}'
+            ).aggregate(Max('folio'))['folio__max']
+
+            if ultimo:
+                numero = int(ultimo.split('-')[-1]) + 1
+            else:
+                numero = 1
+
+            self.folio = f'CON-{fecha}-{numero:03d}'
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.folio} - {self.producto.descripcion} ({self.cantidad})"

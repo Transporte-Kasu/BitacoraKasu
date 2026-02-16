@@ -28,7 +28,7 @@
     </div>
     
     <!-- Enlaces rápidos -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <a href="{% url 'almacen:producto_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition">
             📦 Productos
         </a>
@@ -37,6 +37,9 @@
         </a>
         <a href="{% url 'almacen:solicitud_list' %}" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition">
             📝 Solicitudes
+        </a>
+        <a href="{% url 'almacen:salida_rapida_consumible' %}" class="bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-lg text-center transition">
+            🧴 Consumibles
         </a>
         <a href="{% url 'almacen:alerta_list' %}" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg text-center transition">
             ⚠️ Alertas

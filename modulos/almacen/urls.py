@@ -32,6 +32,9 @@ urlpatterns = [
     # Salidas
     path('salidas/', views.SalidaAlmacenListView.as_view(), name='salida_list'),
     path('salidas/<int:pk>/', views.SalidaAlmacenDetailView.as_view(), name='salida_detail'),
+
+    # Salida Rápida de Consumibles
+    path('consumibles/salida-rapida/', views.salida_rapida_consumible, name='salida_rapida_consumible'),
     
     # Movimientos
     path('movimientos/', views.MovimientoAlmacenListView.as_view(), name='movimiento_list'),

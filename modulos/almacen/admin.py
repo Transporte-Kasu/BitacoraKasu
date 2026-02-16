@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import (
     ProductoAlmacen, EntradaAlmacen, ItemEntradaAlmacen,
     SolicitudSalida, ItemSolicitudSalida, SalidaAlmacen,
-    ItemSalidaAlmacen, MovimientoAlmacen, AlertaStock
+    ItemSalidaAlmacen, MovimientoAlmacen, AlertaStock,
+    SalidaRapidaConsumible
 )
 
 
@@ -29,9 +30,9 @@ class ItemSalidaAlmacenInline(admin.TabularInline):
 class ProductoAlmacenAdmin(admin.ModelAdmin):
     list_display = [
         'sku', 'descripcion', 'categoria', 'subcategoria', 'cantidad',
-        'unidad_medida', 'stock_minimo', 'costo_unitario', 'activo'
+        'unidad_medida', 'stock_minimo', 'costo_unitario', 'es_consumible', 'activo'
     ]
-    list_filter = ['categoria', 'activo', 'tiene_caducidad']
+    list_filter = ['categoria', 'activo', 'tiene_caducidad', 'es_consumible']
     search_fields = ['sku', 'descripcion', 'codigo_barras']
     readonly_fields = ['fecha_registro', 'fecha_actualizacion']
     fieldsets = (
@@ -49,6 +50,9 @@ class ProductoAlmacenAdmin(admin.ModelAdmin):
         }),
         ('Relaciones', {
             'fields': ('producto_compra', 'proveedor_principal', 'tiempo_reorden_dias')
+        }),
+        ('Tipo de Producto', {
+            'fields': ('es_consumible',)
         }),
         ('Metadata', {
             'fields': ('notas', 'activo', 'fecha_registro', 'fecha_actualizacion')
@@ -173,3 +177,15 @@ class AlertaStockAdmin(admin.ModelAdmin):
     search_fields = ['producto_almacen__sku', 'producto_almacen__descripcion', 'mensaje']
     readonly_fields = ['fecha_generacion', 'fecha_resolucion']
     date_hierarchy = 'fecha_generacion'
+
+
+@admin.register(SalidaRapidaConsumible)
+class SalidaRapidaConsumibleAdmin(admin.ModelAdmin):
+    list_display = [
+        'folio', 'producto', 'cantidad', 'solicitante',
+        'entregado_por', 'fecha_salida'
+    ]
+    list_filter = ['fecha_salida', 'producto']
+    search_fields = ['folio', 'producto__sku', 'producto__descripcion', 'solicitante']
+    readonly_fields = ['folio']
+    date_hierarchy = 'fecha_salida'

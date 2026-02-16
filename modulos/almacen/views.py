@@ -12,13 +12,15 @@ from datetime import timedelta
 from .models import (
     ProductoAlmacen, EntradaAlmacen, ItemEntradaAlmacen,
     SolicitudSalida, ItemSolicitudSalida, SalidaAlmacen,
-    ItemSalidaAlmacen, MovimientoAlmacen, AlertaStock
+    ItemSalidaAlmacen, MovimientoAlmacen, AlertaStock,
+    SalidaRapidaConsumible
 )
 from .forms import (
     ProductoAlmacenForm, EntradaAlmacenForm, ItemEntradaAlmacenForm,
     SolicitudSalidaForm, ItemSolicitudSalidaForm, AutorizarSolicitudForm,
     SalidaAlmacenForm, ItemSalidaAlmacenForm, FiltroProductosForm,
-    FiltroEntradasForm, FiltroSolicitudesForm, ResolverAlertaForm
+    FiltroEntradasForm, FiltroSolicitudesForm, ResolverAlertaForm,
+    SalidaRapidaConsumibleForm
 )
 
 
@@ -532,6 +534,54 @@ def resolver_alerta(request, pk):
         'form': form,
     }
     return render(request, 'almacen/resolver_alerta.html', context)
+
+
+# ========== Salida Rápida de Consumibles ==========
+
+@login_required
+def salida_rapida_consumible(request):
+    """Formulario de salida rápida para productos consumibles"""
+    if request.method == 'POST':
+        form = SalidaRapidaConsumibleForm(request.POST)
+        if form.is_valid():
+            salida = form.save(commit=False)
+            salida.entregado_por = request.user
+            salida.save()
+
+            # Reducir stock y crear movimiento
+            producto = salida.producto
+            cantidad_anterior = producto.cantidad
+            producto.reducir_stock(salida.cantidad)
+
+            MovimientoAlmacen.objects.create(
+                tipo='SALIDA',
+                producto_almacen=producto,
+                cantidad=-salida.cantidad,
+                cantidad_anterior=cantidad_anterior,
+                cantidad_posterior=producto.cantidad,
+                usuario=request.user,
+                observaciones=f"Salida rápida consumible {salida.folio} - {salida.motivo}"
+            )
+
+            messages.success(
+                request,
+                f'Salida rápida registrada. Folio: {salida.folio} - '
+                f'{salida.cantidad} {producto.unidad_medida} de {producto.descripcion}'
+            )
+            return redirect('almacen:salida_rapida_consumible')
+    else:
+        form = SalidaRapidaConsumibleForm()
+
+    # Salidas recientes de consumibles
+    salidas_recientes = SalidaRapidaConsumible.objects.select_related(
+        'producto', 'entregado_por'
+    ).order_by('-fecha_salida')[:20]
+
+    context = {
+        'form': form,
+        'salidas_recientes': salidas_recientes,
+    }
+    return render(request, 'almacen/salida_rapida_consumible.html', context)
 
 
 # ========== Reportes ==========
