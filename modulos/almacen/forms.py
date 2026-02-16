@@ -9,7 +9,10 @@ from .models import (
 
 class ProductoAlmacenForm(forms.ModelForm):
     """Formulario para ProductoAlmacen"""
-    
+
+    categoria = forms.ChoiceField(choices=[])
+    subcategoria = forms.ChoiceField(choices=[], required=False)
+
     class Meta:
         model = ProductoAlmacen
         fields = [
@@ -24,6 +27,33 @@ class ProductoAlmacenForm(forms.ModelForm):
             'notas': forms.Textarea(attrs={'rows': 3}),
             'fecha_caducidad': forms.DateInput(attrs={'type': 'date'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Poblar choices de categoría desde BD
+        categorias = (
+            ProductoAlmacen.objects.values_list('categoria', flat=True)
+            .distinct().order_by('categoria')
+        )
+        self.fields['categoria'].choices = [('', 'Seleccionar categoría')] + [
+            (c, c) for c in categorias
+        ]
+        # Poblar choices de subcategoría según la categoría actual
+        categoria_actual = self.data.get('categoria') or (
+            self.instance.categoria if self.instance.pk else ''
+        )
+        if categoria_actual:
+            subcategorias = (
+                ProductoAlmacen.objects.filter(categoria=categoria_actual)
+                .exclude(subcategoria='')
+                .values_list('subcategoria', flat=True)
+                .distinct().order_by('subcategoria')
+            )
+            self.fields['subcategoria'].choices = [('', 'Seleccionar subcategoría')] + [
+                (s, s) for s in subcategorias
+            ]
+        else:
+            self.fields['subcategoria'].choices = [('', 'Seleccionar subcategoría')]
     
     def clean_sku(self):
         """Convertir SKU a mayúsculas"""
@@ -250,15 +280,39 @@ class ItemSalidaAlmacenForm(forms.ModelForm):
 
 class FiltroProductosForm(forms.Form):
     """Formulario para filtrar productos"""
-    categoria = forms.CharField(required=False)
-    subcategoria = forms.CharField(required=False)
-    sku = forms.CharField(required=False, label='SKU')
-    stock_bajo = forms.BooleanField(required=False, label='Solo con stock bajo')
-    proximo_caducar = forms.BooleanField(required=False, label='Solo próximos a caducar')
+    buscar = forms.CharField(required=False, label='Buscar')
+    categoria = forms.ChoiceField(required=False, choices=[])
+    subcategoria = forms.ChoiceField(required=False, choices=[])
+    stock_bajo = forms.BooleanField(required=False, label='Stock bajo')
+    proximo_caducar = forms.BooleanField(required=False, label='Próximos a caducar')
     activo = forms.ChoiceField(
         required=False,
         choices=[('', 'Todos'), ('True', 'Activos'), ('False', 'Inactivos')]
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        categorias = (
+            ProductoAlmacen.objects.values_list('categoria', flat=True)
+            .distinct().order_by('categoria')
+        )
+        self.fields['categoria'].choices = [('', 'Todas las categorías')] + [
+            (c, c) for c in categorias
+        ]
+        # Poblar subcategorías según categoría seleccionada
+        categoria_sel = self.data.get('categoria', '')
+        if categoria_sel:
+            subcategorias = (
+                ProductoAlmacen.objects.filter(categoria=categoria_sel)
+                .exclude(subcategoria='')
+                .values_list('subcategoria', flat=True)
+                .distinct().order_by('subcategoria')
+            )
+            self.fields['subcategoria'].choices = [('', 'Todas las subcategorías')] + [
+                (s, s) for s in subcategorias
+            ]
+        else:
+            self.fields['subcategoria'].choices = [('', 'Todas las subcategorías')]
 
 
 class FiltroEntradasForm(forms.Form):

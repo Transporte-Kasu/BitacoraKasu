@@ -51,7 +51,7 @@
         {% endif %}
 
         <!-- Sección: Información Básica -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="producto-form-section rounded-lg shadow-md p-6">
             <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
                 📦 Información Básica
             </h2>
@@ -128,7 +128,7 @@
         </div>
 
         <!-- Sección: Control de Stock -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="producto-form-section rounded-lg shadow-md p-6">
             <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
                 📊 Control de Stock
             </h2>
@@ -205,7 +205,7 @@
         </div>
 
         <!-- Sección: Caducidad -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="producto-form-section rounded-lg shadow-md p-6">
             <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
                 📅 Control de Caducidad
             </h2>
@@ -234,7 +234,7 @@
         </div>
 
         <!-- Sección: Referencias -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="producto-form-section rounded-lg shadow-md p-6">
             <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
                 🔗 Referencias
             </h2>
@@ -266,7 +266,7 @@
         </div>
 
         <!-- Sección: Imagen y Notas -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="producto-form-section rounded-lg shadow-md p-6">
             <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
                 📝 Información Adicional
             </h2>
@@ -327,24 +327,92 @@
 
 {% endblock %}
 
+{% block extra_js %}
+<script>
+    const categoriaSelect = document.getElementById('id_categoria');
+    const subcategoriaSelect = document.getElementById('id_subcategoria');
+    const subcategoriaActual = subcategoriaSelect ? subcategoriaSelect.value : '';
+
+    if (categoriaSelect && subcategoriaSelect) {
+        categoriaSelect.addEventListener('change', function() {
+            const categoria = this.value;
+            subcategoriaSelect.innerHTML = '<option value="">Seleccionar subcategoría</option>';
+            if (!categoria) return;
+
+            fetch('{% url "almacen:api_subcategorias" %}?categoria=' + encodeURIComponent(categoria))
+                .then(response => response.json())
+                .then(data => {
+                    data.subcategorias.forEach(function(sub) {
+                        const option = document.createElement('option');
+                        option.value = sub;
+                        option.textContent = sub;
+                        subcategoriaSelect.appendChild(option);
+                    });
+                });
+        });
+    }
+</script>
+{% endblock %}
+
 {% block extra_css %}
 <style>
-    /* Personalización de campos de formulario con Tailwind */
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    input[type="file"],
-    select,
-    textarea {
-        @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200;
+    /* Secciones del formulario con fondo rosa suave */
+    .producto-form-section {
+        background-color: #fff5f5;
+        border: 1px solid #fecdd3;
     }
-    
-    input[type="checkbox"] {
-        @apply w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500;
+
+    /* Campos de formulario visibles con fondo blanco y borde definido */
+    .producto-form-section input[type="text"],
+    .producto-form-section input[type="number"],
+    .producto-form-section input[type="date"],
+    .producto-form-section select,
+    .producto-form-section textarea {
+        width: 100%;
+        padding: 0.625rem 1rem;
+        background-color: #ffffff;
+        border: 2px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.95rem;
+        color: #1f2937;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    
-    textarea {
-        @apply min-h-[100px];
+
+    .producto-form-section input[type="text"]:focus,
+    .producto-form-section input[type="number"]:focus,
+    .producto-form-section input[type="date"]:focus,
+    .producto-form-section select:focus,
+    .producto-form-section textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .producto-form-section input[type="file"] {
+        width: 100%;
+        padding: 0.5rem;
+        background-color: #ffffff;
+        border: 2px dashed #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        color: #1f2937;
+        cursor: pointer;
+    }
+
+    .producto-form-section input[type="file"]:hover {
+        border-color: #3b82f6;
+    }
+
+    .producto-form-section input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        accent-color: #3b82f6;
+        cursor: pointer;
+    }
+
+    .producto-form-section textarea {
+        min-height: 100px;
+        resize: vertical;
     }
 </style>
 {% endblock %}

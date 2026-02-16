@@ -88,26 +88,30 @@ class ProductoAlmacenListView(LoginRequiredMixin, ListView):
     template_name = 'almacen/producto_list.html'
     context_object_name = 'productos'
     paginate_by = 20
-    
+
     def get_queryset(self):
         queryset = ProductoAlmacen.objects.select_related(
             'producto_compra', 'proveedor_principal'
         ).all()
-        
+
         # Filtros
+        buscar = self.request.GET.get('buscar')
         categoria = self.request.GET.get('categoria')
         subcategoria = self.request.GET.get('subcategoria')
-        sku = self.request.GET.get('sku')
         stock_bajo = self.request.GET.get('stock_bajo')
         proximo_caducar = self.request.GET.get('proximo_caducar')
         activo = self.request.GET.get('activo')
-        
+
+        if buscar:
+            queryset = queryset.filter(
+                Q(sku__icontains=buscar) |
+                Q(descripcion__icontains=buscar) |
+                Q(codigo_barras__icontains=buscar)
+            )
         if categoria:
-            queryset = queryset.filter(categoria__icontains=categoria)
+            queryset = queryset.filter(categoria=categoria)
         if subcategoria:
-            queryset = queryset.filter(subcategoria__icontains=subcategoria)
-        if sku:
-            queryset = queryset.filter(sku__icontains=sku)
+            queryset = queryset.filter(subcategoria=subcategoria)
         if stock_bajo:
             queryset = queryset.filter(cantidad__lte=F('stock_minimo'))
         if proximo_caducar:
@@ -119,13 +123,36 @@ class ProductoAlmacenListView(LoginRequiredMixin, ListView):
             )
         if activo:
             queryset = queryset.filter(activo=(activo == 'True'))
-        
+
         return queryset.order_by('categoria', 'subcategoria', 'descripcion')
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['filtro_form'] = FiltroProductosForm(self.request.GET)
+        # Categorías y subcategorías únicas para los selects
+        context['categorias'] = (
+            ProductoAlmacen.objects.values_list('categoria', flat=True)
+            .distinct().order_by('categoria')
+        )
+        context['subcategorias_json'] = self._get_subcategorias_map()
+        # Preservar filtros en paginación
+        params = self.request.GET.copy()
+        params.pop('page', None)
+        context['filtro_params'] = params.urlencode()
         return context
+
+    def _get_subcategorias_map(self):
+        """Retorna un dict JSON con subcategorías agrupadas por categoría"""
+        import json
+        subcats = (
+            ProductoAlmacen.objects.exclude(subcategoria='')
+            .values_list('categoria', 'subcategoria').distinct()
+            .order_by('categoria', 'subcategoria')
+        )
+        mapa = {}
+        for cat, subcat in subcats:
+            mapa.setdefault(cat, []).append(subcat)
+        return json.dumps(mapa)
 
 
 class ProductoAlmacenDetailView(LoginRequiredMixin, DetailView):
@@ -187,6 +214,19 @@ class ProductoAlmacenDeleteView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Producto eliminado exitosamente.')
         return super().delete(request, *args, **kwargs)
+
+
+@login_required
+def api_subcategorias(request):
+    """API endpoint para obtener subcategorías filtradas por categoría"""
+    categoria = request.GET.get('categoria', '')
+    subcategorias = (
+        ProductoAlmacen.objects.filter(categoria=categoria)
+        .exclude(subcategoria='')
+        .values_list('subcategoria', flat=True)
+        .distinct().order_by('subcategoria')
+    )
+    return JsonResponse({'subcategorias': list(subcategorias)})
 
 
 # ========== EntradaAlmacen Views ==========

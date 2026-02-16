@@ -6,23 +6,59 @@
 {% block content %}
 <div class="max-w-7xl mx-auto py-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">📦 Productos del Almacén</h1>
+        <h1 class="text-3xl font-bold text-gray-900">Productos del Almacén</h1>
         <a href="{% url 'almacen:producto_create' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
-            ➕ Nuevo Producto
+            + Nuevo Producto
         </a>
     </div>
 
     <!-- Filtros -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
-        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input type="text" name="sku" placeholder="Buscar por SKU..." value="{{ request.GET.sku }}" class="px-4 py-2 border rounded">
-            <input type="text" name="categoria" placeholder="Categoría..." value="{{ request.GET.categoria }}" class="px-4 py-2 border rounded">
-            <select name="activo" class="px-4 py-2 border rounded">
-                <option value="">Todos</option>
-                <option value="True" {% if request.GET.activo == 'True' %}selected{% endif %}>Activos</option>
-                <option value="False" {% if request.GET.activo == 'False' %}selected{% endif %}>Inactivos</option>
-            </select>
-            <button type="submit" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">Filtrar</button>
+        <form method="get" id="filtro-form">
+            <!-- Fila 1: Búsqueda, Categoría, Subcategoría -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Buscar (SKU, descripción, código barras)</label>
+                    <input type="text" name="buscar" placeholder="Buscar producto..." value="{{ request.GET.buscar }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Categoría</label>
+                    <select name="categoria" id="filtro-categoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Todas las categorías</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat }}" {% if request.GET.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Subcategoría</label>
+                    <select name="subcategoria" id="filtro-subcategoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Todas las subcategorías</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Fila 2: Checkboxes, Activo, Botones -->
+            <div class="flex flex-wrap items-end gap-4">
+                <label class="inline-flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" name="stock_bajo" value="1" {% if request.GET.stock_bajo %}checked{% endif %} class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="text-sm text-gray-700">Stock bajo</span>
+                </label>
+                <label class="inline-flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" name="proximo_caducar" value="1" {% if request.GET.proximo_caducar %}checked{% endif %} class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="text-sm text-gray-700">Próximos a caducar</span>
+                </label>
+                <div>
+                    <select name="activo" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        <option value="">Todos</option>
+                        <option value="True" {% if request.GET.activo == 'True' %}selected{% endif %}>Activos</option>
+                        <option value="False" {% if request.GET.activo == 'False' %}selected{% endif %}>Inactivos</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 ml-auto">
+                    <button type="submit" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 text-sm">Filtrar</button>
+                    <a href="{% url 'almacen:producto_list' %}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm">Limpiar</a>
+                </div>
+            </div>
         </form>
     </div>
 
@@ -87,16 +123,49 @@
     <div class="mt-6 flex justify-center">
         <nav class="flex space-x-2">
             {% if page_obj.has_previous %}
-            <a href="?page=1" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Primera</a>
-            <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Anterior</a>
+            <a href="?{{ filtro_params }}&page=1" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Primera</a>
+            <a href="?{{ filtro_params }}&page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Anterior</a>
             {% endif %}
             <span class="px-3 py-2 bg-blue-500 text-white border rounded">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Siguiente</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Última</a>
+            <a href="?{{ filtro_params }}&page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Siguiente</a>
+            <a href="?{{ filtro_params }}&page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 bg-white border rounded hover:bg-gray-50">Última</a>
             {% endif %}
         </nav>
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Mapa de subcategorías por categoría
+    const subcategoriasMap = JSON.parse('{{ subcategorias_json|escapejs }}');
+    const categoriaSelect = document.getElementById('filtro-categoria');
+    const subcategoriaSelect = document.getElementById('filtro-subcategoria');
+    const subcategoriaSeleccionada = '{{ request.GET.subcategoria|escapejs }}';
+
+    function actualizarSubcategorias() {
+        const categoria = categoriaSelect.value;
+        subcategoriaSelect.innerHTML = '<option value="">Todas las subcategorías</option>';
+        if (categoria && subcategoriasMap[categoria]) {
+            subcategoriasMap[categoria].forEach(function(sub) {
+                const option = document.createElement('option');
+                option.value = sub;
+                option.textContent = sub;
+                if (sub === subcategoriaSeleccionada) {
+                    option.selected = true;
+                }
+                subcategoriaSelect.appendChild(option);
+            });
+        }
+    }
+
+    categoriaSelect.addEventListener('change', function() {
+        actualizarSubcategorias();
+    });
+
+    // Inicializar subcategorías al cargar la página
+    actualizarSubcategorias();
+</script>
 {% endblock %}

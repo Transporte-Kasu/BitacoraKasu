@@ -14,6 +14,9 @@ urlpatterns = [
     path('productos/<int:pk>/editar/', views.ProductoAlmacenUpdateView.as_view(), name='producto_update'),
     path('productos/<int:pk>/eliminar/', views.ProductoAlmacenDeleteView.as_view(), name='producto_delete'),
     
+    # API
+    path('api/subcategorias/', views.api_subcategorias, name='api_subcategorias'),
+
     # Entradas
     path('entradas/', views.EntradaAlmacenListView.as_view(), name='entrada_list'),
     path('entradas/crear/', views.EntradaAlmacenCreateView.as_view(), name='entrada_create'),
