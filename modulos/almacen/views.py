@@ -7,6 +7,7 @@ from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum, Count, F
 from django.utils import timezone
 from django.http import JsonResponse
+import json
 from datetime import timedelta
 
 from .models import (
@@ -577,9 +578,20 @@ def salida_rapida_consumible(request):
         'producto', 'entregado_por'
     ).order_by('-fecha_salida')[:20]
 
+    # Datos de productos para validación en frontend
+    productos_data = {
+        str(p.id): {
+            'stock': float(p.cantidad),
+            'unidad': p.unidad_medida,
+            'descripcion': p.descripcion,
+        }
+        for p in ProductoAlmacen.objects.filter(es_consumible=True, activo=True, cantidad__gt=0)
+    }
+
     context = {
         'form': form,
         'salidas_recientes': salidas_recientes,
+        'productos_json': json.dumps(productos_data),
     }
     return render(request, 'almacen/salida_rapida_consumible.html', context)
 

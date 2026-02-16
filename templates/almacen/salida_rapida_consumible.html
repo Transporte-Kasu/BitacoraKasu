@@ -56,7 +56,8 @@
             <!-- Cantidad -->
             <div>
                 <label for="id_cantidad" class="block text-sm font-medium text-gray-700 mb-2">
-                    Cantidad <span class="text-red-500">*</span>
+                    Cantidad <span id="unidad-label" class="text-orange-600 font-normal"></span>
+                    <span class="text-red-500">*</span>
                 </label>
                 {{ form.cantidad }}
                 {% if form.cantidad.errors %}
@@ -144,22 +145,56 @@
 
 {% block extra_js %}
 <script>
-    // Mostrar stock disponible al seleccionar producto
+    const productosData = {{ productos_json|safe }};
     const productoSelect = document.getElementById('id_producto');
+    const cantidadInput = document.getElementById('id_cantidad');
     const stockInfo = document.getElementById('stock-info');
+    const unidadLabel = document.getElementById('unidad-label');
+
+    function actualizarInfoProducto() {
+        const productoId = productoSelect.value;
+        if (productoId && productosData[productoId]) {
+            const prod = productosData[productoId];
+            unidadLabel.textContent = '(en ' + prod.unidad + ')';
+            stockInfo.textContent = 'Disponible: ' + prod.stock + ' ' + prod.unidad;
+            stockInfo.className = 'mt-1 text-xs text-blue-600 font-medium';
+            cantidadInput.setAttribute('max', prod.stock);
+            cantidadInput.setAttribute('placeholder', 'Máx. ' + prod.stock + ' ' + prod.unidad);
+            validarCantidad();
+        } else {
+            unidadLabel.textContent = '';
+            stockInfo.textContent = '';
+            stockInfo.className = 'mt-1 text-xs text-gray-500';
+            cantidadInput.removeAttribute('max');
+            cantidadInput.removeAttribute('placeholder');
+        }
+    }
+
+    function validarCantidad() {
+        const productoId = productoSelect.value;
+        const cantidad = parseFloat(cantidadInput.value);
+        if (productoId && productosData[productoId] && cantidad) {
+            const prod = productosData[productoId];
+            if (cantidad > prod.stock) {
+                stockInfo.textContent = 'La cantidad excede el stock disponible (' + prod.stock + ' ' + prod.unidad + ')';
+                stockInfo.className = 'mt-1 text-xs text-red-600 font-medium';
+                cantidadInput.setCustomValidity('La cantidad no puede ser mayor al stock disponible');
+            } else {
+                stockInfo.textContent = 'Disponible: ' + prod.stock + ' ' + prod.unidad;
+                stockInfo.className = 'mt-1 text-xs text-blue-600 font-medium';
+                cantidadInput.setCustomValidity('');
+            }
+        }
+    }
 
     if (productoSelect) {
-        productoSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.value) {
-                // El texto de la opcion contiene la info del producto
-                stockInfo.textContent = 'Producto seleccionado: ' + selectedOption.textContent;
-                stockInfo.classList.remove('text-gray-500');
-                stockInfo.classList.add('text-blue-600');
-            } else {
-                stockInfo.textContent = '';
-            }
-        });
+        productoSelect.addEventListener('change', actualizarInfoProducto);
+        // Inicializar si ya hay un producto seleccionado (por ejemplo, al recargar con errores)
+        actualizarInfoProducto();
+    }
+
+    if (cantidadInput) {
+        cantidadInput.addEventListener('input', validarCantidad);
     }
 </script>
 {% endblock %}
