@@ -212,8 +212,14 @@ class ProductoAlmacenDeleteView(LoginRequiredMixin, DeleteView):
     """Eliminar producto"""
     model = ProductoAlmacen
     template_name = 'almacen/producto_confirm_delete.html'
-    success_url = reverse_lazy('almacen:producto_list')
-    
+
+    def get_success_url(self):
+        url = reverse('almacen:producto_list')
+        page = self.request.GET.get('page') or self.request.POST.get('page')
+        if page:
+            url += f'?page={page}'
+        return url
+
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Producto eliminado exitosamente.')
         return super().delete(request, *args, **kwargs)

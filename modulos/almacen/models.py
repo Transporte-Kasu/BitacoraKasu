@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.validators import MinValueValidator
 from decimal import Decimal
+from config.storage_backends import MediaStorage
 
 
 class ProductoAlmacen(models.Model):
@@ -75,7 +76,8 @@ class ProductoAlmacen(models.Model):
     
     # Imagen
     imagen = models.ImageField(
-        upload_to='almacen/productos/',
+        storage=MediaStorage(),
+        upload_to='almacen/productos/%Y/%m/',
         null=True,
         blank=True,
         help_text="Imagen del producto"
@@ -236,7 +238,8 @@ class EntradaAlmacen(models.Model):
     # Datos de factura (para tipo FACTURA)
     factura_numero = models.CharField(max_length=50, blank=True)
     factura_archivo = models.FileField(
-        upload_to='almacen/facturas/',
+        storage=MediaStorage(),
+        upload_to='almacen/facturas/%Y/%m/',
         null=True,
         blank=True
     )

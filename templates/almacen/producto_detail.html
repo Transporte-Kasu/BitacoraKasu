@@ -59,10 +59,10 @@
             <a href="{% url 'almacen:producto_update' producto.pk %}" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-200 font-medium inline-flex items-center">
                 ✏️ Editar
             </a>
-            <a href="{% url 'almacen:producto_delete' producto.pk %}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200 font-medium inline-flex items-center">
+            <a href="{% url 'almacen:producto_delete' producto.pk %}{% if request.GET.page %}?page={{ request.GET.page }}{% endif %}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200 font-medium inline-flex items-center">
                 🗑️ Eliminar
             </a>
-            <a href="{% url 'almacen:producto_list' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200 font-medium inline-flex items-center">
+            <a href="{% url 'almacen:producto_list' %}{% if request.GET.page %}?page={{ request.GET.page }}{% endif %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200 font-medium inline-flex items-center">
                 ← Volver
             </a>
         </div>

@@ -69,12 +69,12 @@
         </div>
 
         <!-- Formulario de Confirmación -->
-        <form method="post" class="space-y-6">
+        <form method="post" action="?{% if request.GET.page %}page={{ request.GET.page }}{% endif %}" class="space-y-6">
             {% csrf_token %}
 
             <!-- Botones -->
             <div class="flex justify-center space-x-4">
-                <a href="{% url 'almacen:producto_detail' object.pk %}" 
+                <a href="{% url 'almacen:producto_detail' object.pk %}{% if request.GET.page %}?page={{ request.GET.page }}{% endif %}"
                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
                     ✖ Cancelar
                 </a>

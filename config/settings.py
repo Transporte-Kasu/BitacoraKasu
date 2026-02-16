@@ -150,15 +150,13 @@ if USE_SPACES:
         'CacheControl': 'max-age=86400',
     }
     AWS_LOCATION = 'media'
-    AWS_DEFAULT_ACL = 'public-read'
-
-    # Extraer región del endpoint
-    region = AWS_S3_ENDPOINT_URL.split('//')[1].split('.')[0]  # sfo3
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.{region}.digitaloceanspaces.com'
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = True
+    AWS_QUERYSTRING_EXPIRE = 3600  # URLs válidas por 1 hora
 
     # Media files configuration
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+    MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/{AWS_LOCATION}/'
 
     print(f"Using Spaces: {AWS_STORAGE_BUCKET_NAME} at {MEDIA_URL}")
 else:

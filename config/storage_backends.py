@@ -11,21 +11,12 @@ class StaticStorage(S3Boto3Storage):
     default_acl = 'public-read'
     file_overwrite = True  # Los archivos estáticos pueden sobreescribirse
 
-    def __init__(self, *args, **kwargs):
-        kwargs['custom_domain'] = getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None)
-        super().__init__(*args, **kwargs)
-        logger.info("💫 StaticStorage inicializado para DigitalOcean Spaces")
-
 class MediaStorage(S3Boto3Storage):
     """Storage personalizado para archivos media (fotos de tickets)"""
     location = 'media'
-    default_acl = 'public-read'
+    default_acl = None
+    querystring_auth = True
     file_overwrite = False  # No sobreescribir archivos media
-
-    def __init__(self, *args, **kwargs):
-        kwargs['custom_domain'] = getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None)
-        super().__init__(*args, **kwargs)
-        logger.info("📸 MediaStorage inicializado para DigitalOcean Spaces")
 
     def _save(self, name, content):
         """Personaliza el guardado de archivos media"""
@@ -46,13 +37,9 @@ class MediaStorage(S3Boto3Storage):
 class ReportesStorage(S3Boto3Storage):
     """Storage específico para archivos de reportes"""
     location = 'reportes'
-    default_acl = 'private'  # Los reportes son privados por defecto
+    default_acl = 'private'
+    querystring_auth = True
     file_overwrite = True
-
-    def __init__(self, *args, **kwargs):
-        kwargs['custom_domain'] = getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None)
-        super().__init__(*args, **kwargs)
-        logger.info("📊 ReportesStorage inicializado para DigitalOcean Spaces")
 
     def get_valid_name(self, name):
         """Genera nombres válidos para archivos de reportes"""
