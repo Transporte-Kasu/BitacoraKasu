@@ -747,6 +747,14 @@ class SalidaRapidaConsumible(models.Model):
         max_length=200,
         help_text="Nombre de quien solicita el consumible"
     )
+    unidad = models.ForeignKey(
+        'unidades.Unidad',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='consumibles_asignados',
+        help_text="Unidad a la que se asigna el consumible (si aplica)"
+    )
     motivo = models.CharField(
         max_length=500,
         blank=True,

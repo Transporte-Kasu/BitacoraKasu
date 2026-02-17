@@ -35,6 +35,7 @@ urlpatterns = [
 
     # Salida Rápida de Consumibles
     path('consumibles/salida-rapida/', views.salida_rapida_consumible, name='salida_rapida_consumible'),
+    path('consumible/<int:pk>/asignar-unidad/', views.asignar_consumible_unidad, name='asignar_consumible_unidad'),
     
     # Movimientos
     path('movimientos/', views.MovimientoAlmacenListView.as_view(), name='movimiento_list'),

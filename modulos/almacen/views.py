@@ -21,7 +21,7 @@ from .forms import (
     SolicitudSalidaForm, ItemSolicitudSalidaForm, AutorizarSolicitudForm,
     SalidaAlmacenForm, ItemSalidaAlmacenForm, FiltroProductosForm,
     FiltroEntradasForm, FiltroSolicitudesForm, ResolverAlertaForm,
-    SalidaRapidaConsumibleForm
+    SalidaRapidaConsumibleForm, AsignacionConsumibleUnidadForm
 )
 
 
@@ -600,6 +600,65 @@ def salida_rapida_consumible(request):
         'productos_json': json.dumps(productos_data),
     }
     return render(request, 'almacen/salida_rapida_consumible.html', context)
+
+
+# ========== Asignación Rápida de Consumible a Unidad ==========
+
+@login_required
+def asignar_consumible_unidad(request, pk):
+    """Formulario de asignación rápida para QR/NFC: solo selecciona la unidad"""
+    producto = get_object_or_404(
+        ProductoAlmacen, pk=pk, es_consumible=True, activo=True
+    )
+
+    if request.method == 'POST':
+        form = AsignacionConsumibleUnidadForm(request.POST, producto=producto)
+        if form.is_valid():
+            unidad = form.cleaned_data['unidad']
+            cantidad = 1
+
+            salida = SalidaRapidaConsumible.objects.create(
+                producto=producto,
+                cantidad=cantidad,
+                unidad=unidad,
+                solicitante=str(unidad),
+                motivo=f'Asignación directa a {unidad}',
+                entregado_por=request.user,
+            )
+
+            cantidad_anterior = producto.cantidad
+            producto.reducir_stock(cantidad)
+
+            MovimientoAlmacen.objects.create(
+                tipo='SALIDA',
+                producto_almacen=producto,
+                cantidad=-cantidad,
+                cantidad_anterior=cantidad_anterior,
+                cantidad_posterior=producto.cantidad,
+                usuario=request.user,
+                observaciones=f'Asignación rápida {salida.folio} a {unidad}',
+            )
+
+            messages.success(
+                request,
+                f'Registrado: {cantidad} {producto.unidad_medida} de '
+                f'{producto.descripcion} asignado a {unidad}. Folio: {salida.folio}'
+            )
+            return redirect('almacen:asignar_consumible_unidad', pk=pk)
+    else:
+        form = AsignacionConsumibleUnidadForm(producto=producto)
+
+    asignaciones_recientes = SalidaRapidaConsumible.objects.filter(
+        producto=producto,
+        unidad__isnull=False,
+    ).select_related('unidad', 'entregado_por').order_by('-fecha_salida')[:10]
+
+    context = {
+        'producto': producto,
+        'form': form,
+        'asignaciones_recientes': asignaciones_recientes,
+    }
+    return render(request, 'almacen/asignar_consumible_unidad.html', context)
 
 
 # ========== Reportes ==========

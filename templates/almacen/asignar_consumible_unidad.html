@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Asignar {{ producto.descripcion }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Optimizado para pantallas de celular (QR/NFC) */
+    .qr-card {
+        background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+        border-radius: 1.25rem;
+        color: white;
+    }
+
+    .qr-select {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        font-size: 1.15rem;
+        font-weight: 600;
+        border: 3px solid #d1d5db;
+        border-radius: 0.75rem;
+        background-color: #ffffff;
+        color: #111827;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1.5rem;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+
+    .qr-select:focus {
+        outline: none;
+        border-color: #0369a1;
+        box-shadow: 0 0 0 4px rgba(3, 105, 161, 0.2);
+    }
+
+
+    .btn-confirm {
+        width: 100%;
+        padding: 1.1rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        background-color: #16a34a;
+        color: white;
+        border: none;
+        border-radius: 0.875rem;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+        letter-spacing: 0.025em;
+    }
+
+    .btn-confirm:hover { background-color: #15803d; }
+    .btn-confirm:active { transform: scale(0.98); }
+    .btn-confirm:disabled {
+        background-color: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .stock-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .stock-ok   { background-color: rgba(255,255,255,0.2); color: #bbf7d0; }
+    .stock-warn { background-color: rgba(251,191,36,0.3);  color: #fef08a; }
+    .stock-zero { background-color: rgba(239,68,68,0.3);   color: #fca5a5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="mb-4">
+    <ol class="flex items-center space-x-2 text-sm text-gray-600">
+        <li><a href="{% url 'almacen:dashboard' %}" class="hover:text-blue-600">Almacen</a></li>
+        <li><span class="mx-2">/</span></li>
+        <li class="text-gray-900 font-medium">Asignar {{ producto.descripcion }}</li>
+    </ol>
+</nav>
+
+<div class="max-w-md mx-auto space-y-6">
+
+    <!-- Tarjeta de producto -->
+    <div class="qr-card p-6 shadow-xl">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <p class="text-blue-200 text-sm font-medium uppercase tracking-wide mb-1">Producto</p>
+                <h1 class="text-2xl font-bold leading-tight">{{ producto.descripcion }}</h1>
+                <p class="text-blue-200 text-sm mt-1">{{ producto.sku }}</p>
+            </div>
+            <span class="text-4xl">🧊</span>
+        </div>
+
+        <div class="flex items-center gap-3 mt-4">
+            {% if producto.cantidad > producto.stock_minimo %}
+                <span class="stock-badge stock-ok">
+                    ✓ En stock: {{ producto.cantidad }} {{ producto.unidad_medida }}
+                </span>
+            {% elif producto.cantidad > 0 %}
+                <span class="stock-badge stock-warn">
+                    ⚠ Stock bajo: {{ producto.cantidad }} {{ producto.unidad_medida }}
+                </span>
+            {% else %}
+                <span class="stock-badge stock-zero">
+                    ✗ Sin stock
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if producto.cantidad > 0 %}
+    <!-- Formulario de asignación -->
+    <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+        <h2 class="text-lg font-bold text-gray-900 mb-5">Selecciona tu unidad</h2>
+
+        <form method="post" id="form-asignacion">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                {% for error in form.non_field_errors %}
+                <p class="text-red-700 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Selector de unidad -->
+            <div class="mb-6">
+                <label for="id_unidad" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Unidad <span class="text-red-500">*</span>
+                </label>
+                <select name="unidad" id="id_unidad" class="qr-select" required>
+                    <option value="">-- Selecciona tu unidad --</option>
+                    {% for unidad in form.unidad.field.queryset %}
+                    <option value="{{ unidad.pk }}"
+                        {% if form.unidad.value == unidad.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ unidad.numero_economico }} — {{ unidad.placa }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if form.unidad.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.unidad.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Cantidad fija -->
+            <div class="mb-6 bg-gray-50 rounded-xl p-4 text-center border border-gray-200">
+                <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">Se descontará</p>
+                <p class="text-3xl font-bold text-gray-900">1 <span class="text-lg font-normal text-gray-600">{{ producto.unidad_medida }}</span></p>
+            </div>
+
+            <!-- Botón confirmar -->
+            <button type="submit" id="btn-confirmar" class="btn-confirm" disabled>
+                Confirmar asignacion
+            </button>
+        </form>
+    </div>
+
+    {% else %}
+    <!-- Sin stock -->
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+        <p class="text-4xl mb-3">📦</p>
+        <p class="font-bold text-red-800 text-lg">Sin stock disponible</p>
+        <p class="text-red-600 text-sm mt-1">Notifica a almacen para reabastecer.</p>
+    </div>
+    {% endif %}
+
+    <!-- Asignaciones recientes -->
+    {% if asignaciones_recientes %}
+    <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="font-bold text-gray-900">Asignaciones recientes</h3>
+        </div>
+        <ul class="divide-y divide-gray-100">
+            {% for a in asignaciones_recientes %}
+            <li class="px-5 py-3 flex items-center justify-between">
+                <div>
+                    <p class="font-semibold text-gray-900 text-sm">{{ a.unidad.numero_economico }}</p>
+                    <p class="text-xs text-gray-500">{{ a.fecha_salida|date:"d/m/Y H:i" }}</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
+                        {{ a.cantidad|floatformat:0 }} {{ producto.unidad_medida }}
+                    </span>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ a.folio }}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const unidadSelect = document.getElementById('id_unidad');
+    const btnConfirmar = document.getElementById('btn-confirmar');
+
+    function validarFormulario() {
+        if (btnConfirmar) {
+            btnConfirmar.disabled = !unidadSelect || unidadSelect.value === '';
+        }
+    }
+
+    if (unidadSelect) unidadSelect.addEventListener('change', validarFormulario);
+
+    validarFormulario();
+
+    // Prevenir doble submit
+    const formAsignacion = document.getElementById('form-asignacion');
+    if (formAsignacion) {
+        formAsignacion.addEventListener('submit', function() {
+            if (btnConfirmar) {
+                btnConfirmar.disabled = true;
+                btnConfirmar.textContent = 'Registrando...';
+            }
+        });
+    }
+</script>
+{% endblock %}

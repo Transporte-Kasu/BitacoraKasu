@@ -1,10 +1,12 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from decimal import Decimal
 from .models import (
     ProductoAlmacen, EntradaAlmacen, ItemEntradaAlmacen,
     SolicitudSalida, ItemSolicitudSalida, SalidaAlmacen,
     ItemSalidaAlmacen, AlertaStock, SalidaRapidaConsumible
 )
+from modulos.unidades.models import Unidad
 
 
 class ProductoAlmacenForm(forms.ModelForm):
@@ -386,4 +388,25 @@ class SalidaRapidaConsumibleForm(forms.ModelForm):
                     'cantidad': f'No hay suficiente stock. Disponible: {producto.cantidad} {producto.unidad_medida}'
                 })
 
+        return cleaned_data
+
+
+class AsignacionConsumibleUnidadForm(forms.Form):
+    """Formulario de asignación rápida de consumible a unidad (para QR/NFC)"""
+    unidad = forms.ModelChoiceField(
+        queryset=Unidad.objects.filter(activa=True).order_by('numero_economico'),
+        label='Unidad',
+        empty_label='-- Selecciona tu unidad --',
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.producto = kwargs.pop('producto', None)
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.producto and self.producto.cantidad < 1:
+            raise forms.ValidationError(
+                f'Stock insuficiente. Disponible: {self.producto.cantidad} {self.producto.unidad_medida}'
+            )
         return cleaned_data
