@@ -1,9 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, View
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
+from django.db.models import Sum
 from django.http import JsonResponse
 from .models import CargaCombustible, Despachador, FotoCandadoNuevo
 from .forms import (
@@ -254,20 +256,30 @@ class CargaCombustibleDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'carga'
 
 
+@login_required
 def dashboard_combustible(request):
     """Dashboard principal de combustible"""
-    cargas_hoy = CargaCombustible.objects.filter(
-        fecha_hora_inicio__date=timezone.now().date()
+    hoy = timezone.localdate()
+    inicio_mes = hoy.replace(day=1)
+
+    cargas_mes = CargaCombustible.objects.filter(
+        fecha_hora_inicio__date__gte=inicio_mes
     )
+    cargas_completadas_mes = cargas_mes.filter(estado='COMPLETADO')
 
     context = {
-        'total_cargas_hoy': cargas_hoy.count(),
-        'cargas_completadas_hoy': cargas_hoy.filter(estado='COMPLETADO').count(),
-        'cargas_en_proceso': CargaCombustible.objects.filter(estado='EN_PROCESO').count(),
-        'total_litros_hoy': sum(c.cantidad_litros for c in cargas_hoy.filter(estado='COMPLETADO')),
+        'total_cargas_mes': cargas_mes.count(),
+        'cargas_completadas_mes': cargas_completadas_mes.count(),
+        # Cargas iniciadas en el wizard pero aún no finalizadas
+        'cargas_en_proceso': CargaCombustible.objects.filter(
+            estado__in=['INICIADO', 'EN_PROCESO']
+        ).count(),
+        'total_litros_mes': cargas_completadas_mes.aggregate(
+            total=Sum('cantidad_litros')
+        )['total'] or 0,
         'alertas_candado': CargaCombustible.objects.filter(
             estado_candado_anterior__in=['ALTERADO', 'VIOLADO', 'SIN_CANDADO'],
-            fecha_hora_inicio__date=timezone.now().date()
+            fecha_hora_inicio__date__gte=inicio_mes
         ).count(),
         'ultimas_cargas': CargaCombustible.objects.select_related(
             'despachador', 'unidad'

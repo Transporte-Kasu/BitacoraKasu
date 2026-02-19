@@ -9,13 +9,13 @@
     <p class="text-gray-600">Control y monitoreo de cargas de combustible</p>
 </div>
 
-<!-- Estadísticas del día -->
+<!-- Estadísticas del mes actual -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-600 mb-1">Cargas Hoy</p>
-                <p class="text-3xl font-bold text-gray-900">{{ total_cargas_hoy }}</p>
+                <p class="text-sm text-gray-600 mb-1">Cargas Este Mes</p>
+                <p class="text-3xl font-bold text-gray-900">{{ total_cargas_mes }}</p>
             </div>
             <div class="text-4xl">⛽</div>
         </div>
@@ -24,8 +24,8 @@
     <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-600 mb-1">Completadas</p>
-                <p class="text-3xl font-bold text-green-600">{{ cargas_completadas_hoy }}</p>
+                <p class="text-sm text-gray-600 mb-1">Completadas Mes</p>
+                <p class="text-3xl font-bold text-green-600">{{ cargas_completadas_mes }}</p>
             </div>
             <div class="text-4xl">✅</div>
         </div>
@@ -44,7 +44,7 @@
     <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-600 mb-1">Alertas</p>
+                <p class="text-sm text-gray-600 mb-1">Alertas Mes</p>
                 <p class="text-3xl font-bold text-red-600">{{ alertas_candado }}</p>
             </div>
             <div class="text-4xl">⚠️</div>

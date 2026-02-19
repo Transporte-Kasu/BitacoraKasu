@@ -10,6 +10,8 @@ from datetime import timedelta
 import json
 from .models import Unidad
 from .forms import UnidadForm
+from modulos.taller.models import OrdenTrabajo
+from modulos.almacen.models import SalidaRapidaConsumible
 
 
 class UnidadListView(LoginRequiredMixin, ListView):
@@ -132,7 +134,21 @@ class UnidadDetailView(LoginRequiredMixin, DetailView):
         
         context['grafico_meses'] = json.dumps(meses_labels)
         context['grafico_litros'] = json.dumps(litros_data)
-        
+
+        # Órdenes de taller
+        ordenes_taller = unidad.ordenes_trabajo.select_related(
+            'tipo_mantenimiento', 'mecanico_asignado'
+        ).prefetch_related('piezas_requeridas').order_by('-fecha_creacion')
+        context['ordenes_taller'] = ordenes_taller[:10]
+        context['total_ordenes_taller'] = ordenes_taller.count()
+
+        # Consumibles asignados desde almacén
+        consumibles = unidad.consumibles_asignados.select_related(
+            'producto', 'entregado_por'
+        ).order_by('-fecha_salida')
+        context['consumibles_asignados'] = consumibles[:15]
+        context['total_consumibles'] = consumibles.count()
+
         return context
 
 

@@ -1,4 +1,5 @@
 from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.db.models import Sum, F, Count, Avg
 from datetime import timedelta
@@ -12,7 +13,7 @@ from modulos.almacen.models import ProductoAlmacen, AlertaStock
 from modulos.taller.models import OrdenTrabajo
 
 
-class IndexView(TemplateView):
+class IndexView(LoginRequiredMixin, TemplateView):
     """Vista principal con dashboard de estadísticas"""
     template_name = 'index.html'
 
@@ -66,6 +67,12 @@ class IndexView(TemplateView):
             estado='COMPLETADO'
         ).aggregate(total=Sum('cantidad_litros'))['total'] or 0
         context['total_litros_mes'] = round(float(litros_mes), 2)
+
+        cargas_completadas_mes = CargaCombustible.objects.filter(
+            fecha_hora_inicio__date__gte=hace_30_dias,
+            estado='COMPLETADO'
+        ).count()
+        context['cargas_completadas_mes'] = cargas_completadas_mes
 
         # ========== Estadísticas de Taller ==========
         context['ordenes_taller_pendientes'] = OrdenTrabajo.objects.filter(
