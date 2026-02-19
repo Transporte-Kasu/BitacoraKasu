@@ -211,6 +211,56 @@ class CargaCombustible(models.Model):
         return self.estado_candado_anterior in ['ALTERADO', 'VIOLADO', 'SIN_CANDADO']
 
 
+class AlertaCombustible(models.Model):
+    """Alertas generadas automáticamente en cargas de combustible"""
+
+    TIPO_CHOICES = [
+        ('CANDADO_ALTERADO', 'Candado Alterado'),
+        ('CANDADO_VIOLADO', 'Candado Violado'),
+        ('SIN_CANDADO', 'Sin Candado'),
+        ('EXCESO_COMBUSTIBLE', 'Exceso de Combustible'),
+    ]
+
+    carga = models.ForeignKey(
+        CargaCombustible,
+        on_delete=models.CASCADE,
+        related_name='alertas',
+        verbose_name="Carga de combustible"
+    )
+    tipo_alerta = models.CharField(
+        max_length=30,
+        choices=TIPO_CHOICES,
+        verbose_name="Tipo de alerta"
+    )
+    mensaje = models.TextField(verbose_name="Mensaje")
+    fecha_generacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de generación")
+    resuelta = models.BooleanField(default=False, verbose_name="Resuelta")
+    resuelta_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='alertas_combustible_resueltas',
+        verbose_name="Resuelta por"
+    )
+    fecha_resolucion = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de resolución")
+
+    class Meta:
+        verbose_name = "Alerta de Combustible"
+        verbose_name_plural = "Alertas de Combustible"
+        ordering = ['-fecha_generacion']
+
+    def __str__(self):
+        return f"{self.get_tipo_alerta_display()} - Carga {self.carga_id}"
+
+    def resolver(self, usuario):
+        """Marca la alerta como resuelta"""
+        self.resuelta = True
+        self.resuelta_por = usuario
+        self.fecha_resolucion = timezone.now()
+        self.save()
+
+
 class FotoCandadoNuevo(models.Model):
     """Modelo para almacenar múltiples fotos del candado nuevo"""
     carga = models.ForeignKey(

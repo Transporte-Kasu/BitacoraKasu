@@ -2,12 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, View
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.db.models import Sum
-from django.http import JsonResponse
-from .models import CargaCombustible, Despachador, FotoCandadoNuevo
+from django.http import JsonResponse, Http404
+from .models import CargaCombustible, Despachador, FotoCandadoNuevo, AlertaCombustible
 from .forms import (
     Paso1Form, Paso2Form, Paso3Form, Paso4Form, Paso5Form, Paso6Form
 )
@@ -254,6 +254,43 @@ class CargaCombustibleDetailView(LoginRequiredMixin, DetailView):
     model = CargaCombustible
     template_name = 'combustible/carga_detail.html'
     context_object_name = 'carga'
+
+
+class AlertaCombustibleListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """Lista de alertas de combustible - solo superusuarios"""
+    model = AlertaCombustible
+    template_name = 'combustible/alerta_list.html'
+    context_object_name = 'alertas'
+    paginate_by = 20
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def get_queryset(self):
+        queryset = AlertaCombustible.objects.select_related(
+            'carga', 'carga__unidad', 'carga__despachador', 'resuelta_por'
+        )
+        if not self.request.GET.get('ver_resueltas'):
+            queryset = queryset.filter(resuelta=False)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['total_pendientes'] = AlertaCombustible.objects.filter(resuelta=False).count()
+        context['ver_resueltas'] = bool(self.request.GET.get('ver_resueltas'))
+        return context
+
+
+@login_required
+def resolver_alerta_combustible(request, pk):
+    """Marca una alerta de combustible como resuelta - solo superusuarios"""
+    if not request.user.is_superuser:
+        raise Http404
+    alerta = get_object_or_404(AlertaCombustible, pk=pk)
+    if request.method == 'POST' and not alerta.resuelta:
+        alerta.resolver(request.user)
+        messages.success(request, 'Alerta marcada como resuelta.')
+    return redirect('combustible:alertas')
 
 
 @login_required
