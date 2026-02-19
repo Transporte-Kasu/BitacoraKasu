@@ -1,37 +1,40 @@
-# ProyectoKasu - Sistema de Gestión de Transporte
+# BitacoraKasu - Sistema de Gestión de Transporte
 
-Sistema de gestión para empresas de transporte que permite administrar operadores, unidades vehiculares y bitácoras de viaje con integración a Google Maps para cálculo automático de distancias y duraciones.
+Sistema integral de gestión para empresas de transporte mexicanas. Administra operadores, vehículos, bitácoras de viaje, carga de combustible, taller mecánico, compras y almacén en una sola plataforma.
 
-## 🚀 Características
+## Módulos del Sistema
 
-- **Gestión de Operadores**: Administración de conductores (Local, Foráneo, Esperanza)
-- **Control de Unidades**: Seguimiento de vehículos con monitoreo de combustible y mantenimiento
-- **Bitácoras de Viaje**: Registro detallado de viajes con métricas de rendimiento
-- **Integración Google Maps**: Cálculo automático de distancias y tiempos estimados
-- **Análisis de Rendimiento**: Monitoreo de eficiencia de combustible y alertas
-- **Panel de Administración**: Interface administrativa completa de Django
+| Módulo | URL | Descripción |
+|--------|-----|-------------|
+| Operadores | `/operadores/` | Gestión de conductores |
+| Unidades | `/unidades/` | Control de vehículos |
+| Bitácoras | `/bitacoras/` | Registro de viajes |
+| Combustible | `/combustible/` | Control de cargas de diesel |
+| Taller | `/taller/` | Órdenes de trabajo y mantenimiento |
+| Compras | `/compras/` | Requisiciones y órdenes de compra |
+| Almacén | `/almacen/` | Inventario y control de materiales |
 
-## 📋 Requisitos
+## Requisitos
 
 - Python 3.12+
 - Django 5.2.7
-- PostgreSQL (configurado para producción)
+- PostgreSQL (producción) / SQLite (desarrollo)
 - API Key de Google Maps Distance Matrix
 
-## 🛠️ Instalación
+## Instalación
 
 ### 1. Clonar el repositorio
 
 ```bash
 git clone <repository-url>
-cd ProyectoKasu/django
+cd BitacoraKasu
 ```
 
 ### 2. Crear y activar entorno virtual
 
 ```bash
-python -m venv .venv_bitaKasu
-source .venv_bitaKasu/bin/activate  # En Windows: .venv_bitaKasu\Scripts\activate
+python -m venv .venvKasu
+source .venvKasu/bin/activate  # Windows: .venvKasu\Scripts\activate
 ```
 
 ### 3. Instalar dependencias
@@ -46,16 +49,27 @@ Crear archivo `.env` en la raíz del proyecto:
 
 ```env
 DEBUG=True
-SECRET_KEY='tu-secret-key-aqui'
-DATABASE_NAME=transportes_kasu_db
-DATABASE_USER=postgres
-DATABASE_PASSWORD=tu_password
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-GOOGLE_MAPS_API_KEY='tu-api-key-de-google-maps'
+SECRET_KEY='tu-secret-key'
+
+# Base de datos PostgreSQL (o dejar vacío para usar SQLite)
+DBURL=postgres://usuario:password@localhost:5432/bitacorakasu
+
+# Google Maps
+GOOGLE_MAPS_API_KEY='tu-api-key'
+
+# Almacenamiento DigitalOcean Spaces (opcional)
+USE_SPACES=False
+SPACES_ACCESS_KEY=
+SPACES_SECRET_KEY=
+SPACES_BUCKET_NAME=
+SPACES_REGION=sfo3
+SPACES_CDN_ENDPOINT=
+
+# Email (SendGrid, opcional)
+EMAIL_HOST_PASSWORD=
 ```
 
-### 5. Ejecutar migraciones
+### 5. Aplicar migraciones
 
 ```bash
 python manage.py migrate
@@ -67,202 +81,195 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-### 7. Iniciar servidor de desarrollo
+### 7. Iniciar servidor
 
 ```bash
 python manage.py runserver
 ```
 
-El sistema estará disponible en `http://localhost:8000`
+Sistema disponible en `http://localhost:8000`
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
-django/
-├── apps/
-│   ├── operadores/        # Gestión de conductores
-│   ├── unidades/          # Gestión de vehículos
-│   └── bitacoras/         # Registro de viajes
+BitacoraKasu/
 ├── config/
-│   ├── services/
-│   │   └── google_maps.py # Integración con Google Maps API
-│   ├── settings.py        # Configuración principal
-│   └── urls.py           # Rutas URL
+│   ├── settings.py
+│   ├── urls.py
+│   ├── views.py                # Dashboard principal (IndexView)
+│   ├── context_processors.py   # Alertas de combustible en contexto global
+│   ├── storage_backends.py     # Almacenamiento S3 / local
+│   └── services/
+│       └── google_maps.py      # Integración Google Maps Distance Matrix
+│
+├── modulos/
+│   ├── operadores/             # Gestión de conductores
+│   ├── unidades/               # Control de vehículos
+│   ├── bitacoras/              # Registro de viajes
+│   ├── combustible/            # Cargas de combustible
+│   ├── taller/                 # Taller mecánico
+│   ├── compras/                # Compras y proveedores
+│   └── almacen/                # Inventario y almacén
+│
+├── templates/                  # 79 templates HTML
+├── static/                     # CSS, JS, imágenes
+├── media/                      # Archivos subidos (desarrollo)
 ├── manage.py
 ├── requirements.txt
 └── .env
 ```
 
-## 🎯 Modelos Principales
+## Descripción de Módulos
 
-### Operador
-Gestiona información de conductores:
-- Información personal (nombre, licencia, teléfono, email)
-- Tipo de operador (Local, Foráneo, Esperanza)
-- Asignación de unidad
-- Métricas de desempeño
+### Operadores
+Gestión de conductores con tres tipos: **LOCAL**, **FORANEO**, **ESPERANZA**.
+- Información personal: nombre, licencia, teléfono, email
+- Asignación a unidad vehicular
+- Métricas: horas trabajadas, viajes completados, rendimiento promedio
 
-### Unidad
-Control de vehículos:
-- Identificación (número económico, placas)
-- Especificaciones técnicas (marca, modelo, año)
-- Capacidad y rendimiento de combustible
-- Kilometraje y mantenimiento
+### Unidades
+Control de la flota vehicular con seguimiento de combustible y mantenimiento.
+- Identificación: número económico, placas, marca, modelo, año
+- Capacidad de combustible y rendimiento esperado (km/lt)
+- Alertas automáticas de mantenimiento por fecha
+- Historial de kilometraje actualizado automáticamente
 
-### BitacoraViaje
-Registro detallado de viajes:
-- Información del viaje (operador, unidad, modalidad)
-- Fechas y horarios (carga, salida, llegada)
-- Combustible y kilometraje
-- Ubicaciones (códigos postales origen/destino)
-- Métricas calculadas automáticamente:
-  - Kilómetros recorridos
-  - Rendimiento de combustible
-  - Horas de viaje
-  - Velocidad promedio
-  - Eficiencia vs. esperado
+### Bitácoras
+Registro detallado de viajes con integración a Google Maps.
+- Modalidades: SENCILLO, FULL
+- Cálculo automático de distancia y duración via API de Google Maps
+- Métricas calculadas: km recorridos, rendimiento, velocidad promedio, eficiencia
+- Estado automático: se marca como completado al registrar fecha de llegada
+- Actualización automática del kilometraje de la unidad
 
-## 🗺️ Integración con Google Maps
+### Combustible
+Control de cargas de diesel con proceso de verificación de candados (multi-paso).
+- Flujo en 6 pasos con captura fotográfica
+- Registro de: despachador, unidad, litros, kilometraje, nivel inicial
+- Verificación de estado de candado (NORMAL, ALTERADO, VIOLADO, SIN_CANDADO)
+- Alertas automáticas al detectar candado alterado o violado
+- Gestión de alertas con resolución supervisada
 
-El sistema utiliza Google Maps Distance Matrix API para:
+### Taller
+Gestión de órdenes de trabajo mecánico con flujo de estados completo.
+
+**Flujo de estados:**
+```
+PENDIENTE → EN_DIAGNOSTICO → ESPERANDO_PIEZAS → EN_REPARACION → EN_PRUEBAS → COMPLETADA
+```
+
+- Tipos de mantenimiento: PREVENTIVO, CORRECTIVO, PREDICTIVO
+- Categorías de falla con prioridad: BAJA, MEDIA, ALTA, CRITICA
+- Seguimiento de piezas requeridas integrado con compras
+- Generación automática de requisiciones de piezas
+- Historial de mantenimiento por unidad
+- Checklists configurables por tipo de mantenimiento
+- Actualización automática de fechas de mantenimiento en la unidad
+
+### Compras
+Gestión del proceso de adquisiciones desde la requisición hasta la recepción.
+
+**Flujo de requisición:**
+```
+PENDIENTE → APROBADA → EN_COMPRA → COMPLETADA
+```
+
+**Flujo de orden de compra:**
+```
+PENDIENTE → ENVIADA → CONFIRMADA → EN_TRANSITO → RECIBIDA
+```
+
+- Administración de proveedores con RFC y datos de contacto
+- Catálogo de productos con unidades de medida
+- Aprobación de requisiciones con control de permisos
+- Recepción de material con control de cantidades aceptadas/rechazadas
+- Integración con almacén para registro automático de entradas
+
+### Almacén
+Inventario completo con control de entradas, salidas, y alertas de stock.
+
+**Tipos de entrada:** FACTURA, TALLER_REPARADO, TALLER_RECICLADO, AJUSTE
+
+**Flujo de solicitud de salida:**
+```
+PENDIENTE → AUTORIZADA → PROCESADA
+```
+
+- Productos con SKU, código de barras, ubicación, lote y caducidad
+- Control de stock mínimo/máximo con alertas automáticas
+- Salida rápida de consumibles para unidades
+- Trazabilidad completa: `MovimientoAlmacen` registra cada cambio
+- Alertas de: stock mínimo, stock agotado, próximo a caducar, caducado
+- Reportes: inventario general, stock crítico, productos por caducar
+
+**Folios autogenerados:**
+- Entradas: `ENT-YYYYMMDD-XXX`
+- Solicitudes: `SOL-YYYYMMDD-XXX`
+- Salidas: `SAL-YYYYMMDD-XXX`
+- Consumibles rápidos: `CON-YYYYMMDD-XXX`
+
+## Comandos de Desarrollo
+
+```bash
+# Servidor de desarrollo
+python manage.py runserver
+
+# Migraciones
+python manage.py makemigrations
+python manage.py migrate
+
+# Pruebas (módulo específico)
+python manage.py test modulos.almacen
+
+# Shell interactivo
+python manage.py shell
+```
+
+## Panel de Administración
+
+Acceder a `http://localhost:8000/admin/` con credenciales de superusuario.
+
+Permisos especiales disponibles:
+- `aprobar_requisicion` / `procesar_compra` / `gestionar_almacen` (compras)
+- `diagnosticar_orden` / `asignar_mecanico` / `aprobar_orden` / `cerrar_orden` (taller)
+- `autorizar_salida_almacen` (almacén)
+
+## Integraciones
+
+### Google Maps Distance Matrix API
+Calcula distancias y tiempos de viaje entre códigos postales automáticamente al crear bitácoras.
 
 ```python
-# Calcular distancia entre códigos postales
 from config.services.google_maps import GoogleMapsService
 
 maps = GoogleMapsService()
 resultado = maps.calcular_distancia('40812', '06600')
-
-# O directamente desde una bitácora
-bitacora = BitacoraViaje.objects.get(id=1)
-resultado = bitacora.calcular_distancia_google()
+# {'success': True, 'distancia_km': 150.0, 'duracion_min': 90, ...}
 ```
 
-## 💡 Uso Común
+### Almacenamiento en la Nube
+DigitalOcean Spaces (S3-compatible) para archivos en producción. Activar con `USE_SPACES=True` en `.env`.
 
-### Crear un viaje
+### Email
+SendGrid SMTP para notificaciones del sistema.
 
-```python
-from apps.operadores.models import Operador
-from apps.unidades.models import Unidad
-from apps.bitacoras.models import BitacoraViaje
-from django.utils import timezone
+## Producción
 
-# Crear bitácora de viaje
-viaje = BitacoraViaje.objects.create(
-    operador=operador,
-    unidad=unidad,
-    modalidad='SENCILLO',
-    fecha_carga=timezone.now(),
-    fecha_salida=timezone.now(),
-    diesel_cargado=150.00,
-    kilometraje_salida=45000,
-    cp_origen='40812',
-    cp_destino='06600',
-    destino='Ciudad de México'
-)
-
-# Calcular distancia con Google Maps
-viaje.calcular_distancia_google()
+```
+Procfile: web: gunicorn config.wsgi
 ```
 
-### Consultar métricas
+- Static files: WhiteNoise con compresión
+- Media: DigitalOcean Spaces (región SFO3)
+- Base de datos: PostgreSQL via variable `DBURL`
 
-```python
-# Rendimiento promedio de una unidad
-unidad = Unidad.objects.get(numero_economico='U001')
-print(f"Rendimiento: {unidad.rendimiento_promedio_real()} km/lt")
-print(f"Eficiencia: {unidad.eficiencia_combustible()}%")
-
-# Viajes de un operador
-operador = Operador.objects.get(id=1)
-print(f"Viajes completados: {operador.viajes_completados()}")
-print(f"Horas trabajadas: {operador.horas_trabajadas_periodo(fecha_inicio, fecha_fin)}")
-```
-
-## 🔧 Comandos de Desarrollo
-
-```bash
-# Ejecutar pruebas
-python manage.py test
-
-# Crear migraciones
-python manage.py makemigrations
-
-# Aplicar migraciones
-python manage.py migrate
-
-# Shell interactivo
-python manage.py shell
-
-# Crear app nueva
-python manage.py startapp nombre_app apps/nombre_app
-```
-
-## 📊 Panel de Administración
-
-Acceder a `http://localhost:8000/admin/` con las credenciales de superusuario para:
-- Gestionar operadores, unidades y viajes
-- Ver reportes y métricas
-- Administrar usuarios del sistema
-
-## ⚙️ Configuración
-
-### Base de Datos
-
-El proyecto está configurado para usar:
-- **Desarrollo**: SQLite (por defecto)
-- **Producción**: PostgreSQL (configurar en .env)
-
-Para cambiar a PostgreSQL, modificar `config/settings.py`:
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DATABASE_NAME'),
-        'USER': os.environ.get('DATABASE_USER'),
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
-        'HOST': os.environ.get('DATABASE_HOST'),
-        'PORT': os.environ.get('DATABASE_PORT'),
-    }
-}
-```
-
-### Zona Horaria y Localización
-
-- **Idioma**: Español (México)
-- **Zona horaria**: America/Mexico_City
-- **Formato de fechas**: Formato mexicano
-
-## 🚨 Alertas y Monitoreo
-
-El sistema incluye alertas automáticas:
-
-- **Bajo rendimiento**: < 2.5 km/lt
-- **Mantenimiento requerido**: Basado en fecha de próximo mantenimiento
-- **Validación de kilometraje**: Detecta inconsistencias en registros
-
-## 📝 Notas Importantes
+## Notas Importantes
 
 - Código postal origen por defecto: **40812**
-- Medidas en sistema métrico (km, litros, kg)
-- Toda la interfaz y nomenclatura en español
-- Validaciones automáticas en guardado de bitácoras
-- Actualización automática de kilometraje de unidades
+- Todo el sistema en español (es-mx, America/Mexico_City)
+- Sistema de medidas métrico (km, litros, kg)
+- Todas las vistas requieren autenticación
 
-## 🤝 Contribuir
+## Licencia
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📄 Licencia
-
-Este proyecto es privado y confidencial.
-
-## 👥 Contacto
-
-Para soporte o consultas sobre el proyecto, contactar al equipo de desarrollo.
+Proyecto privado y confidencial.
