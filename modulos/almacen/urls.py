@@ -26,6 +26,9 @@ urlpatterns = [
     path('solicitudes/', views.SolicitudSalidaListView.as_view(), name='solicitud_list'),
     path('solicitudes/crear/', views.SolicitudSalidaCreateView.as_view(), name='solicitud_create'),
     path('solicitudes/<int:pk>/', views.SolicitudSalidaDetailView.as_view(), name='solicitud_detail'),
+    path('solicitudes/<int:pk>/agregar-item/', views.agregar_item_solicitud, name='solicitud_agregar_item'),
+    path('solicitudes/<int:pk>/eliminar-item/<int:item_pk>/', views.eliminar_item_solicitud, name='solicitud_eliminar_item'),
+    path('solicitudes/<int:pk>/notificar/', views.enviar_notificacion_solicitud, name='solicitud_notificar'),
     path('solicitudes/<int:pk>/autorizar/', views.autorizar_solicitud, name='solicitud_autorizar'),
     path('solicitudes/<int:pk>/procesar-entrega/', views.procesar_entrega, name='solicitud_procesar_entrega'),
     

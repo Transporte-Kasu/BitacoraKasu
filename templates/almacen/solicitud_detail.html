@@ -3,76 +3,424 @@
 {% block title %}Solicitud {{ solicitud.folio }}{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-6">
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div class="flex justify-between items-start mb-4">
+<div class="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+    <!-- Encabezado y acciones -->
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+
+            <!-- Titulo y estado -->
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">📝 Solicitud {{ solicitud.folio }}</h1>
-                <span class="px-3 py-1 text-sm rounded {% if solicitud.estado == 'PENDIENTE' %}bg-yellow-100 text-yellow-800{% elif solicitud.estado == 'AUTORIZADA' %}bg-green-100 text-green-800{% elif solicitud.estado == 'RECHAZADA' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
-                    {{ solicitud.get_estado_display }}
-                </span>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h1 class="text-2xl font-bold text-gray-900 font-mono">{{ solicitud.folio }}</h1>
+                    <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-semibold
+                        {% if solicitud.estado == 'PENDIENTE' %}bg-yellow-100 text-yellow-800
+                        {% elif solicitud.estado == 'AUTORIZADA' %}bg-green-100 text-green-800
+                        {% elif solicitud.estado == 'RECHAZADA' %}bg-red-100 text-red-800
+                        {% elif solicitud.estado == 'ENTREGADA' %}bg-blue-100 text-blue-800
+                        {% elif solicitud.estado == 'CANCELADA' %}bg-gray-200 text-gray-600
+                        {% endif %}">
+                        {{ solicitud.get_estado_display }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Solicitud de Salida de Almacen</p>
             </div>
-            <div class="space-x-2">
+
+            <!-- Botones de accion -->
+            <div class="flex items-center gap-2 flex-wrap">
+                {% if solicitud.estado == 'PENDIENTE' and solicitud.total_items > 0 %}
+                <form method="post" action="{% url 'almacen:solicitud_notificar' solicitud.pk %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit"
+                            onclick="return confirm('¿Enviar notificación de autorización a gerencia y administración?')"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 shadow-sm">
+                        Solicitar Autorización
+                    </button>
+                </form>
+                {% endif %}
                 {% if solicitud.estado == 'PENDIENTE' and perms.almacen.autorizar_salida_almacen %}
-                <a href="{% url 'almacen:solicitud_autorizar' solicitud.pk %}" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">Autorizar</a>
+                <a href="{% url 'almacen:solicitud_autorizar' solicitud.pk %}"
+                   class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 shadow-sm">
+                    Autorizar
+                </a>
                 {% endif %}
                 {% if solicitud.estado == 'AUTORIZADA' %}
-                <a href="{% url 'almacen:solicitud_procesar_entrega' solicitud.pk %}" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">Procesar Entrega</a>
+                <a href="{% url 'almacen:solicitud_procesar_entrega' solicitud.pk %}"
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 shadow-sm">
+                    Registrar Salida
+                </a>
                 {% endif %}
-                <a href="{% url 'almacen:solicitud_list' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">← Volver</a>
+                <a href="{% url 'almacen:solicitud_list' %}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors duration-150">
+                    Volver
+                </a>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <!-- Datos generales -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6 pt-6 border-t border-gray-100">
             <div>
-                <p class="text-sm text-gray-600">Tipo</p>
-                <p class="text-lg font-semibold">{{ solicitud.get_tipo_display }}</p>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Tipo</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900">{{ solicitud.get_tipo_display }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-600">Solicitante</p>
-                <p class="text-lg font-semibold">{{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}</p>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Solicitante</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900">
+                    {{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}
+                </p>
             </div>
             <div>
-                <p class="text-sm text-gray-600">Fecha de Solicitud</p>
-                <p class="text-lg font-semibold">{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</p>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Fecha de Solicitud</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900">
+                    {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+                </p>
             </div>
-            {% if solicitud.fecha_necesidad %}
+            {% if solicitud.orden_trabajo %}
             <div>
-                <p class="text-sm text-gray-600">Fecha de Necesidad</p>
-                <p class="text-lg font-semibold">{{ solicitud.fecha_necesidad|date:"d/m/Y" }}</p>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Orden de Trabajo</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900 font-mono">
+                    {{ solicitud.orden_trabajo }}
+                </p>
             </div>
             {% endif %}
         </div>
 
-        {% if solicitud.observaciones %}
-        <div class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
-            <p class="text-sm font-semibold">Observaciones:</p>
-            <p class="text-gray-600">{{ solicitud.observaciones }}</p>
+        <!-- Justificacion -->
+        {% if solicitud.justificacion %}
+        <div class="mt-5 bg-amber-50 border border-amber-200 rounded-md p-4">
+            <p class="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">Justificacion</p>
+            <p class="text-sm text-gray-700">{{ solicitud.justificacion }}</p>
         </div>
         {% endif %}
     </div>
 
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Productos Solicitados</h2>
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad Solicitada</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for item in items %}
-                <tr>
-                    <td class="px-6 py-4">
-                        <div class="text-sm font-medium">{{ item.producto_almacen.descripcion }}</div>
-                        <div class="text-xs text-gray-500">SKU: {{ item.producto_almacen.sku }}</div>
-                    </td>
-                    <td class="px-6 py-4 text-sm">{{ item.cantidad_solicitada }} {{ item.producto_almacen.unidad_medida }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Datos de autorizacion (solo si fue autorizada o rechazada) -->
+    {% if solicitud.autorizado_por %}
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-base font-semibold text-gray-800 mb-4">
+            {% if solicitud.estado == 'RECHAZADA' %}Informacion del Rechazo{% else %}Informacion de Autorizacion{% endif %}
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                    {% if solicitud.estado == 'RECHAZADA' %}Rechazado por{% else %}Autorizado por{% endif %}
+                </p>
+                <p class="mt-1 text-sm font-semibold text-gray-900">
+                    {{ solicitud.autorizado_por.get_full_name|default:solicitud.autorizado_por.username }}
+                </p>
+            </div>
+            {% if solicitud.fecha_autorizacion %}
+            <div>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Fecha</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900">
+                    {{ solicitud.fecha_autorizacion|date:"d/m/Y H:i" }}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        {% if solicitud.comentarios_autorizacion %}
+        <div class="mt-4 bg-gray-50 rounded-md p-3">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Comentarios</p>
+            <p class="text-sm text-gray-700">{{ solicitud.comentarios_autorizacion }}</p>
+        </div>
+        {% endif %}
     </div>
+    {% endif %}
+
+    <!-- Formulario para agregar producto (solo cuando PENDIENTE) -->
+    {% if solicitud.estado == 'PENDIENTE' and item_form %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6">
+        <h2 class="text-sm font-semibold text-blue-800 uppercase tracking-wide mb-4">Agregar Producto</h2>
+        <form method="post" action="{% url 'almacen:solicitud_agregar_item' solicitud.pk %}">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                <!-- Producto -->
+                <div class="sm:col-span-1">
+                    <label for="{{ item_form.producto_almacen.id_for_label }}"
+                           class="block text-xs font-medium text-blue-700 mb-1">
+                        {{ item_form.producto_almacen.label }}
+                    </label>
+                    <select name="{{ item_form.producto_almacen.html_name }}"
+                            id="{{ item_form.producto_almacen.id_for_label }}"
+                            class="block w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="">---------</option>
+                        {% for value, label in item_form.fields.producto_almacen.choices %}
+                        {% if value %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                    {% if item_form.producto_almacen.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ item_form.producto_almacen.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Cantidad solicitada -->
+                <div>
+                    <label for="{{ item_form.cantidad_solicitada.id_for_label }}"
+                           class="block text-xs font-medium text-blue-700 mb-1">
+                        {{ item_form.cantidad_solicitada.label }}
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <input type="number"
+                               name="{{ item_form.cantidad_solicitada.html_name }}"
+                               id="{{ item_form.cantidad_solicitada.id_for_label }}"
+                               min="0.01"
+                               step="0.01"
+                               placeholder="0.00"
+                               class="block w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <span id="unidad_medida_label" class="text-sm font-medium text-gray-600 whitespace-nowrap"></span>
+                    </div>
+                    <p id="stock_info" class="mt-1 text-xs text-gray-500 hidden"></p>
+                    {% if item_form.cantidad_solicitada.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ item_form.cantidad_solicitada.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Observaciones -->
+                <div>
+                    <label for="{{ item_form.observaciones.id_for_label }}"
+                           class="block text-xs font-medium text-blue-700 mb-1">
+                        {{ item_form.observaciones.label }}
+                        <span class="font-normal text-blue-500">(opcional)</span>
+                    </label>
+                    <textarea name="{{ item_form.observaciones.html_name }}"
+                              id="{{ item_form.observaciones.id_for_label }}"
+                              rows="2"
+                              placeholder="Observaciones..."
+                              class="block w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"></textarea>
+                    {% if item_form.observaciones.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ item_form.observaciones.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-end">
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 shadow-sm">
+                    Agregar
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Productos solicitados -->
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-800">
+                Productos Solicitados
+                <span class="ml-2 text-xs font-normal text-gray-400">({{ solicitud.total_items }})</span>
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Producto
+                        </th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Solicitado
+                        </th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Stock Disponible
+                        </th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Entregado
+                        </th>
+                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Completo
+                        </th>
+                        {% if solicitud.estado == 'PENDIENTE' %}
+                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Acciones
+                        </th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in items %}
+                    <tr class="hover:bg-gray-50">
+                        <!-- Producto -->
+                        <td class="px-5 py-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ item.producto_almacen.descripcion }}
+                            </div>
+                            <div class="text-xs text-gray-400 font-mono mt-0.5">
+                                SKU: {{ item.producto_almacen.sku }}
+                            </div>
+                            {% if item.observaciones %}
+                            <div class="text-xs text-gray-500 mt-0.5 italic">{{ item.observaciones }}</div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Cantidad solicitada -->
+                        <td class="px-5 py-4 text-sm text-gray-700 text-right whitespace-nowrap">
+                            {{ item.cantidad_solicitada }} {{ item.producto_almacen.unidad_medida }}
+                        </td>
+
+                        <!-- Stock disponible -->
+                        <td class="px-5 py-4 text-right whitespace-nowrap">
+                            <span class="text-sm font-medium
+                                {% if item.producto_almacen.stock_agotado %}text-red-700
+                                {% elif item.producto_almacen.stock_bajo %}text-orange-600
+                                {% else %}text-gray-700{% endif %}">
+                                {{ item.producto_almacen.cantidad }} {{ item.producto_almacen.unidad_medida }}
+                            </span>
+                            {% if item.producto_almacen.stock_agotado %}
+                            <div class="text-xs text-red-600 font-medium">Sin stock</div>
+                            {% elif item.producto_almacen.stock_bajo %}
+                            <div class="text-xs text-orange-500">Stock bajo</div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Cantidad entregada -->
+                        <td class="px-5 py-4 text-sm text-gray-700 text-right whitespace-nowrap">
+                            {{ item.cantidad_entregada }} {{ item.producto_almacen.unidad_medida }}
+                        </td>
+
+                        <!-- Entrega completa -->
+                        <td class="px-5 py-4 text-center">
+                            {% if item.entrega_completa %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                Completo
+                            </span>
+                            {% elif item.cantidad_entregada > 0 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">
+                                Parcial
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                                Pendiente
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Acciones (solo cuando PENDIENTE) -->
+                        {% if solicitud.estado == 'PENDIENTE' %}
+                        <td class="px-5 py-4 text-center">
+                            <form method="post"
+                                  action="{% url 'almacen:solicitud_eliminar_item' solicitud.pk item.pk %}"
+                                  onsubmit="return confirm('¿Quitar {{ item.producto_almacen.descripcion }} de la solicitud?');">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="text-red-600 hover:text-red-800 text-xs font-medium transition-colors duration-150">
+                                    Quitar
+                                </button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if solicitud.estado == 'PENDIENTE' %}6{% else %}5{% endif %}"
+                            class="px-6 py-8 text-center text-sm text-gray-400">
+                            No hay productos en esta solicitud
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Historial de salidas registradas -->
+    {% if salidas %}
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-800">Salidas Registradas</h2>
+        </div>
+        <div class="divide-y divide-gray-100">
+            {% for salida in salidas %}
+            <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <a href="{% url 'almacen:salida_detail' salida.pk %}"
+                       class="font-mono text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+                        {{ salida.folio }}
+                    </a>
+                    <div class="text-xs text-gray-500 mt-0.5">
+                        Entregado a:
+                        {{ salida.entregado_a.get_full_name|default:salida.entregado_a.username }}
+                        &mdash;
+                        por: {{ salida.entregado_por.get_full_name|default:salida.entregado_por.username }}
+                    </div>
+                    {% if salida.observaciones %}
+                    <div class="text-xs text-gray-400 mt-0.5 italic">{{ salida.observaciones }}</div>
+                    {% endif %}
+                </div>
+                <div class="text-sm text-gray-500 whitespace-nowrap">
+                    {{ salida.fecha_salida|date:"d/m/Y H:i" }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
 </div>
+
+{% if solicitud.estado == 'PENDIENTE' %}
+{% block extra_js %}
+<script>
+(function () {
+    const productos = {{ productos_json|safe }};
+    const selectProducto = document.getElementById('{{ item_form.producto_almacen.id_for_label }}');
+    const inputCantidad = document.getElementById('{{ item_form.cantidad_solicitada.id_for_label }}');
+    const labelUnidad   = document.getElementById('unidad_medida_label');
+    const stockInfo     = document.getElementById('stock_info');
+
+    if (!selectProducto || !inputCantidad) return;
+
+    selectProducto.addEventListener('change', function () {
+        const productoId = this.value;
+        const data = productos[productoId];
+
+        if (!data) {
+            inputCantidad.removeAttribute('max');
+            inputCantidad.value = '';
+            labelUnidad.textContent = '';
+            stockInfo.classList.add('hidden');
+            stockInfo.textContent = '';
+            return;
+        }
+
+        // Unidad de medida
+        labelUnidad.textContent = data.unidad;
+
+        // Max = stock disponible
+        inputCantidad.max = data.stock;
+        if (parseFloat(inputCantidad.value) > data.stock) {
+            inputCantidad.value = data.stock;
+        }
+
+        // Info de stock
+        stockInfo.classList.remove('hidden');
+        if (data.stock_agotado) {
+            stockInfo.className = 'mt-1 text-xs font-semibold text-red-600';
+            stockInfo.textContent = 'Sin existencias en almacén';
+            inputCantidad.disabled = true;
+        } else if (data.stock_bajo) {
+            stockInfo.className = 'mt-1 text-xs font-semibold text-orange-500';
+            stockInfo.textContent = 'Disponible: ' + data.stock + ' ' + data.unidad + ' (stock bajo)';
+            inputCantidad.disabled = false;
+        } else {
+            stockInfo.className = 'mt-1 text-xs text-gray-500';
+            stockInfo.textContent = 'Disponible: ' + data.stock + ' ' + data.unidad;
+            inputCantidad.disabled = false;
+        }
+    });
+
+    // Validar al escribir la cantidad
+    inputCantidad.addEventListener('input', function () {
+        const max = parseFloat(this.max);
+        if (!isNaN(max) && parseFloat(this.value) > max) {
+            this.value = max;
+        }
+    });
+})();
+</script>
+{% endblock %}
+{% endif %}
 {% endblock %}

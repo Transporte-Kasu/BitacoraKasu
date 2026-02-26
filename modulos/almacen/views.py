@@ -339,11 +339,23 @@ class SolicitudSalidaDetailView(LoginRequiredMixin, DetailView):
     model = SolicitudSalida
     template_name = 'almacen/solicitud_detail.html'
     context_object_name = 'solicitud'
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['items'] = self.object.items.select_related('producto_almacen').all()
         context['salidas'] = self.object.salidas.all()
+        if self.object.estado == 'PENDIENTE':
+            context['item_form'] = ItemSolicitudSalidaForm()
+            productos_data = {
+                str(p.id): {
+                    'stock': float(p.cantidad),
+                    'unidad': p.unidad_medida,
+                    'stock_bajo': p.stock_bajo,
+                    'stock_agotado': p.stock_agotado,
+                }
+                for p in ProductoAlmacen.objects.filter(activo=True)
+            }
+            context['productos_json'] = json.dumps(productos_data)
         return context
 
 
@@ -352,12 +364,136 @@ class SolicitudSalidaCreateView(LoginRequiredMixin, CreateView):
     model = SolicitudSalida
     form_class = SolicitudSalidaForm
     template_name = 'almacen/solicitud_form.html'
-    success_url = reverse_lazy('almacen:solicitud_list')
-    
+
     def form_valid(self, form):
         form.instance.solicitante = self.request.user
-        messages.success(self.request, f'Solicitud {form.instance.folio} creada exitosamente.')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(
+            self.request,
+            f'Solicitud {self.object.folio} creada. Agrega los productos a continuacion.'
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse('almacen:solicitud_detail', kwargs={'pk': self.object.pk})
+
+
+@login_required
+def enviar_notificacion_solicitud(request, pk):
+    """Envía notificación por correo a los autorizadores para revisar la solicitud"""
+    from django.core.mail import send_mail
+    from django.conf import settings as django_settings
+
+    solicitud = get_object_or_404(SolicitudSalida, pk=pk)
+
+    if solicitud.estado != 'PENDIENTE':
+        messages.error(request, 'Solo se pueden notificar solicitudes pendientes.')
+        return redirect('almacen:solicitud_detail', pk=pk)
+
+    if not solicitud.items.exists():
+        messages.error(request, 'Agrega al menos un producto antes de enviar la notificación.')
+        return redirect('almacen:solicitud_detail', pk=pk)
+
+    if request.method == 'POST':
+        items = solicitud.items.select_related('producto_almacen').all()
+        solicitante = solicitud.solicitante.get_full_name() or solicitud.solicitante.username
+
+        # URLs absolutas
+        detalle_url = request.build_absolute_uri(
+            reverse('almacen:solicitud_detail', kwargs={'pk': pk})
+        )
+        autorizar_url = request.build_absolute_uri(
+            reverse('almacen:solicitud_autorizar', kwargs={'pk': pk})
+        )
+
+        # Líneas de productos
+        productos_lista = '\n'.join(
+            f'  - {item.producto_almacen.descripcion}: '
+            f'{item.cantidad_solicitada} {item.producto_almacen.unidad_medida}'
+            for item in items
+        )
+
+        asunto = f'[Almacén] Solicitud {solicitud.folio} requiere autorización'
+        cuerpo = (
+            f'Se ha generado una solicitud de salida de almacén que requiere su autorización.\n\n'
+            f'Folio:        {solicitud.folio}\n'
+            f'Tipo:         {solicitud.get_tipo_display()}\n'
+            f'Solicitante:  {solicitante}\n'
+            f'Fecha:        {solicitud.fecha_solicitud.strftime("%d/%m/%Y %H:%M")}\n'
+            f'Justificación: {solicitud.justificacion}\n\n'
+            f'Productos solicitados:\n{productos_lista}\n\n'
+            f'— Ver detalle:\n{detalle_url}\n\n'
+            f'— Autorizar / Rechazar:\n{autorizar_url}\n\n'
+            f'---\nSistema BitacoraKasu - Transportes Kasu'
+        )
+
+        destinatarios = getattr(django_settings, 'ALMACEN_AUTORIZACION_EMAILS', [])
+
+        if not destinatarios:
+            messages.warning(request, 'No hay destinatarios configurados (ALMACEN_AUTORIZACION_EMAILS).')
+            return redirect('almacen:solicitud_detail', pk=pk)
+
+        try:
+            send_mail(
+                subject=asunto,
+                message=cuerpo,
+                from_email=django_settings.DEFAULT_FROM_EMAIL,
+                recipient_list=destinatarios,
+                fail_silently=False,
+            )
+            messages.success(
+                request,
+                f'Notificación enviada a {len(destinatarios)} destinatario(s).'
+            )
+        except Exception as e:
+            messages.error(request, f'Error al enviar el correo: {e}')
+
+    return redirect('almacen:solicitud_detail', pk=pk)
+
+
+@login_required
+def agregar_item_solicitud(request, pk):
+    """Agregar un producto a una solicitud de salida pendiente"""
+    solicitud = get_object_or_404(SolicitudSalida, pk=pk)
+
+    if solicitud.estado != 'PENDIENTE':
+        messages.error(request, 'Solo se pueden agregar productos a solicitudes pendientes.')
+        return redirect('almacen:solicitud_detail', pk=pk)
+
+    if request.method == 'POST':
+        form = ItemSolicitudSalidaForm(request.POST)
+        if form.is_valid():
+            item = form.save(commit=False)
+            item.solicitud = solicitud
+            item.save()
+            messages.success(
+                request,
+                f'Producto "{item.producto_almacen.descripcion}" agregado.'
+            )
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
+
+    return redirect('almacen:solicitud_detail', pk=pk)
+
+
+@login_required
+def eliminar_item_solicitud(request, pk, item_pk):
+    """Eliminar un producto de una solicitud de salida pendiente"""
+    solicitud = get_object_or_404(SolicitudSalida, pk=pk)
+    item = get_object_or_404(ItemSolicitudSalida, pk=item_pk, solicitud=solicitud)
+
+    if solicitud.estado != 'PENDIENTE':
+        messages.error(request, 'No se pueden modificar solicitudes que ya fueron procesadas.')
+        return redirect('almacen:solicitud_detail', pk=pk)
+
+    if request.method == 'POST':
+        descripcion = item.producto_almacen.descripcion
+        item.delete()
+        messages.success(request, f'Producto "{descripcion}" eliminado de la solicitud.')
+
+    return redirect('almacen:solicitud_detail', pk=pk)
 
 
 @login_required

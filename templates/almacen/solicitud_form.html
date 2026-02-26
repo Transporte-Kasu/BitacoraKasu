@@ -1,31 +1,150 @@
 {% extends 'base.html' %}
-{% block title %}Nueva Solicitud{% endblock %}
+
+{% block title %}Nueva Solicitud de Salida{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto py-6">
-    <h1 class="text-3xl font-bold text-gray-900 mb-6">📝 Nueva Solicitud de Salida</h1>
+<div class="max-w-2xl mx-auto py-6 px-4 sm:px-6">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+        <a href="{% url 'almacen:dashboard' %}" class="hover:text-gray-700">Almacen</a>
+        <span class="text-gray-300">/</span>
+        <a href="{% url 'almacen:solicitud_list' %}" class="hover:text-gray-700">Solicitudes de Salida</a>
+        <span class="text-gray-300">/</span>
+        <span class="text-gray-900 font-medium">Nueva</span>
+    </nav>
+
+    <!-- Encabezado -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Nueva Solicitud de Salida</h1>
+        <p class="text-sm text-gray-500 mt-1">
+            Completa el formulario para solicitar la salida de productos del almacen
+        </p>
+    </div>
+
+    <!-- Aviso del flujo -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p class="text-sm font-medium text-blue-800">Informacion importante</p>
+        <p class="text-sm text-blue-700 mt-1">
+            Despues de crear la solicitud, un supervisor debera autorizarla antes de que se pueda
+            procesar la entrega de los productos.
+        </p>
+    </div>
+
+    <!-- Formulario -->
     <form method="post" class="space-y-6">
         {% csrf_token %}
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo <span class="text-red-500">*</span></label>
-                    {{ form.tipo }}
-                    {% if form.tipo.errors %}<p class="text-sm text-red-600">{{ form.tipo.errors.0 }}</p>{% endif %}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Necesidad</label>
-                    {{ form.fecha_necesidad }}
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
-                    {{ form.observaciones }}
-                </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-6">
+
+            <!-- Errores generales del formulario -->
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                {% for error in form.non_field_errors %}
+                <p class="text-sm text-red-700">{{ error }}</p>
+                {% endfor %}
             </div>
+            {% endif %}
+
+            <!-- Campo: Tipo -->
+            <div>
+                <label for="{{ form.tipo.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de solicitud <span class="text-red-500">*</span>
+                </label>
+                <p class="text-xs text-gray-500 mb-2">
+                    Para salidas relacionadas con el taller selecciona "Para Orden de Trabajo".
+                    Para otras salidas usa "Solicitud General".
+                </p>
+                {{ form.tipo }}
+                {% if form.tipo.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.tipo.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Campo: Orden de Trabajo (visible solo si tipo == ORDEN_TRABAJO) -->
+            <div id="campo-orden-trabajo">
+                <label for="{{ form.orden_trabajo.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 mb-1">
+                    Orden de trabajo
+                    <span id="label-orden-requerida" class="text-red-500 hidden">*</span>
+                </label>
+                <p class="text-xs text-gray-500 mb-2">
+                    Selecciona la orden de trabajo del taller a la que corresponde esta solicitud.
+                </p>
+                {{ form.orden_trabajo }}
+                {% if form.orden_trabajo.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.orden_trabajo.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Campo: Justificacion -->
+            <div>
+                <label for="{{ form.justificacion.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 mb-1">
+                    Justificacion / Motivo <span class="text-red-500">*</span>
+                </label>
+                <p class="text-xs text-gray-500 mb-2">
+                    Describe con claridad el motivo o uso de los productos solicitados.
+                </p>
+                {{ form.justificacion }}
+                {% if form.justificacion.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.justificacion.errors.0 }}</p>
+                {% endif %}
+            </div>
+
         </div>
-        <div class="flex justify-end space-x-4">
-            <a href="{% url 'almacen:solicitud_list' %}" class="px-6 py-3 bg-gray-200 rounded-lg">Cancelar</a>
-            <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg">➕ Crear Solicitud</button>
+
+        <!-- Botones -->
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'almacen:solicitud_list' %}"
+               class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors duration-150">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 shadow-sm">
+                Crear Salida
+            </button>
         </div>
+
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    'use strict';
+
+    var selectTipo = document.getElementById('{{ form.tipo.id_for_label }}');
+    var campoOrdenTrabajo = document.getElementById('campo-orden-trabajo');
+    var labelOrdenRequerida = document.getElementById('label-orden-requerida');
+    var selectOrdenTrabajo = document.getElementById('{{ form.orden_trabajo.id_for_label }}');
+
+    function toggleOrdenTrabajo() {
+        var esOrdenTrabajo = selectTipo.value === 'ORDEN_TRABAJO';
+
+        if (esOrdenTrabajo) {
+            campoOrdenTrabajo.style.display = 'block';
+            labelOrdenRequerida.classList.remove('hidden');
+            if (selectOrdenTrabajo) {
+                selectOrdenTrabajo.required = true;
+            }
+        } else {
+            campoOrdenTrabajo.style.display = 'none';
+            labelOrdenRequerida.classList.add('hidden');
+            if (selectOrdenTrabajo) {
+                selectOrdenTrabajo.required = false;
+                selectOrdenTrabajo.value = '';
+            }
+        }
+    }
+
+    if (selectTipo) {
+        selectTipo.addEventListener('change', toggleOrdenTrabajo);
+        // Estado inicial al cargar la pagina
+        toggleOrdenTrabajo();
+    }
+}());
+</script>
 {% endblock %}

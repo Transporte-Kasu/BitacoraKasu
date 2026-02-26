@@ -180,6 +180,17 @@ EMAIL_HOST_USER = 'apikey'  # Cambiar
 EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD')  # Usar App Password de Gmail
 DEFAULT_FROM_EMAIL = 'bitacora@transportekasu.com.mx'
 
+# Destinatarios de notificaciones de autorización de salidas de almacén.
+# Se puede sobreescribir vía .env: ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com
+ALMACEN_AUTORIZACION_EMAILS = env.list(
+    'ALMACEN_AUTORIZACION_EMAILS',
+    default=[
+        'gerencia.general@transporteskasu.com.mx',
+        'administracion@transporteskasu.com.mx',
+        'xoyocl2@gmail.com',
+    ]
+)
+
 # Celery deshabilitado. Los reportes periódicos se ejecutan vía GitHub Actions.
 # CELERY_BROKER_URL = ''
 # CELERY_RESULT_BACKEND = ''
