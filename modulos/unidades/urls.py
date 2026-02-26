@@ -13,4 +13,5 @@ urlpatterns = [
     path('<int:pk>/', views.UnidadDetailView.as_view(), name='detail'),
     path('<int:pk>/editar/', views.UnidadUpdateView.as_view(), name='update'),
     path('<int:pk>/eliminar/', views.UnidadDeleteView.as_view(), name='delete'),
+    path('<int:pk>/asignar-pieza/', views.asignar_pieza_unidad, name='asignar_pieza'),
 ]

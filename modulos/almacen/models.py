@@ -791,3 +791,72 @@ class SalidaRapidaConsumible(models.Model):
 
     def __str__(self):
         return f"{self.folio} - {self.producto.descripcion} ({self.cantidad})"
+
+
+class AsignacionDirectaAlmacen(models.Model):
+    """Asignación directa de piezas/productos de almacén a una unidad
+    para reparaciones rápidas sin necesidad de orden de taller.
+    Ej: focos, válvulas, etc."""
+    folio = models.CharField(max_length=20, unique=True, editable=False)
+    producto = models.ForeignKey(
+        ProductoAlmacen,
+        on_delete=models.CASCADE,
+        related_name='asignaciones_directas',
+        limit_choices_to={'activo': True}
+    )
+    unidad = models.ForeignKey(
+        'unidades.Unidad',
+        on_delete=models.CASCADE,
+        related_name='asignaciones_almacen',
+        help_text="Unidad a la que se asigna la pieza"
+    )
+    cantidad = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    motivo = models.CharField(
+        max_length=500,
+        help_text="Descripción de la reparación o motivo de la asignación"
+    )
+    observacion_interna = models.TextField(
+        blank=True,
+        help_text="Observación interna (solo visible para superusuarios)"
+    )
+    entregado_por = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='asignaciones_directas_almacen'
+    )
+    fecha_asignacion = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "Asignación Directa de Almacén"
+        verbose_name_plural = "Asignaciones Directas de Almacén"
+        ordering = ['-fecha_asignacion']
+        indexes = [
+            models.Index(fields=['-fecha_asignacion']),
+            models.Index(fields=['folio']),
+            models.Index(fields=['unidad', '-fecha_asignacion']),
+            models.Index(fields=['producto']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.folio:
+            from django.db.models import Max
+            fecha = timezone.now().strftime('%Y%m%d')
+            ultimo = AsignacionDirectaAlmacen.objects.filter(
+                folio__startswith=f'ADI-{fecha}'
+            ).aggregate(Max('folio'))['folio__max']
+
+            if ultimo:
+                numero = int(ultimo.split('-')[-1]) + 1
+            else:
+                numero = 1
+
+            self.folio = f'ADI-{fecha}-{numero:03d}'
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.folio} - {self.producto.descripcion} → {self.unidad}"

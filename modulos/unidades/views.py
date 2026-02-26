@@ -2,16 +2,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Count, Avg, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 import json
 from .models import Unidad
-from .forms import UnidadForm
+from .forms import UnidadForm, AsignacionDirectaAlmacenForm
 from modulos.taller.models import OrdenTrabajo
-from modulos.almacen.models import SalidaRapidaConsumible
+from modulos.almacen.models import SalidaRapidaConsumible, AsignacionDirectaAlmacen, MovimientoAlmacen
 
 
 class UnidadListView(LoginRequiredMixin, ListView):
@@ -149,6 +150,27 @@ class UnidadDetailView(LoginRequiredMixin, DetailView):
         context['consumibles_asignados'] = consumibles[:15]
         context['total_consumibles'] = consumibles.count()
 
+        # Asignaciones directas de almacén (piezas para reparación rápida)
+        asignaciones = unidad.asignaciones_almacen.select_related(
+            'producto', 'entregado_por'
+        ).order_by('-fecha_asignacion')
+        context['asignaciones_directas'] = asignaciones[:15]
+        context['total_asignaciones_directas'] = asignaciones.count()
+
+        # Formulario de asignación directa
+        context['form_asignacion'] = AsignacionDirectaAlmacenForm()
+
+        # Datos de productos para validación JS (stock y unidad de medida)
+        from modulos.almacen.models import ProductoAlmacen
+        productos_data = {
+            str(p.id): {
+                'stock': float(p.cantidad),
+                'unidad': p.unidad_medida,
+            }
+            for p in ProductoAlmacen.objects.filter(activo=True, cantidad__gt=0)
+        }
+        context['productos_json'] = json.dumps(productos_data)
+
         return context
 
 
@@ -194,6 +216,51 @@ class UnidadDeleteView(LoginRequiredMixin, DeleteView):
         unidad = self.get_object()
         messages.success(request, f'Unidad {unidad.numero_economico} eliminada exitosamente.')
         return super().delete(request, *args, **kwargs)
+
+
+@login_required
+def asignar_pieza_unidad(request, pk):
+    """Asignar una pieza del almacén a la unidad para reparación rápida"""
+    unidad = get_object_or_404(Unidad, pk=pk)
+
+    if request.method == 'POST':
+        form = AsignacionDirectaAlmacenForm(request.POST)
+        if form.is_valid():
+            asignacion = form.save(commit=False)
+            asignacion.unidad = unidad
+            asignacion.entregado_por = request.user
+            asignacion.observacion_interna = 'ASIGNACION DIRECTA'
+            asignacion.save()
+
+            # Reducir stock y crear movimiento
+            producto = asignacion.producto
+            cantidad_anterior = producto.cantidad
+            producto.reducir_stock(asignacion.cantidad)
+
+            MovimientoAlmacen.objects.create(
+                tipo='SALIDA',
+                producto_almacen=producto,
+                cantidad=-asignacion.cantidad,
+                cantidad_anterior=cantidad_anterior,
+                cantidad_posterior=producto.cantidad,
+                usuario=request.user,
+                observaciones=(
+                    f'Asignación directa {asignacion.folio} a {unidad} - {asignacion.motivo}'
+                )
+            )
+
+            messages.success(
+                request,
+                f'Pieza asignada. Folio: {asignacion.folio} - '
+                f'{asignacion.cantidad} {producto.unidad_medida} de '
+                f'{producto.descripcion} a {unidad.numero_economico}'
+            )
+            return redirect(f"{reverse('unidades:detail', args=[pk])}?tab=almacen")
+        else:
+            messages.error(request, 'Error al registrar la asignación. Verifique los datos.')
+            return redirect(f"{reverse('unidades:detail', args=[pk])}?tab=almacen")
+
+    return redirect('unidades:detail', pk=pk)
 
 
 # Vista funcional para dashboard

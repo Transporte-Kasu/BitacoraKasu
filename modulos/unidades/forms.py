@@ -1,5 +1,6 @@
 from django import forms
 from .models import Unidad
+from modulos.almacen.models import AsignacionDirectaAlmacen, ProductoAlmacen
 from datetime import date
 
 
@@ -131,4 +132,52 @@ class UnidadForm(forms.ModelForm):
                 'Las unidades activas no pueden tener fecha de baja'
             )
         
+        return cleaned_data
+
+
+class AsignacionDirectaAlmacenForm(forms.ModelForm):
+    """Formulario para asignar piezas del almacén a una unidad
+    desde el detalle de la unidad (reparaciones rápidas sin orden de taller)"""
+
+    class Meta:
+        model = AsignacionDirectaAlmacen
+        fields = ['producto', 'cantidad', 'motivo']
+        widgets = {
+            'producto': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'id_producto',
+            }),
+            'cantidad': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': 'Cantidad',
+                'id': 'id_cantidad',
+            }),
+            'motivo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Cambio de foco delantero, válvula dañada...',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['producto'].queryset = ProductoAlmacen.objects.filter(
+            activo=True, cantidad__gt=0
+        ).order_by('categoria', 'descripcion')
+        self.fields['producto'].label_from_instance = (
+            lambda obj: f"{obj.descripcion} ({obj.sku}) - Disp: {obj.cantidad} {obj.unidad_medida}"
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        producto = cleaned_data.get('producto')
+        cantidad = cleaned_data.get('cantidad')
+
+        if producto and cantidad:
+            if cantidad > producto.cantidad:
+                raise forms.ValidationError({
+                    'cantidad': f'Stock insuficiente. Disponible: {producto.cantidad} {producto.unidad_medida}'
+                })
+
         return cleaned_data
