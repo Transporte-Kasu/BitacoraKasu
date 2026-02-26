@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
+from django.shortcuts import render
+from django.contrib import messages
+from decimal import Decimal, InvalidOperation
 from .models import Unidad
 
 
@@ -134,7 +137,7 @@ class UnidadAdmin(admin.ModelAdmin):
         return "Sin datos"
     eficiencia_combustible_display.short_description = 'Eficiencia'
     
-    actions = ['activar_unidades', 'desactivar_unidades']
+    actions = ['activar_unidades', 'desactivar_unidades', 'actualizar_rendimiento']
     
     def activar_unidades(self, request, queryset):
         """Activa las unidades seleccionadas"""
@@ -147,3 +150,40 @@ class UnidadAdmin(admin.ModelAdmin):
         updated = queryset.update(activa=False, fecha_baja=timezone.now().date())
         self.message_user(request, f'{updated} unidades desactivadas.')
     desactivar_unidades.short_description = 'Desactivar unidades seleccionadas'
+
+    def actualizar_rendimiento(self, request, queryset):
+        """Actualizar rendimiento esperado de combustible a varias unidades"""
+        if 'confirmado' in request.POST:
+            try:
+                nuevo_rendimiento = Decimal(request.POST.get('rendimiento_esperado', '0'))
+            except (InvalidOperation, ValueError):
+                self.message_user(
+                    request, 'Valor de rendimiento inválido.', messages.ERROR
+                )
+                return
+
+            if nuevo_rendimiento <= 0:
+                self.message_user(
+                    request, 'El rendimiento debe ser mayor a 0.', messages.ERROR
+                )
+                return
+
+            updated = queryset.update(rendimiento_esperado=nuevo_rendimiento)
+            self.message_user(
+                request,
+                f'Rendimiento actualizado a {nuevo_rendimiento} km/lt '
+                f'en {updated} unidad(es).',
+                messages.SUCCESS
+            )
+            return
+
+        return render(
+            request,
+            'admin/unidades/actualizar_rendimiento.html',
+            {
+                'unidades': queryset.order_by('numero_economico'),
+                'opts': self.model._meta,
+                'title': 'Actualizar Rendimiento de Combustible',
+            }
+        )
+    actualizar_rendimiento.short_description = '⛽ Actualizar rendimiento de combustible'

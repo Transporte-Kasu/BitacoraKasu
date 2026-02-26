@@ -1,0 +1,67 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Actualizar Rendimiento de Combustible{% endblock %}
+
+{% block content %}
+<div style="max-width: 700px; margin: 20px auto;">
+    <h2 style="margin-bottom: 10px;">⛽ Actualizar Rendimiento Esperado</h2>
+    <p style="margin-bottom: 20px; color: #666;">
+        Se actualizará el rendimiento esperado de <strong>{{ unidades|length }}</strong> unidad(es) seleccionada(s):
+    </p>
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <th style="padding: 8px; text-align: left;">Nº Económico</th>
+                <th style="padding: 8px; text-align: left;">Placa</th>
+                <th style="padding: 8px; text-align: left;">Tipo</th>
+                <th style="padding: 8px; text-align: right;">Rendimiento Actual</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for unidad in unidades %}
+            <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 8px; font-weight: bold;">{{ unidad.numero_economico }}</td>
+                <td style="padding: 8px;">{{ unidad.placa }}</td>
+                <td style="padding: 8px;">{{ unidad.get_tipo_display }}</td>
+                <td style="padding: 8px; text-align: right;">{{ unidad.rendimiento_esperado }} km/lt</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for unidad in unidades %}
+            <input type="hidden" name="_selected_action" value="{{ unidad.pk }}" />
+        {% endfor %}
+        <input type="hidden" name="action" value="actualizar_rendimiento" />
+        <input type="hidden" name="confirmado" value="1" />
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <label for="id_rendimiento" style="display: block; font-weight: bold; margin-bottom: 8px;">
+                Nuevo Rendimiento Esperado (km/lt) *
+            </label>
+            <input type="number" name="rendimiento_esperado" id="id_rendimiento"
+                   step="0.01" min="0.01" required
+                   style="width: 200px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;"
+                   placeholder="Ej: 3.50" />
+            <p style="color: #666; font-size: 12px; margin-top: 6px;">
+                Este valor se aplicará a todas las unidades seleccionadas.
+            </p>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button type="submit"
+                    style="background: #417690; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                ✓ Aplicar a {{ unidades|length }} unidad(es)
+            </button>
+            <a href="{% url 'admin:unidades_unidad_changelist' %}"
+               style="background: #999; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; font-weight: bold;">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
