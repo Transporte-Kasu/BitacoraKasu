@@ -23,4 +23,5 @@ urlpatterns = [
 
     # API
     path('api/ordenes-activas/', views.api_ordenes_activas, name='api_ordenes_activas'),
+    path('api/buscar-producto-almacen/', views.buscar_producto_almacen, name='buscar_producto_almacen'),
 ]

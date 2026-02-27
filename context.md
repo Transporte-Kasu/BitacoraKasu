@@ -16,6 +16,13 @@ BitacoraKasu/
 │   ├── views.py                    # IndexView (dashboard principal)
 │   ├── context_processors.py       # Inyecta alertas en todos los templates
 │   ├── storage_backends.py         # Selector local / DigitalOcean Spaces
+│   ├── scheduler.py                # Configuración APScheduler
+│   ├── management/commands/
+│   │   ├── runscheduler.py         # Inicia scheduler de reportes (proceso bloqueante)
+│   │   └── test_reportes.py        # Prueba manual de reportes
+│   ├── reportes/
+│   │   ├── combustible.py          # enviar_reporte_combustible()
+│   │   └── almacen.py              # enviar_reporte_almacen()
 │   └── services/
 │       └── google_maps.py          # GoogleMapsService (Distance Matrix API)
 ├── modulos/                        # Apps de dominio de negocio
@@ -65,6 +72,7 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 | `telefono` / `email` | | Datos de contacto |
 | `activo` | BooleanField | Estado del operador |
 | `fecha_ingreso` / `fecha_baja` | DateField | Control de vida laboral |
+| `notas` | TextField | Observaciones |
 
 **Métodos de negocio:**
 - `horas_trabajadas_periodo(inicio, fin)` — suma horas de viajes completados en rango
@@ -73,7 +81,7 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 
 **Índices:** `(tipo, activo)`, `(nombre)`
 
-**Relaciones de salida:** Referenced by `BitacoraViaje.operador` y `OrdenTrabajo.operador_reporta`
+**URLs:** 7 patrones (lista, crear, detalle, actualizar, eliminar, búsqueda)
 
 ---
 
@@ -105,6 +113,10 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 1. `BitacoraViaje.save()` al completar un viaje
 2. `CargaCombustible.save()` al completar una carga
 3. `OrdenTrabajo.save()` al cerrar una OT con `kilometraje_salida`
+
+**Admin especial:** Vista de actualización masiva de `rendimiento_esperado` por unidad.
+
+**URLs:** 8 patrones (incluye `actualizar_rendimiento`)
 
 ---
 
@@ -148,6 +160,8 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 
 **Índices:** `(-fecha_salida)`, `(operador, fecha_salida)`, `(unidad, fecha_salida)`, `(completado)`
 
+**URLs:** 9 patrones
+
 ---
 
 ### 4. `combustible` — Control de Carga de Combustible
@@ -162,7 +176,7 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 - Campos: `nombre`, `telefono`, `activo`
 
 #### `CargaCombustible` — Registro principal
-Proceso en 4 pasos con evidencia fotográfica:
+Proceso en 5 pasos con evidencia fotográfica:
 
 | Campo | Tipo | Paso |
 |-------|------|------|
@@ -183,12 +197,13 @@ Proceso en 4 pasos con evidencia fotográfica:
 
 **Signal en `combustible/signals.py`:**
 - Al guardar `CargaCombustible`, si `estado_candado_anterior` es `ALTERADO`, `VIOLADO` o `SIN_CANDADO` → genera `AlertaCombustible` automáticamente
+- Si `cantidad_litros > unidad.capacidad_combustible` → genera alerta de `EXCESO_COMBUSTIBLE`
 
 #### `AlertaCombustible`
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | `carga` | FK → CargaCombustible | Origen de la alerta |
-| `tipo_alerta` | choices | `CANDADO_ALTERADO / VIOLADO / SIN_CANDADO / EXCESO_COMBUSTIBLE` |
+| `tipo_alerta` | choices | `CANDADO_ALTERADO / CANDADO_VIOLADO / SIN_CANDADO / EXCESO_COMBUSTIBLE` |
 | `mensaje` | TextField | Descripción del problema |
 | `resuelta` / `resuelta_por` / `fecha_resolucion` | | Control de resolución |
 
@@ -200,13 +215,14 @@ Proceso en 4 pasos con evidencia fotográfica:
 - Permite múltiples fotos del candado nuevo por carga (relación 1:N)
 - Campo `descripcion`: "Tanque 1", "Tanque 2", etc.
 
-**Folio:** No aplica (control por `id`)
+**URLs:** 10 patrones
+**Templates:** 10 (wizard 5 pasos + listado + detalle + alertas)
 
 ---
 
 ### 5. `taller` — Órdenes de Trabajo del Taller
 
-**Propósito:** Gestión completa del mantenimiento vehicular: diagnóstico, reparación, piezas, costos y seguimiento del estado.
+**Propósito:** Gestión completa del mantenimiento vehicular: diagnóstico, reparación, piezas y seguimiento del estado. Los costos se gestionan de forma externa (no se muestran en UI).
 
 **Modelos:**
 
@@ -229,7 +245,7 @@ Proceso en 4 pasos con evidencia fotográfica:
 | Kilometraje | `kilometraje_ingreso`, `kilometraje_salida` |
 | Asignación | `mecanico_asignado` (grupo "Mecánicos"), `supervisor` |
 | Diagnóstico | `diagnostico`, `fecha_diagnostico` |
-| Costos | `costo_estimado_mano_obra`, `costo_real_mano_obra` |
+| Costos | `costo_estimado_mano_obra`, `costo_real_mano_obra` *(en modelo, no visibles en UI)* |
 | Estado | `estado` (ver flujo abajo) |
 
 **Flujo de estados:**
@@ -242,8 +258,8 @@ PENDIENTE → EN_DIAGNOSTICO → ESPERANDO_PIEZAS → EN_REPARACION → EN_PRUEB
 - `diagnosticar_orden`, `asignar_mecanico`, `aprobar_orden`, `cerrar_orden`
 
 **Propiedades calculadas:**
-- `costo_total_piezas_estimado` / `costo_total_piezas_real`
-- `costo_total_estimado` / `costo_total_real`
+- `costo_total_piezas_estimado` / `costo_total_piezas_real` *(en modelo, no en UI)*
+- `costo_total_estimado` / `costo_total_real` *(en modelo, no en UI)*
 - `dias_en_taller` / `horas_en_taller`
 - `requiere_piezas` — hay piezas en estado PENDIENTE
 - `kilometros_recorridos_en_taller`
@@ -253,10 +269,21 @@ PENDIENTE → EN_DIAGNOSTICO → ESPERANDO_PIEZAS → EN_REPARACION → EN_PRUEB
 **`save()` override:** Al completarse actualiza `unidad.ultimo_mantenimiento`, `proximo_mantenimiento` y `kilometraje_actual`.
 
 #### `PiezaRequerida`
-- Vincula `OrdenTrabajo` con `Producto` (del módulo compras)
-- Estados: `PENDIENTE → SOLICITADA → EN_COMPRA → RECIBIDA → INSTALADA`
-- Se vincula a `ItemRequisicion` cuando se solicita formalmente
-- Métodos: `marcar_como_solicitada()`, `marcar_como_recibida()`, `marcar_como_instalada()`
+- Estados: `PENDIENTE → SOLICITADA → EN_COMPRA → RECIBIDA → INSTALADA → CANCELADA`
+- **Tres modos de captura** (excluyentes):
+  1. `producto_almacen` (FK → `almacen.ProductoAlmacen`, nullable) — pieza encontrada en catálogo de almacén via buscador AJAX
+  2. `producto` (FK → `compras.Producto`, nullable) — vínculo con catálogo de compras (auto-asignado si `producto_almacen` tiene `producto_compra`)
+  3. `nombre_pieza` (CharField) — texto libre cuando la pieza no existe en almacén
+- **Propiedades:**
+  - `nombre_display` — retorna descripción del producto almacén, nombre del producto compras, o nombre libre (en ese orden)
+  - `disponible_en_almacen` — `True` si `producto_almacen.cantidad >= cantidad`
+- **Métodos:** `marcar_como_solicitada()`, `marcar_como_recibida()`, `marcar_como_instalada()`
+
+**Flujo de surtido (vista `generar_requisicion`, un solo clic):**
+- Piezas con `disponible_en_almacen=True` → crea `SolicitudSalida` (`SOL-XXXXXX`) en almacén
+- Piezas sin stock o sin `producto_almacen` → crea `Requisicion` (`REQ-XXXXXX`) en compras; si es texto libre crea `compras.Producto` con `get_or_create`
+
+**Buscador AJAX:** `GET /taller/api/buscar-producto-almacen/?q=texto` → JSON con hasta 10 resultados de `ProductoAlmacen` (id, descripcion, sku, cantidad, disponible)
 
 #### `SeguimientoOrden`
 - Bitácora de cambios de estado de la OT
@@ -276,6 +303,12 @@ PENDIENTE → EN_DIAGNOSTICO → ESPERANDO_PIEZAS → EN_REPARACION → EN_PRUEB
 - `asignar_mecanico_notificacion` → email al mecánico asignado
 - `actualizar_estado_orden_por_piezas` → OT pasa a `ESPERANDO_PIEZAS` al agregar piezas
 - `actualizar_piezas_recibidas` → al recibir `ItemRecepcion`, actualiza `PiezaRequerida` y puede pasar OT a `EN_REPARACION`
+
+**URLs:** 12 patrones (incluye `api/buscar-producto-almacen/`)
+
+**UI — costos eliminados de templates:**
+- `dashboard.html`: eliminadas tarjetas "Costo Estimado Activas" y "Costo Real (Mes)"; solo se muestra "Tiempo Promedio"
+- `detalle_orden.html`: eliminadas sección "Costos Estimados / Costos Reales", campo "Costo Estimado MO" del form de diagnóstico, campo "Costo Real MO" del form de cambio de estado
 
 ---
 
@@ -338,6 +371,9 @@ PENDIENTE → ENVIADA → CONFIRMADA → EN_TRANSITO → RECIBIDA
 #### `Inventario`
 - Control básico de stock por ubicación (legacy, ver `almacen.ProductoAlmacen` para control detallado)
 
+**URLs:** 17 patrones
+**Templates:** 27
+
 ---
 
 ### 7. `almacen` — Gestión de Almacén
@@ -363,7 +399,7 @@ PENDIENTE → ENVIADA → CONFIRMADA → EN_TRANSITO → RECIBIDA
 | `imagen` | Foto del producto (DigitalOcean Spaces) |
 | `producto_compra` | FK → `compras.Producto` (vínculo catálogo) |
 | `proveedor_principal` | FK → `compras.Proveedor` |
-| `tiempo_reorden_dias` | Días estimados de reabastecimiento |
+| `tiempo_reorden_dias` | Días estimados de reabastecimiento (default=7) |
 | `es_consumible` | `True` para trapos, gasolina blanca, desengrasante, etc. |
 | `activo` | Estado del producto |
 
@@ -445,8 +481,18 @@ Método `resolver(usuario)` para cierre de alerta.
 
 - Salida express sin flujo de autorización
 - Solo para productos con `es_consumible=True`
-- Campos: `producto`, `cantidad`, `entregado_por`, `solicitante` (texto libre), `unidad` (FK opcional), `motivo`
+- Campos: `producto`, `cantidad`, `entregado_por`, `solicitante` (texto libre), `unidad` (FK → Unidad, nullable), `motivo`, `fecha_salida`
 - **Signal:** Al crear → reduce `ProductoAlmacen.cantidad` directamente
+
+#### `AsignacionDirectaAlmacen`
+**Folio:** `ADI-YYYYMMDD-XXX`
+
+- Asignación directa de piezas/productos a una unidad sin orden de taller
+- Para reparaciones rápidas (focos, válvulas, etc.)
+- Campos: `producto` (FK → ProductoAlmacen), `unidad` (FK → Unidad), `cantidad`, `motivo`, `observacion_interna` (solo superusuarios), `entregado_por`, `fecha_asignacion`
+
+**URLs:** 29 patrones
+**Templates:** 23
 
 ---
 
@@ -465,6 +511,34 @@ Usado en:
 
 ---
 
+## Sistema de Reportes Automáticos
+
+### `config/reportes/combustible.py` — `enviar_reporte_combustible()`
+- Resumen: total cargas, litros, promedio del período
+- Anomalías de candado detectadas
+- Top 10 unidades por consumo
+- Unidades que NO cargaron en el período
+- Excel adjunto con 2 hojas: cargas detalladas + top unidades
+
+### `config/reportes/almacen.py` — `enviar_reporte_almacen()`
+- Resumen: salidas formales + salidas rápidas
+- Top 10 productos más salidos
+- Productos sin movimiento en 90 días
+- Excel adjunto con 4 hojas: salidas almacén, salidas rápidas, estadísticas, resumen
+
+### Scheduler (`config/scheduler.py` + `runscheduler.py`)
+- Motor: APScheduler 3.11.2 + DjangoJobStore
+- **Fix:** `job.next_run_time` usa `getattr` con fallback para compatibilidad con APScheduler 3.x y 4.x
+- Configuración en `settings.REPORTES_CONFIG`:
+  - `periodicidad`: `diario` / `semanal` / `mensual`
+  - `hora`: HH:MM (default `08:00`)
+  - `dia_semana`: e.g. `fri`
+  - `dia_mes`: 1-28
+- Comando: `python manage.py runscheduler` (proceso bloqueante, se configura como worker en Procfile)
+- Comando de prueba: `python manage.py test_reportes`
+
+---
+
 ## Dashboard Principal — `IndexView` (`config/views.py`)
 
 Agrega métricas de TODOS los módulos en una sola consulta por sección:
@@ -473,11 +547,11 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 |---------|-------------------|
 | **Operadores** | Total, activos |
 | **Unidades** | Total, activas, próximo mantenimiento (≤7 días) |
-| **Bitácoras** | Total, completados, en curso, del último mes |
-| **Combustible** | Cargas hoy, litros hoy/mes, alertas candado, en proceso |
+| **Bitácoras** | Total, completados, en curso, del último mes, rendimiento promedio, velocidad promedio |
+| **Combustible** | Cargas hoy, completadas, en proceso, alertas candado, litros hoy/mes, promedio/mes |
 | **Taller** | OT pendientes, completadas este mes, unidades en taller |
 | **Compras** | Requisiciones pendientes, OC activas, proveedores activos |
-| **Almacén** | Productos activos, stock bajo, alertas sin resolver, valor total |
+| **Almacén** | Productos activos, stock bajo, alertas sin resolver, valor total inventario |
 
 **Gráficas (datos para Chart.js):**
 - Viajes por día (últimos 7 días)
@@ -493,7 +567,7 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 
 | Signal | Módulo | Disparador | Efecto |
 |--------|--------|-----------|--------|
-| `post_save CargaCombustible` | combustible | Candado ALTERADO/VIOLADO/SIN_CANDADO | Crea `AlertaCombustible` |
+| `post_save CargaCombustible` | combustible | Candado ALTERADO/VIOLADO/SIN_CANDADO o exceso litros | Crea `AlertaCombustible` |
 | `post_save OrdenTrabajo` | taller | Creación | Email a grupo "Supervisores Taller" |
 | `post_save OrdenTrabajo` | taller | >7 días en taller | Email de alerta a supervisores/gerentes |
 | `post_save OrdenTrabajo` | taller | Estado COMPLETADA | Email al creador |
@@ -515,13 +589,14 @@ Todos los folios se generan automáticamente en `save()` con el patrón `PREFIJO
 
 | Modelo | Prefijo | Ejemplo |
 |--------|---------|---------|
-| `Requisicion` | `REQ` | `REQ-20260226-001` |
-| `OrdenCompra` | `OC` | `OC-20260226-001` |
-| `OrdenTrabajo` | `OT` | `OT-20260226-001` |
-| `EntradaAlmacen` | `ENT` | `ENT-20260226-001` |
-| `SolicitudSalida` | `SOL` | `SOL-20260226-001` |
-| `SalidaAlmacen` | `SAL` | `SAL-20260226-001` |
-| `SalidaRapidaConsumible` | `CON` | `CON-20260226-001` |
+| `Requisicion` | `REQ` | `REQ-20260227-001` |
+| `OrdenCompra` | `OC` | `OC-20260227-001` |
+| `OrdenTrabajo` | `OT` | `OT-20260227-001` |
+| `EntradaAlmacen` | `ENT` | `ENT-20260227-001` |
+| `SolicitudSalida` | `SOL` | `SOL-20260227-001` |
+| `SalidaAlmacen` | `SAL` | `SAL-20260227-001` |
+| `SalidaRapidaConsumible` | `CON` | `CON-20260227-001` |
+| `AsignacionDirectaAlmacen` | `ADI` | `ADI-20260227-001` |
 
 **Algoritmo:** Busca el `Max(folio)` del día → extrae sufijo numérico → incrementa → formato `{n:03d}`.
 
@@ -582,10 +657,40 @@ unidades ──── bitacoras ──── combustible         taller
     │         │                   │                       almacen.EntradaAlmacen
     │     seguimientos         SalidaAlmacen
     │     checklist                │
-    └─── consumibles_asignados  ItemSalidaAlmacen ──► ProductoAlmacen.cantidad
-                                                           │
-                                                       MovimientoAlmacen (audit)
+    └─── SalidaRapidaConsumible  ItemSalidaAlmacen ──► ProductoAlmacen.cantidad
+    │                                                       │
+    └─── AsignacionDirectaAlmacen                      MovimientoAlmacen (audit)
                                                        AlertaStock (automática)
+```
+
+---
+
+## Comandos de Desarrollo
+
+```bash
+# Servidor de desarrollo
+python manage.py runserver
+
+# Migraciones
+python manage.py makemigrations
+python manage.py migrate
+
+# Tests
+python manage.py test                         # todos los módulos
+python manage.py test modulos.almacen         # módulo específico
+
+# Shell Django
+python manage.py shell
+
+# Comandos custom — datos iniciales
+python manage.py load_operadores              # operadores: carga inicial desde datos
+python manage.py load_unidades               # unidades: carga inicial desde datos
+python manage.py cargar_productos_csv         # almacen: carga masiva de productos
+python manage.py generar_checklist_default    # taller: crea ítems de checklist por defecto
+
+# Reportes automáticos
+python manage.py runscheduler                 # inicia scheduler (proceso bloqueante)
+python manage.py test_reportes                # prueba manual de reportes
 ```
 
 ---
@@ -618,33 +723,29 @@ SPACES_CDN_ENDPOINT=...
 | Email | SendGrid (SMTP backend) |
 | Base de datos | PostgreSQL managed (DigitalOcean) vía `DBURL` |
 | Despliegue | DigitalOcean App Platform |
+| Reportes automáticos | APScheduler 3.11.2 + DjangoJobStore (worker en Procfile) |
 
 ---
 
-## Comandos de Desarrollo
+## Dependencias Principales (`requirements.txt`)
 
-```bash
-# Servidor de desarrollo
-python manage.py runserver
-
-# Migraciones
-python manage.py makemigrations
-python manage.py migrate
-
-# Tests
-python manage.py test                         # todos los módulos
-python manage.py test modulos.almacen         # módulo específico
-
-# Shell Django
-python manage.py shell
-
-# Comandos custom
-python manage.py cargar_productos_csv         # almacen: carga masiva de productos
-python manage.py generar_checklist_default    # taller: crea ítems de checklist por defecto
-python manage.py load_operadores              # operadores: carga inicial desde datos
-python manage.py load_unidades               # unidades: carga inicial desde datos
+```
+Django==5.2.7
+psycopg2-binary==2.9.11          # PostgreSQL
+django-environ==0.12.0            # .env
+django-storages==1.14.6           # S3/Spaces
+boto3==1.41.5                     # AWS SDK
+pillow==12.0.0                    # Imágenes
+requests==2.32.5                  # HTTP (Google Maps)
+openpyxl==3.1.5                   # Generación de Excel en reportes
+django-template-maths==0.2.0      # Operaciones matemáticas en templates
+apscheduler==3.11.2               # Scheduler de tareas
+django-apscheduler==0.7.0         # Integración Django + APScheduler
+sendgrid==6.12.5                  # Email transaccional
+whitenoise                        # Static files (producción)
+gunicorn                          # WSGI server
 ```
 
 ---
 
-*Última actualización: 2026-02-26*
+*Última actualización: 2026-02-27 (piezas taller + buscador almacén + costos removidos de UI)*

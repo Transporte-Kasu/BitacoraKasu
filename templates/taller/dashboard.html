@@ -135,18 +135,8 @@
         </div>
     </div>
     
-    <!-- Costos y Tiempos -->
+    <!-- Tiempos -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="stat-card bg-green-50">
-            <p class="text-sm text-gray-600 mb-1">💰 Costo Estimado Activas</p>
-            <p class="text-2xl font-bold text-green-700">${{ costo_total_estimado|floatformat:2 }}</p>
-        </div>
-        
-        <div class="stat-card bg-blue-50">
-            <p class="text-sm text-gray-600 mb-1">💵 Costo Real (Mes)</p>
-            <p class="text-2xl font-bold text-blue-700">${{ costo_total_mes|floatformat:2 }}</p>
-        </div>
-        
         <div class="stat-card bg-purple-50">
             <p class="text-sm text-gray-600 mb-1">⏱️ Tiempo Promedio</p>
             <p class="text-2xl font-bold text-purple-700">{{ tiempo_promedio_dias }} días</p>

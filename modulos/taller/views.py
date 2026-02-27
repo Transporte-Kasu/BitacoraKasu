@@ -296,37 +296,78 @@ def crear_orden(request):
 
 
 @login_required
+def buscar_producto_almacen(request):
+    """Endpoint AJAX: busca productos en el catálogo de almacén"""
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'resultados': []})
+    from modulos.almacen.models import ProductoAlmacen
+    productos = ProductoAlmacen.objects.filter(activo=True).filter(
+        Q(descripcion__icontains=q) | Q(sku__icontains=q)
+    ).order_by('descripcion')[:10]
+    return JsonResponse({'resultados': [
+        {
+            'id': p.id,
+            'descripcion': p.descripcion,
+            'sku': p.sku,
+            'cantidad': float(p.cantidad),
+            'disponible': float(p.cantidad) > 0,
+        }
+        for p in productos
+    ]})
+
+
+@login_required
 @permission_required('taller.change_ordentrabajo', raise_exception=True)
 def agregar_pieza(request, folio):
-    """Agregar pieza requerida a una orden"""
+    """Agregar pieza requerida a una orden (con búsqueda en almacén)"""
     orden = get_object_or_404(OrdenTrabajo, folio=folio)
 
     if request.method == 'POST':
         try:
-            from modulos.compras.models import Producto
+            from modulos.almacen.models import ProductoAlmacen
 
-            pieza = PiezaRequerida.objects.create(
-                orden_trabajo=orden,
-                producto_id=request.POST.get('producto'),
-                cantidad=request.POST.get('cantidad'),
-                descripcion_uso=request.POST.get('descripcion_uso', ''),
-                costo_estimado=request.POST.get('costo_estimado', 0),
-                agregada_por=request.user
-            )
+            producto_almacen_id = request.POST.get('producto_almacen_id', '').strip()
+            nombre_pieza = request.POST.get('nombre_pieza', '').strip()
+            cantidad = request.POST.get('cantidad')
 
+            if not cantidad:
+                messages.error(request, 'La cantidad es requerida.')
+                return redirect('taller:detalle_orden', folio=folio)
+
+            kwargs = {
+                'orden_trabajo': orden,
+                'cantidad': cantidad,
+                'descripcion_uso': '',
+                'costo_estimado': 0,
+                'agregada_por': request.user,
+            }
+
+            if producto_almacen_id:
+                prod_alm = get_object_or_404(ProductoAlmacen, id=producto_almacen_id)
+                kwargs['producto_almacen'] = prod_alm
+                # Si el producto de almacén tiene vínculo con compras, aprovecharlo
+                if prod_alm.producto_compra:
+                    kwargs['producto'] = prod_alm.producto_compra
+            elif nombre_pieza:
+                kwargs['nombre_pieza'] = nombre_pieza
+            else:
+                messages.error(request, 'Debes seleccionar un producto o ingresar el nombre de la pieza.')
+                return redirect('taller:detalle_orden', folio=folio)
+
+            PiezaRequerida.objects.create(**kwargs)
             messages.success(request, 'Pieza agregada exitosamente.')
 
             # Si la orden está en diagnóstico, cambiar a esperando piezas
             if orden.estado == 'EN_DIAGNOSTICO':
                 orden.estado = 'ESPERANDO_PIEZAS'
                 orden.save()
-
                 SeguimientoOrden.objects.create(
                     orden_trabajo=orden,
                     usuario=request.user,
                     estado_anterior='EN_DIAGNOSTICO',
                     estado_nuevo='ESPERANDO_PIEZAS',
-                    comentario='Piezas agregadas, esperando aprobación para compra'
+                    comentario='Piezas agregadas, esperando surtido o compra'
                 )
 
         except Exception as e:
@@ -373,56 +414,109 @@ def actualizar_diagnostico(request, folio):
 @login_required
 @permission_required('compras.add_requisicion', raise_exception=True)
 def generar_requisicion(request, folio):
-    """Generar requisición de compra para las piezas pendientes"""
+    """
+    Genera automáticamente:
+    - SolicitudSalida en almacén para piezas con stock suficiente
+    - Requisición de compra para piezas sin stock o no catalogadas
+    """
     orden = get_object_or_404(OrdenTrabajo, folio=folio)
-    piezas_pendientes = orden.piezas_requeridas.filter(estado='PENDIENTE')
+    piezas_pendientes = list(orden.piezas_requeridas.filter(estado='PENDIENTE'))
 
-    if not piezas_pendientes.exists():
+    if not piezas_pendientes:
         messages.warning(request, 'No hay piezas pendientes para solicitar.')
         return redirect('taller:detalle_orden', folio=folio)
 
     try:
-        # Crear requisición
-        requisicion = Requisicion.objects.create(
-            solicitante=request.user,
-            fecha_requerida=orden.fecha_programada or timezone.now().date(),
-            justificacion=f"Piezas para orden de trabajo {orden.folio}\n{orden.descripcion_problema}",
-            estado='PENDIENTE'
-        )
+        from modulos.almacen.models import SolicitudSalida, ItemSolicitudSalida
+        from modulos.compras.models import Producto
 
-        # Crear items de requisición
-        for pieza in piezas_pendientes:
-            item = ItemRequisicion.objects.create(
-                requisicion=requisicion,
-                producto=pieza.producto,
-                cantidad=pieza.cantidad,
-                descripcion_adicional=f"OT: {orden.folio} - {pieza.descripcion_uso}"
+        # Separar piezas según disponibilidad en almacén
+        piezas_almacen = [p for p in piezas_pendientes if p.disponible_en_almacen]
+        piezas_compra = [p for p in piezas_pendientes if not p.disponible_en_almacen]
+
+        folios_generados = []
+
+        # --- Piezas disponibles en almacén → SolicitudSalida ---
+        if piezas_almacen:
+            solicitud = SolicitudSalida.objects.create(
+                tipo='ORDEN_TRABAJO',
+                orden_trabajo=orden,
+                solicitante=request.user,
+                justificacion=f"Piezas para OT {orden.folio}: {orden.descripcion_problema}",
+                requiere_autorizacion=True,
             )
+            for pieza in piezas_almacen:
+                ItemSolicitudSalida.objects.create(
+                    solicitud=solicitud,
+                    producto_almacen=pieza.producto_almacen,
+                    cantidad_solicitada=pieza.cantidad,
+                )
+                pieza.marcar_como_solicitada(None)
+            folios_generados.append(f'Almacén: {solicitud.folio}')
 
-            # Actualizar estado de la pieza
-            pieza.marcar_como_solicitada(item)
+        # --- Piezas sin stock o no catalogadas → Requisición de compra ---
+        if piezas_compra:
+            requisicion = Requisicion.objects.create(
+                solicitante=request.user,
+                fecha_requerida=orden.fecha_programada or timezone.now().date(),
+                justificacion=f"Piezas para OT {orden.folio}: {orden.descripcion_problema}",
+                estado='PENDIENTE',
+            )
+            for pieza in piezas_compra:
+                # Resolver el producto de compras
+                if pieza.producto:
+                    producto = pieza.producto
+                elif pieza.producto_almacen and pieza.producto_almacen.producto_compra:
+                    producto = pieza.producto_almacen.producto_compra
+                else:
+                    # Crear producto en catálogo de compras a partir del nombre libre
+                    nombre = pieza.nombre_display or 'Pieza sin nombre'
+                    producto, _ = Producto.objects.get_or_create(
+                        nombre=nombre,
+                        defaults={
+                            'descripcion': f'Creado desde OT {orden.folio}',
+                            'unidad_medida': 'Pieza',
+                            'categoria': 'Taller',
+                        }
+                    )
+                    pieza.producto = producto
+                    pieza.save(update_fields=['producto'])
 
-        # Actualizar estado de la orden si está en diagnóstico
+                item = ItemRequisicion.objects.create(
+                    requisicion=requisicion,
+                    producto=producto,
+                    cantidad=pieza.cantidad,
+                    descripcion_adicional=f"OT: {orden.folio}",
+                )
+                pieza.marcar_como_solicitada(item)
+            folios_generados.append(f'Compras: {requisicion.folio}')
+
+        # Seguimiento de la orden
+        resumen = ' | '.join(folios_generados)
         if orden.estado == 'EN_DIAGNOSTICO':
             estado_anterior = orden.estado
             orden.estado = 'ESPERANDO_PIEZAS'
             orden.save()
-
             SeguimientoOrden.objects.create(
                 orden_trabajo=orden,
                 usuario=request.user,
                 estado_anterior=estado_anterior,
                 estado_nuevo='ESPERANDO_PIEZAS',
-                comentario=f'Requisición {requisicion.folio} generada'
+                comentario=f'Generado: {resumen}',
+            )
+        else:
+            SeguimientoOrden.objects.create(
+                orden_trabajo=orden,
+                usuario=request.user,
+                estado_anterior=orden.estado,
+                estado_nuevo=orden.estado,
+                comentario=f'Generado: {resumen}',
             )
 
-        messages.success(
-            request,
-            f'Requisición {requisicion.folio} generada exitosamente con {piezas_pendientes.count()} piezas.'
-        )
+        messages.success(request, f'Generado exitosamente — {resumen}')
 
     except Exception as e:
-        messages.error(request, f'Error al generar requisición: {str(e)}')
+        messages.error(request, f'Error al procesar piezas: {str(e)}')
 
     return redirect('taller:detalle_orden', folio=folio)
 

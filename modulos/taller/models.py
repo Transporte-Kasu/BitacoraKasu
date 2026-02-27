@@ -337,7 +337,28 @@ class PiezaRequerida(models.Model):
         on_delete=models.CASCADE,
         related_name='piezas_requeridas'
     )
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    producto = models.ForeignKey(
+        Producto,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    # Vinculación directa con el catálogo de almacén
+    producto_almacen = models.ForeignKey(
+        'almacen.ProductoAlmacen',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='piezas_taller',
+        verbose_name='Producto en almacén'
+    )
+    # Nombre libre cuando la pieza no existe en almacén
+    nombre_pieza = models.CharField(
+        max_length=300,
+        blank=True,
+        verbose_name='Nombre de la pieza',
+        help_text='Nombre libre cuando no existe en almacén'
+    )
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion_uso = models.TextField(
         blank=True,
@@ -390,7 +411,24 @@ class PiezaRequerida(models.Model):
         ordering = ['estado', 'fecha_agregada']
 
     def __str__(self):
-        return f"{self.producto.nombre} - {self.cantidad} ({self.get_estado_display()})"
+        return f"{self.nombre_display} - {self.cantidad} ({self.get_estado_display()})"
+
+    @property
+    def nombre_display(self):
+        """Nombre a mostrar de la pieza, en orden de prioridad"""
+        if self.producto_almacen:
+            return self.producto_almacen.descripcion
+        if self.producto:
+            return self.producto.nombre
+        return self.nombre_pieza
+
+    @property
+    def disponible_en_almacen(self):
+        """Verifica si hay stock suficiente en almacén para esta pieza"""
+        return bool(
+            self.producto_almacen and
+            self.producto_almacen.cantidad >= self.cantidad
+        )
 
     @property
     def subtotal_estimado(self):
