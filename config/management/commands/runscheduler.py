@@ -65,7 +65,8 @@ class Command(BaseCommand):
 
         self.stdout.write('Jobs registrados:')
         for job in scheduler.get_jobs():
-            self.stdout.write(f'  - {job.id} — próxima ejecución: {job.next_run_time}')
+            next_run = getattr(job, 'next_run_time', None) or getattr(job, 'next_fire_time', 'desconocida')
+            self.stdout.write(f'  - {job.id} — próxima ejecución: {next_run}')
 
         try:
             scheduler.start()
