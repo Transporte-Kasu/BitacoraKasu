@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_template_maths',
+    'django_apscheduler',
+    'config',
     # Apps del proyecto
     'modulos.operadores',
     'modulos.unidades',
@@ -206,3 +208,31 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'inicio'
 LOGOUT_REDIRECT_URL = 'login'
+
+# ─── Reportes automáticos ───────────────────────────────────────────────────
+# Periodicidad válida: 'diario', 'semanal', 'mensual'
+
+REPORTES_CONFIG = {
+    'almacen': {
+        'periodicidad': env.str('REPORTE_ALMACEN_PERIODICIDAD', default='semanal'),
+        'hora': env.str('REPORTE_ALMACEN_HORA', default='11:30'),
+        'dia_semana': env.str('REPORTE_ALMACEN_DIA_SEMANA', default='fri'),   # para periodicidad semanal
+        'dia_mes': env.int('REPORTE_ALMACEN_DIA_MES', default=1),             # para periodicidad mensual
+        'destinatarios': env.list('REPORTE_ALMACEN_EMAILS', default=[
+            'gerencia.general@transporteskesu.com.mx',
+            'administracion@transporteskasu.com.mx',
+            'xoyocl2@gmail.com',
+        ]),
+    },
+    'combustible': {
+        'periodicidad': env.str('REPORTE_COMBUSTIBLE_PERIODICIDAD', default='mensual'),
+        'hora': env.str('REPORTE_COMBUSTIBLE_HORA', default='10:00'),
+        'dia_semana': env.str('REPORTE_COMBUSTIBLE_DIA_SEMANA', default='fri'),
+        'dia_mes': env.int('REPORTE_COMBUSTIBLE_DIA_MES', default=1),
+        'destinatarios': env.list('REPORTE_COMBUSTIBLE_EMAILS', default=[
+            'gerencia.general@transporteskesu.com.mx',
+            'administracion@transporteskasu.com.mx',
+            'xoyocl2@gmail.com',
+        ]),
+    },
+}
