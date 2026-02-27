@@ -180,7 +180,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'apikey'  # Cambiar
 EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD')  # Usar App Password de Gmail
-DEFAULT_FROM_EMAIL = 'bitacora@transportekasu.com.mx'
+DEFAULT_FROM_EMAIL = 'bitacora@transporteskasu.com.mx'
 
 # Destinatarios de notificaciones de autorización de salidas de almacén.
 # Se puede sobreescribir vía .env: ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com
