@@ -231,6 +231,7 @@ REPORTES_CONFIG = {
         'dia_mes': env.int('REPORTE_COMBUSTIBLE_DIA_MES', default=1),
         'destinatarios': env.list('REPORTE_COMBUSTIBLE_EMAILS', default=[
             'gerencia.general@transporteskesu.com.mx',
+            'odaly.espinosa@loginco.com.mx',
             'administracion@transporteskasu.com.mx',
             'xoyocl2@gmail.com',
         ]),
