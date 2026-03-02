@@ -178,10 +178,10 @@
                             <a href="{% url 'operadores:detail' operador.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
                                 👁️
                             </a>
-                            <a href="{% url 'operadores:update' operador.pk %}" class="text-yellow-600 hover:text-yellow-900" title="Editar">
+                            <a href="{% url 'operadores:update' operador.pk %}?next={{ request.get_full_path|urlencode }}" class="text-yellow-600 hover:text-yellow-900" title="Editar">
                                 ✏️
                             </a>
-                            <a href="{% url 'operadores:delete' operador.pk %}" class="text-red-600 hover:text-red-900" title="Eliminar">
+                            <a href="{% url 'operadores:delete' operador.pk %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 hover:text-red-900" title="Eliminar">
                                 🗑️
                             </a>
                         </div>

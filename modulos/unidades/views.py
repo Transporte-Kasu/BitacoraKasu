@@ -195,12 +195,17 @@ class UnidadUpdateView(LoginRequiredMixin, UpdateView):
     model = Unidad
     form_class = UnidadForm
     template_name = 'unidades/unidad_form.html'
-    success_url = reverse_lazy('unidades:list')
-    
+
+    def get_success_url(self):
+        next_url = self.request.GET.get('next')
+        if next_url:
+            return next_url
+        return reverse('unidades:list')
+
     def form_valid(self, form):
         messages.success(self.request, f'Unidad {form.instance.numero_economico} actualizada exitosamente.')
         return super().form_valid(form)
-    
+
     def form_invalid(self, form):
         messages.error(self.request, 'Error al actualizar la unidad. Verifique los datos.')
         return super().form_invalid(form)
@@ -210,8 +215,13 @@ class UnidadDeleteView(LoginRequiredMixin, DeleteView):
     """Vista para eliminar una unidad"""
     model = Unidad
     template_name = 'unidades/unidad_confirm_delete.html'
-    success_url = reverse_lazy('unidades:list')
-    
+
+    def get_success_url(self):
+        next_url = self.request.GET.get('next')
+        if next_url:
+            return next_url
+        return reverse('unidades:list')
+
     def delete(self, request, *args, **kwargs):
         unidad = self.get_object()
         messages.success(request, f'Unidad {unidad.numero_economico} eliminada exitosamente.')

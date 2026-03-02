@@ -85,6 +85,37 @@ Cuando crees o modifiques código frontend:
 5. **Documenta HTMX**: Comenta los endpoints que cada atributo HTMX consume
 6. **URLs**: Siempre usa `{% url 'namespace:name' %}` en lugar de URLs hardcodeadas
 
+## Patrón Estándar: Retorno a Página de Lista (`next`)
+
+**OBLIGATORIO** en todo módulo BitacoraKasu con `UpdateView` o `DeleteView`.
+
+### Template de lista — links de acción
+```html
+<a href="{% url 'modulo:update' obj.pk %}?next={{ request.get_full_path|urlencode }}">✏️</a>
+<a href="{% url 'modulo:delete' obj.pk %}?next={{ request.get_full_path|urlencode }}">🗑️</a>
+```
+
+### views.py — reemplaza `success_url` con `get_success_url()`
+```python
+# En UpdateView y DeleteView — NUNCA usar success_url = reverse_lazy(...)
+def get_success_url(self):
+    next_url = self.request.GET.get('next')
+    if next_url:
+        return next_url
+    return reverse('modulo:list')
+```
+
+### Template de formulario/confirmación — botón Cancelar
+```html
+<a href="{{ request.GET.next|default:'' }}{% if not request.GET.next %}{% url 'modulo:list' %}{% endif %}">
+    Cancelar
+</a>
+```
+
+Esto preserva página y filtros activos al regresar de editar/eliminar.
+
+---
+
 ## Convenciones de Nomenclatura
 
 - Templates: `snake_case.html`

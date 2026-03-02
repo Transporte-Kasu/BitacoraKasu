@@ -10,7 +10,7 @@
         <li><span class="mx-2">/</span></li>
         <li><a href="{% url 'almacen:dashboard' %}" class="hover:text-blue-600">Almacén</a></li>
         <li><span class="mx-2">/</span></li>
-        <li><a href="{% url 'almacen:producto_list' %}" class="hover:text-blue-600">Productos</a></li>
+        <li><a href="{{ request.GET.next|default:'' }}{% if not request.GET.next %}{% url 'almacen:producto_list' %}{% endif %}" class="hover:text-blue-600">Productos</a></li>
         <li><span class="mx-2">/</span></li>
         <li class="text-gray-900 font-medium">{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %}</li>
     </ol>
@@ -319,7 +319,7 @@
 
         <!-- Botones de Acción -->
         <div class="flex justify-end space-x-4 pt-4">
-            <a href="{% url 'almacen:producto_list' %}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
+            <a href="{{ request.GET.next|default:'' }}{% if not request.GET.next %}{% url 'almacen:producto_list' %}{% endif %}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
                 Cancelar
             </a>
             <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium">

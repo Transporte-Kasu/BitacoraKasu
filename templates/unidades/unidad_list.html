@@ -150,10 +150,10 @@
                             <a href="{% url 'unidades:detail' unidad.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
                                 👁️
                             </a>
-                            <a href="{% url 'unidades:update' unidad.pk %}" class="text-yellow-600 hover:text-yellow-900" title="Editar">
+                            <a href="{% url 'unidades:update' unidad.pk %}?next={{ request.get_full_path|urlencode }}" class="text-yellow-600 hover:text-yellow-900" title="Editar">
                                 ✏️
                             </a>
-                            <a href="{% url 'unidades:delete' unidad.pk %}" class="text-red-600 hover:text-red-900" title="Eliminar">
+                            <a href="{% url 'unidades:delete' unidad.pk %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 hover:text-red-900" title="Eliminar">
                                 🗑️
                             </a>
                         </div>

@@ -665,6 +665,44 @@ unidades ──── bitacoras ──── combustible         taller
 
 ---
 
+## Patrón de Navegación: Retorno a Página de Lista (`next`)
+
+Todos los módulos con `UpdateView` y `DeleteView` implementan retorno a la misma página/filtro del listado de origen.
+
+### Cómo funciona
+
+**En el template de lista** — los links de editar y eliminar incluyen la URL actual codificada:
+```html
+<a href="{% url 'modulo:update' obj.pk %}?next={{ request.get_full_path|urlencode }}">Editar</a>
+<a href="{% url 'modulo:delete' obj.pk %}?next={{ request.get_full_path|urlencode }}">Eliminar</a>
+```
+
+**En `views.py`** — `UpdateView` y `DeleteView` usan `get_success_url()`:
+```python
+def get_success_url(self):
+    next_url = self.request.GET.get('next')
+    if next_url:
+        return next_url
+    return reverse('modulo:list')
+```
+
+**En el template de formulario/confirmación** — botón Cancelar respeta `next`:
+```html
+<a href="{{ request.GET.next|default:'' }}{% if not request.GET.next %}{% url 'modulo:list' %}{% endif %}">
+    Cancelar
+</a>
+```
+
+### Beneficio
+El parámetro `next` contiene la URL completa con todos los filtros activos y el número de página. Al guardar o cancelar, el usuario regresa exactamente al mismo estado del listado.
+
+### Módulos con este patrón implementado
+- `almacen` — `ProductoAlmacenUpdateView`, `ProductoAlmacenDeleteView`
+- `operadores` — `OperadorUpdateView`, `OperadorDeleteView`
+- `unidades` — `UnidadUpdateView`, `UnidadDeleteView`
+
+---
+
 ## Comandos de Desarrollo
 
 ```bash

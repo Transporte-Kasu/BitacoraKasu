@@ -80,7 +80,7 @@
         {% csrf_token %}
         
         <div class="flex justify-center space-x-4">
-            <a href="{% url 'operadores:list' %}" 
+            <a href="{{ request.GET.next|default:'' }}{% if not request.GET.next %}{% url 'operadores:list' %}{% endif %}"
                class="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
                 ← Cancelar
             </a>

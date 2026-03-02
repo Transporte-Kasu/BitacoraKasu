@@ -116,8 +116,9 @@
                             {% endif %}
                         {% endfor %}
                     {% endif %}
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <a href="{% url 'almacen:producto_detail' producto.pk %}{% if page_obj.number > 1 %}?page={{ page_obj.number }}{% endif %}" class="text-blue-600 hover:underline">Ver</a>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                        <a href="{% url 'almacen:producto_detail' producto.pk %}" class="text-blue-600 hover:underline">Ver</a>
+                        <a href="{% url 'almacen:producto_update' producto.pk %}?next={{ request.get_full_path|urlencode }}" class="text-indigo-600 hover:underline">Editar</a>
                     </td>
                 </tr>
                 {% empty %}

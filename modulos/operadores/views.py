@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Count
 from .models import Operador
 from .forms import OperadorForm
@@ -94,12 +94,17 @@ class OperadorUpdateView(LoginRequiredMixin, UpdateView):
     model = Operador
     form_class = OperadorForm
     template_name = 'operadores/operador_form.html'
-    success_url = reverse_lazy('operadores:list')
-    
+
+    def get_success_url(self):
+        next_url = self.request.GET.get('next')
+        if next_url:
+            return next_url
+        return reverse('operadores:list')
+
     def form_valid(self, form):
         messages.success(self.request, f'Operador {form.instance.nombre} actualizado exitosamente.')
         return super().form_valid(form)
-    
+
     def form_invalid(self, form):
         messages.error(self.request, 'Error al actualizar el operador. Verifique los datos.')
         return super().form_invalid(form)
@@ -109,8 +114,13 @@ class OperadorDeleteView(LoginRequiredMixin, DeleteView):
     """Vista para eliminar un operador"""
     model = Operador
     template_name = 'operadores/operador_confirm_delete.html'
-    success_url = reverse_lazy('operadores:list')
-    
+
+    def get_success_url(self):
+        next_url = self.request.GET.get('next')
+        if next_url:
+            return next_url
+        return reverse('operadores:list')
+
     def delete(self, request, *args, **kwargs):
         operador = self.get_object()
         messages.success(request, f'Operador {operador.nombre} eliminado exitosamente.')
