@@ -35,6 +35,7 @@ urlpatterns = [
 
     # QR por unidad (para imprimir y pegar en el vehículo)
     path('unidades/<int:unidad_pk>/qr/', views.qr_unidad, name='qr_unidad'),
+    path('unidades/qr-todas/', views.qr_todas_unidades, name='qr_todas_unidades'),
 
     # API
     path('api/ordenes-activas/', views.api_ordenes_activas, name='api_ordenes_activas'),

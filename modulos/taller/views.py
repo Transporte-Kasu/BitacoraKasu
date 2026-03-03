@@ -809,6 +809,35 @@ def cancelar_reporte(request, folio):
 
 
 @login_required
+def qr_todas_unidades(request):
+    """Vista para imprimir los QR de todas las unidades activas en una sola hoja."""
+    tipo = request.GET.get('tipo', '')
+    unidades = Unidad.objects.filter(activa=True).order_by('numero_economico')
+    if tipo:
+        unidades = unidades.filter(tipo=tipo)
+
+    unidades_data = [
+        {
+            'pk': u.pk,
+            'numero_economico': u.numero_economico,
+            'placa': u.placa,
+            'marca': u.marca,
+            'modelo': u.modelo,
+            'tipo': u.get_tipo_display(),
+            'url': request.build_absolute_uri(f'/taller/reportar/{u.pk}/'),
+        }
+        for u in unidades
+    ]
+
+    return render(request, 'taller/qr_todas_unidades.html', {
+        'unidades': unidades,
+        'unidades_data': unidades_data,
+        'tipo_seleccionado': tipo,
+        'tipo_choices': Unidad.TIPO_CHOICES,
+    })
+
+
+@login_required
 def qr_unidad(request, unidad_pk):
     """Muestra el QR de reporte de falla para una unidad (para imprimir)."""
     unidad = get_object_or_404(Unidad, pk=unidad_pk, activa=True)

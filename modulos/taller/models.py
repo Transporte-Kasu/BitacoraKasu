@@ -4,6 +4,7 @@ from django.utils import timezone
 from modulos.unidades.models import Unidad
 from modulos.operadores.models import Operador
 from modulos.compras.models import Requisicion, ItemRequisicion, Producto
+from config.storage_backends import MediaStorage
 
 
 class TipoMantenimiento(models.Model):
@@ -582,6 +583,7 @@ class ReporteFalla(models.Model):
         verbose_name='Descripción del problema'
     )
     foto = models.ImageField(
+        storage=MediaStorage(),
         upload_to='taller/reportes/%Y/%m/',
         null=True,
         blank=True,
