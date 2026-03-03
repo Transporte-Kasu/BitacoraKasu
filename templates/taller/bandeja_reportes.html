@@ -87,7 +87,15 @@
     <div class="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Bandeja de Reportes</h1>
-            <p class="text-gray-500 mt-0.5 text-sm">Reportes de falla enviados por operadores vía QR</p>
+            <p class="text-gray-500 mt-0.5 text-sm">
+                {% if mostrando_activos %}
+                    Mostrando reportes activos (nuevos y en atención)
+                    &mdash; <a href="?estado=RESUELTO" class="text-blue-600 hover:underline">ver resueltos</a>
+                    &middot; <a href="?estado=CANCELADO" class="text-gray-400 hover:underline">ver cancelados</a>
+                {% else %}
+                    Filtrando por estado &mdash; <a href="{% url 'taller:bandeja_reportes' %}" class="text-blue-600 hover:underline">ver activos</a>
+                {% endif %}
+            </p>
         </div>
         {% if nuevos_count %}
         <span class="inline-flex items-center gap-2 bg-blue-100 text-blue-800

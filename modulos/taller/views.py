@@ -662,7 +662,11 @@ def bandeja_reportes(request):
 
     estado = request.GET.get('estado')
     if estado:
+        # Filtro explícito: mostrar exactamente lo que pidió
         reportes = reportes.filter(estado=estado)
+    else:
+        # Por defecto: ocultar resueltos y cancelados
+        reportes = reportes.exclude(estado__in=['RESUELTO', 'CANCELADO'])
 
     unidad_id = request.GET.get('unidad')
     if unidad_id:
@@ -673,6 +677,7 @@ def bandeja_reportes(request):
         'estados': ReporteFalla.ESTADO_CHOICES,
         'unidades': Unidad.objects.filter(activa=True),
         'nuevos_count': ReporteFalla.objects.filter(estado='NUEVO').count(),
+        'mostrando_activos': not estado,
     })
 
 
