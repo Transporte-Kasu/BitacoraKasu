@@ -122,7 +122,7 @@
                         {{ r.fecha_reporte|date:"d/m/Y H:i" }}
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-500">
-                        {{ r.atendido_por.get_full_name|default:r.atendido_por.username|default:"—" }}
+                        {% if r.atendido_por %}{{ r.atendido_por.get_full_name|default:r.atendido_por.username }}{% else %}—{% endif %}
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap text-right">
                         <a href="{% url 'taller:detalle_reporte' r.folio %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
