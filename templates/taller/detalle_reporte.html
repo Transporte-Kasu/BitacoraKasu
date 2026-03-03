@@ -5,10 +5,7 @@
 
 {% block extra_css %}
 <style>
-    .estado-nuevo       { background:#dbeafe; color:#1e40af; }
-    .estado-en_atencion { background:#fef9c3; color:#854d0e; }
-    .estado-resuelto    { background:#dcfce7; color:#166534; }
-    .estado-cancelado   { background:#f3f4f6; color:#6b7280; }
+    /* ── Badges de estado ─────────────────────────────── */
     .badge-estado {
         display: inline-block;
         padding: 0.3rem 0.9rem;
@@ -16,35 +13,115 @@
         font-size: 0.8rem;
         font-weight: 700;
         text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
-    .card { background:white; border-radius:0.75rem; box-shadow:0 1px 3px rgba(0,0,0,.08); padding:1.5rem; margin-bottom:1.25rem; }
-    .dl-row { display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid #f3f4f6; font-size:0.9rem; }
-    .dl-row:last-child { border-bottom:none; }
-    .dl-label { color:#6b7280; }
-    .dl-value { font-weight:600; color:#111827; }
+    .estado-nuevo       { background: #dbeafe; color: #1e40af; }
+    .estado-en_atencion { background: #fef9c3; color: #854d0e; }
+    .estado-resuelto    { background: #dcfce7; color: #166534; }
+    .estado-cancelado   { background: #f3f4f6; color: #4b5563; }
+
+    /* ── Cards de datos ──────────────────────────────── */
+    .card {
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .dl-row {
+        display: flex;
+        flex-direction: column;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 0.875rem;
+        gap: 0.125rem;
+    }
+    .dl-row:last-child { border-bottom: none; }
+
+    @media (min-width: 480px) {
+        .dl-row {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+    }
+    .dl-label { color: #6b7280; flex-shrink: 0; }
+    .dl-value { font-weight: 600; color: #111827; }
+
+    /* ── Modales ─────────────────────────────────────── */
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0,0,0,0.55);
+        z-index: 1000;
+        align-items: flex-end;
+        justify-content: center;
+    }
+    .modal-backdrop.activo { display: flex; }
+    .modal-panel {
+        background: white;
+        width: 100%;
+        max-width: 520px;
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 1rem 1rem 0 0;
+        padding: 1.5rem;
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    }
+    @media (min-width: 640px) {
+        .modal-backdrop { align-items: center; padding: 1rem; }
+        .modal-panel    { border-radius: 1rem; }
+    }
+    .modal-input,
+    .modal-select,
+    .modal-textarea {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #111827;
+        background: white;
+        min-height: 44px;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .modal-input:focus,
+    .modal-select:focus,
+    .modal-textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .modal-textarea { resize: vertical; min-height: 80px; }
 </style>
 {% endblock %}
 
 {% block breadcrumb %}
-<nav class="text-sm text-gray-500 mb-4 flex gap-1 items-center">
+<nav aria-label="Ruta de navegación"
+     class="text-sm text-gray-500 mb-4 flex flex-wrap gap-1 items-center">
     <a href="{% url 'taller:dashboard' %}" class="hover:underline">Taller</a>
-    <span>/</span>
+    <span aria-hidden="true">/</span>
     <a href="{% url 'taller:bandeja_reportes' %}" class="hover:underline">Reportes</a>
-    <span>/</span>
-    <span class="text-gray-900 font-medium">{{ reporte.folio }}</span>
+    <span aria-hidden="true">/</span>
+    <span class="text-gray-900 font-medium" aria-current="page">{{ reporte.folio }}</span>
 </nav>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto py-6">
+<div class="max-w-3xl mx-auto py-4 px-4 sm:py-6">
 
-    <!-- Encabezado -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <!-- Encabezado ───────────────────────────────────────── -->
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">
                 Reporte <span class="font-mono text-blue-700">{{ reporte.folio }}</span>
             </h1>
-            <span class="badge-estado estado-{{ reporte.estado|lower }} mt-1">{{ reporte.get_estado_display }}</span>
+            <div class="mt-1">
+                <span class="badge-estado estado-{{ reporte.estado|lower }}">
+                    {{ reporte.get_estado_display }}
+                </span>
+            </div>
         </div>
 
         <!-- Acciones rápidas -->
@@ -52,136 +129,193 @@
             {% if reporte.estado == 'NUEVO' %}
             <form method="post" action="{% url 'taller:atender_reporte' reporte.folio %}">
                 {% csrf_token %}
-                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                <button type="submit"
+                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg
+                               text-sm font-semibold min-h-[44px] transition">
                     Tomar reporte
                 </button>
             </form>
             {% endif %}
 
             {% if reporte.estado in 'NUEVO,EN_ATENCION' %}
-            <button onclick="document.getElementById('modalResolver').classList.remove('hidden')"
-                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+            <button type="button"
+                    onclick="abrirModal('modalResolver')"
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg
+                           text-sm font-semibold min-h-[44px] transition"
+                    aria-haspopup="dialog">
                 Resolver
             </button>
-            <button onclick="document.getElementById('modalConvertir').classList.remove('hidden')"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+            <button type="button"
+                    onclick="abrirModal('modalConvertir')"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg
+                           text-sm font-semibold min-h-[44px] transition"
+                    aria-haspopup="dialog">
                 Convertir a OT
             </button>
             <form method="post" action="{% url 'taller:cancelar_reporte' reporte.folio %}">
                 {% csrf_token %}
-                <button type="submit" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold"
-                        onclick="return confirm('¿Cancelar este reporte?')">
-                    Cancelar
+                <button type="submit"
+                        class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg
+                               text-sm font-semibold min-h-[44px] transition"
+                        onclick="return confirm('¿Cancelar este reporte? Esta acción no se puede deshacer.')">
+                    Cancelar reporte
                 </button>
             </form>
             {% endif %}
 
             {% if reporte.orden_trabajo %}
             <a href="{% url 'taller:detalle_orden' reporte.orden_trabajo.folio %}"
-               class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-4 py-2 rounded-lg text-sm font-semibold">
+               class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-4 py-2 rounded-lg
+                      text-sm font-semibold min-h-[44px] inline-flex items-center transition">
                 Ver OT {{ reporte.orden_trabajo.folio }}
             </a>
             {% endif %}
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <!-- Grid de información ──────────────────────────────── -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        <!-- Datos de la falla -->
+        <!-- Detalle de la falla -->
         <div class="card">
-            <h2 class="font-bold text-gray-700 text-sm uppercase tracking-wide mb-4">Detalle del reporte</h2>
-            <div class="dl-row">
-                <span class="dl-label">Unidad</span>
-                <span class="dl-value">{{ reporte.unidad.numero_economico }} — {{ reporte.unidad.placa }}</span>
-            </div>
-            <div class="dl-row">
-                <span class="dl-label">Operador(es) asignado(s)</span>
-                <span class="dl-value">
-                    {% with ops=reporte.unidad.operadores.all %}
-                        {% if ops %}
-                            {% for op in ops %}{{ op.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                        {% else %}
-                            <span class="text-gray-400">Sin asignar</span>
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Detalle del reporte</h2>
+            <dl>
+                <div class="dl-row">
+                    <dt class="dl-label">Unidad</dt>
+                    <dd class="dl-value">{{ reporte.unidad.numero_economico }} — {{ reporte.unidad.placa }}</dd>
+                </div>
+                <div class="dl-row">
+                    <dt class="dl-label">Operador(es)</dt>
+                    <dd class="dl-value">
+                        {% with ops=reporte.unidad.operadores.all %}
+                            {% if ops %}
+                                {% for op in ops %}{{ op.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% else %}
+                                <span class="text-gray-400 font-normal">Sin asignar</span>
+                            {% endif %}
+                        {% endwith %}
+                        {% if reporte.operador_nombre %}
+                        <span class="block text-xs text-gray-400 font-normal mt-0.5">
+                            Reportó: {{ reporte.operador_nombre }}
+                        </span>
                         {% endif %}
-                    {% endwith %}
-                    {% if reporte.operador_nombre %}
-                    <span class="text-gray-400 text-xs block mt-0.5">Reportó: {{ reporte.operador_nombre }}</span>
-                    {% endif %}
-                </span>
-            </div>
-            <div class="dl-row">
-                <span class="dl-label">Categoría</span>
-                <span class="dl-value">{{ reporte.categoria_falla.nombre|default:"Sin categoría" }}</span>
-            </div>
-            <div class="dl-row">
-                <span class="dl-label">Fecha reporte</span>
-                <span class="dl-value">{{ reporte.fecha_reporte|date:"d/m/Y H:i" }}</span>
-            </div>
+                    </dd>
+                </div>
+                <div class="dl-row">
+                    <dt class="dl-label">Categoría</dt>
+                    <dd class="dl-value">{{ reporte.categoria_falla.nombre|default:"Sin categoría" }}</dd>
+                </div>
+                <div class="dl-row">
+                    <dt class="dl-label">Fecha</dt>
+                    <dd class="dl-value">
+                        <time datetime="{{ reporte.fecha_reporte|date:'Y-m-d' }}">
+                            {{ reporte.fecha_reporte|date:"d/m/Y H:i" }}
+                        </time>
+                    </dd>
+                </div>
+            </dl>
             {% if reporte.descripcion %}
             <div class="mt-4">
                 <p class="text-xs text-gray-400 uppercase font-semibold mb-1">Descripción</p>
-                <p class="text-gray-800 text-sm">{{ reporte.descripcion }}</p>
+                <p class="text-gray-800 text-sm leading-relaxed">{{ reporte.descripcion }}</p>
             </div>
             {% endif %}
         </div>
 
         <!-- Datos de atención -->
         <div class="card">
-            <h2 class="font-bold text-gray-700 text-sm uppercase tracking-wide mb-4">Atención</h2>
-            <div class="dl-row">
-                <span class="dl-label">Atendido por</span>
-                <span class="dl-value">{% if reporte.atendido_por %}{{ reporte.atendido_por.get_full_name|default:reporte.atendido_por.username }}{% else %}Sin asignar{% endif %}</span>
-            </div>
-            {% if reporte.fecha_atencion %}
-            <div class="dl-row">
-                <span class="dl-label">Inicio atención</span>
-                <span class="dl-value">{{ reporte.fecha_atencion|date:"d/m/Y H:i" }}</span>
-            </div>
-            {% endif %}
-            {% if reporte.fecha_resolucion %}
-            <div class="dl-row">
-                <span class="dl-label">Resuelto</span>
-                <span class="dl-value">{{ reporte.fecha_resolucion|date:"d/m/Y H:i" }}</span>
-            </div>
-            {% endif %}
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Atención</h2>
+            <dl>
+                <div class="dl-row">
+                    <dt class="dl-label">Atendido por</dt>
+                    <dd class="dl-value">
+                        {% if reporte.atendido_por %}
+                            {{ reporte.atendido_por.get_full_name|default:reporte.atendido_por.username }}
+                        {% else %}
+                            <span class="text-gray-400 font-normal">Sin asignar</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                {% if reporte.fecha_atencion %}
+                <div class="dl-row">
+                    <dt class="dl-label">Inicio atención</dt>
+                    <dd class="dl-value">
+                        <time datetime="{{ reporte.fecha_atencion|date:'Y-m-d' }}">
+                            {{ reporte.fecha_atencion|date:"d/m/Y H:i" }}
+                        </time>
+                    </dd>
+                </div>
+                {% endif %}
+                {% if reporte.fecha_resolucion %}
+                <div class="dl-row">
+                    <dt class="dl-label">Resuelto</dt>
+                    <dd class="dl-value">
+                        <time datetime="{{ reporte.fecha_resolucion|date:'Y-m-d' }}">
+                            {{ reporte.fecha_resolucion|date:"d/m/Y H:i" }}
+                        </time>
+                    </dd>
+                </div>
+                {% endif %}
+            </dl>
             {% if reporte.notas_taller %}
             <div class="mt-4">
                 <p class="text-xs text-gray-400 uppercase font-semibold mb-1">Notas de taller</p>
-                <p class="text-gray-800 text-sm whitespace-pre-line">{{ reporte.notas_taller }}</p>
+                <p class="text-gray-800 text-sm whitespace-pre-line leading-relaxed">{{ reporte.notas_taller }}</p>
             </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Foto -->
+    <!-- Foto del problema ────────────────────────────────── -->
     {% if reporte.foto %}
-    <div class="card">
-        <h2 class="font-bold text-gray-700 text-sm uppercase tracking-wide mb-3">Foto del problema</h2>
-        <img src="{{ reporte.foto.url }}" alt="Foto de la falla" class="max-h-80 rounded-lg object-cover">
+    <div class="card mt-0">
+        <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Foto del problema</h2>
+        <img src="{{ reporte.foto.url }}"
+             alt="Foto de la falla reportada para la unidad {{ reporte.unidad.numero_economico }}"
+             class="max-h-80 w-auto rounded-lg object-cover"
+             loading="lazy">
     </div>
     {% endif %}
 
 </div>
 
-<!-- ═══ Modal: Resolver ═══ -->
-<div id="modalResolver" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl w-full max-w-lg p-6">
-        <h3 class="text-lg font-bold text-gray-900 mb-4">Resolver reporte</h3>
+<!-- ═══ Modal: Resolver ══════════════════════════════════ -->
+<div id="modalResolver" class="modal-backdrop" role="dialog" aria-modal="true"
+     aria-labelledby="titulo-resolver">
+    <div class="modal-panel">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="titulo-resolver" class="text-lg font-bold text-gray-900">Resolver reporte</h3>
+            <button type="button"
+                    onclick="cerrarModal('modalResolver')"
+                    class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500
+                           flex items-center justify-center text-xl leading-none"
+                    aria-label="Cerrar">
+                &times;
+            </button>
+        </div>
         <form method="post" action="{% url 'taller:resolver_reporte' reporte.folio %}">
             {% csrf_token %}
+
             <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Notas de resolución</label>
-                <textarea name="notas_taller" rows="3"
-                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    placeholder="Describe brevemente cómo se resolvió..."></textarea>
+                <label for="notas-resolucion" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Notas de resolución
+                </label>
+                <textarea id="notas-resolucion" name="notas_taller" rows="3"
+                          class="modal-textarea"
+                          placeholder="Describe brevemente cómo se resolvió…"></textarea>
             </div>
 
+            <!-- Pieza opcional del almacén -->
             <div class="bg-blue-50 rounded-xl p-4 mb-4">
-                <p class="text-sm font-semibold text-blue-800 mb-3">Pieza asignada desde almacén <span class="font-normal text-blue-600">(opcional)</span></p>
+                <p class="text-sm font-semibold text-blue-800 mb-3">
+                    Pieza asignada desde almacén
+                    <span class="font-normal text-blue-600">(opcional)</span>
+                </p>
                 <div class="mb-3">
-                    <label class="block text-xs text-gray-600 mb-1">Producto de almacén</label>
-                    <select name="producto_id" id="productoSelect"
-                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <label for="productoSelect" class="block text-xs text-gray-600 mb-1">
+                        Producto de almacén
+                    </label>
+                    <select id="productoSelect" name="producto_id" class="modal-select">
                         <option value="">— Sin pieza —</option>
                         {% for p in productos_almacen %}
                         <option value="{{ p.pk }}" data-stock="{{ p.cantidad }}">
@@ -192,26 +326,35 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">Cantidad</label>
-                        <input type="number" name="cantidad" step="0.01" min="0.01"
-                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                        <label for="cantidad-pieza" class="block text-xs text-gray-600 mb-1">
+                            Cantidad
+                        </label>
+                        <input type="number" id="cantidad-pieza" name="cantidad"
+                               step="0.01" min="0.01"
+                               class="modal-input"
                                placeholder="0">
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">Motivo (asignación)</label>
-                        <input type="text" name="motivo_asignacion"
-                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                        <label for="motivo-asignacion" class="block text-xs text-gray-600 mb-1">
+                            Motivo
+                        </label>
+                        <input type="text" id="motivo-asignacion" name="motivo_asignacion"
+                               class="modal-input"
                                placeholder="Ej. Cambio de foco">
                     </div>
                 </div>
             </div>
 
             <div class="flex gap-3">
-                <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm">
+                <button type="submit"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5
+                               rounded-lg font-semibold text-sm min-h-[44px]">
                     Marcar como resuelto
                 </button>
-                <button type="button" onclick="document.getElementById('modalResolver').classList.add('hidden')"
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold text-sm">
+                <button type="button"
+                        onclick="cerrarModal('modalResolver')"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5
+                               rounded-lg font-semibold text-sm min-h-[44px]">
                     Cancelar
                 </button>
             </div>
@@ -219,53 +362,116 @@
     </div>
 </div>
 
-<!-- ═══ Modal: Convertir a OT ═══ -->
-<div id="modalConvertir" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl w-full max-w-lg p-6">
-        <h3 class="text-lg font-bold text-gray-900 mb-4">Convertir a Orden de Trabajo</h3>
+<!-- ═══ Modal: Convertir a OT ════════════════════════════ -->
+<div id="modalConvertir" class="modal-backdrop" role="dialog" aria-modal="true"
+     aria-labelledby="titulo-convertir">
+    <div class="modal-panel">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="titulo-convertir" class="text-lg font-bold text-gray-900">
+                Convertir a Orden de Trabajo
+            </h3>
+            <button type="button"
+                    onclick="cerrarModal('modalConvertir')"
+                    class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500
+                           flex items-center justify-center text-xl leading-none"
+                    aria-label="Cerrar">
+                &times;
+            </button>
+        </div>
         <form method="post" action="{% url 'taller:convertir_reporte_a_ot' reporte.folio %}">
             {% csrf_token %}
+
             <div class="mb-3">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de mantenimiento</label>
-                <select name="tipo_mantenimiento"
-                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <label for="tipo-mantenimiento-ot" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Tipo de mantenimiento
+                </label>
+                <select id="tipo-mantenimiento-ot" name="tipo_mantenimiento" class="modal-select">
                     <option value="">— Seleccionar —</option>
                     {% for t in tipos_mantenimiento %}
                     <option value="{{ t.pk }}">{{ t.nombre }}</option>
                     {% endfor %}
                 </select>
             </div>
+
             <div class="mb-3">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Prioridad</label>
-                <select name="prioridad" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <label for="prioridad-ot" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Prioridad
+                </label>
+                <select id="prioridad-ot" name="prioridad" class="modal-select">
                     <option value="MEDIA">Media</option>
                     <option value="ALTA">Alta</option>
                     <option value="CRITICA">Crítica</option>
                     <option value="BAJA">Baja</option>
                 </select>
             </div>
+
             <div class="mb-3">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Kilometraje de ingreso</label>
-                <input type="number" name="kilometraje_ingreso"
+                <label for="km-ingreso-ot" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Kilometraje de ingreso <span class="text-red-500" aria-label="requerido">*</span>
+                </label>
+                <input type="number" id="km-ingreso-ot" name="kilometraje_ingreso"
                        value="{{ reporte.unidad.kilometraje_actual }}"
-                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required>
+                       class="modal-input" required inputmode="numeric">
             </div>
+
             <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Síntomas adicionales</label>
-                <textarea name="sintomas" rows="2"
-                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                    placeholder="Síntomas observados..."></textarea>
+                <label for="sintomas-ot" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Síntomas adicionales
+                </label>
+                <textarea id="sintomas-ot" name="sintomas" rows="2"
+                          class="modal-textarea"
+                          placeholder="Síntomas observados…"></textarea>
             </div>
+
             <div class="flex gap-3">
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold text-sm">
+                <button type="submit"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5
+                               rounded-lg font-semibold text-sm min-h-[44px]">
                     Crear Orden de Trabajo
                 </button>
-                <button type="button" onclick="document.getElementById('modalConvertir').classList.add('hidden')"
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold text-sm">
+                <button type="button"
+                        onclick="cerrarModal('modalConvertir')"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5
+                               rounded-lg font-semibold text-sm min-h-[44px]">
                     Cancelar
                 </button>
             </div>
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirModal(id) {
+    const modal = document.getElementById(id);
+    modal.classList.add('activo');
+    const primero = modal.querySelector('button, input, select, textarea');
+    if (primero) setTimeout(() => primero.focus(), 50);
+    document.addEventListener('keydown', escHandler);
+}
+
+function cerrarModal(id) {
+    document.getElementById(id).classList.remove('activo');
+    document.removeEventListener('keydown', escHandler);
+}
+
+function escHandler(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-backdrop.activo').forEach(function(m) {
+            m.classList.remove('activo');
+        });
+        document.removeEventListener('keydown', escHandler);
+    }
+}
+
+document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+    backdrop.addEventListener('click', function(e) {
+        if (e.target === backdrop) {
+            backdrop.classList.remove('activo');
+            document.removeEventListener('keydown', escHandler);
+        }
+    });
+});
+</script>
 {% endblock %}

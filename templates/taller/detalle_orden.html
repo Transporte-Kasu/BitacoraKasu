@@ -5,144 +5,210 @@
 
 {% block extra_css %}
 <style>
+    /* ── Cards de información ─────────────────────────── */
     .info-card {
         background: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
     }
-    
-    .diagnostico-section {
+
+    /* ── Sección de diagnóstico ───────────────────────── */
+    .diagnostico-lleno {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-radius: 0.75rem;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 20px rgba(102,126,234,0.25);
     }
-    
-    .diagnostico-empty {
-        background: #fef3c7;
-        border: 2px dashed #f59e0b;
-        color: #92400e;
+    .diagnostico-vacio {
+        background: #fefce8;
+        border: 2px dashed #fbbf24;
+        color: #78350f;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
     }
-    
+
+    /* ── Badges ──────────────────────────────────────── */
     .priority-badge {
         display: inline-block;
-        padding: 0.25rem 0.75rem;
+        padding: 0.25rem 0.7rem;
         border-radius: 9999px;
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
     }
-    .priority-baja { background-color: #d1fae5; color: #065f46; }
-    .priority-media { background-color: #fef3c7; color: #92400e; }
-    .priority-alta { background-color: #fed7aa; color: #9a3412; }
+    .priority-baja    { background-color: #d1fae5; color: #065f46; }
+    .priority-media   { background-color: #fef3c7; color: #92400e; }
+    .priority-alta    { background-color: #fed7aa; color: #9a3412; }
     .priority-critica { background-color: #fee2e2; color: #991b1b; }
-    
+
     .estado-badge {
         display: inline-block;
-        padding: 0.5rem 1rem;
+        padding: 0.35rem 0.9rem;
         border-radius: 0.5rem;
-        font-size: 0.875rem;
+        font-size: 0.85rem;
         font-weight: 600;
+        white-space: nowrap;
     }
-    .estado-pendiente { background-color: #e5e7eb; color: #374151; }
-    .estado-en_diagnostico { background-color: #dbeafe; color: #1e40af; }
+    .estado-pendiente        { background-color: #e5e7eb; color: #374151; }
+    .estado-en_diagnostico   { background-color: #dbeafe; color: #1e40af; }
     .estado-esperando_piezas { background-color: #fef3c7; color: #92400e; }
-    .estado-en_reparacion { background-color: #ddd6fe; color: #5b21b6; }
-    .estado-en_pruebas { background-color: #bfdbfe; color: #1e3a8a; }
-    .estado-completada { background-color: #d1fae5; color: #065f46; }
-    .estado-cancelada { background-color: #fee2e2; color: #991b1b; }
-    
+    .estado-en_reparacion    { background-color: #ddd6fe; color: #5b21b6; }
+    .estado-en_pruebas       { background-color: #bfdbfe; color: #1e3a8a; }
+    .estado-completada       { background-color: #d1fae5; color: #065f46; }
+    .estado-cancelada        { background-color: #fee2e2; color: #991b1b; }
+
     .pieza-badge {
         display: inline-block;
-        padding: 0.25rem 0.75rem;
+        padding: 0.2rem 0.6rem;
         border-radius: 0.375rem;
-        font-size: 0.75rem;
-        font-weight: 500;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
     }
-    .pieza-pendiente { background-color: #fee2e2; color: #991b1b; }
+    .pieza-pendiente  { background-color: #fee2e2; color: #991b1b; }
     .pieza-solicitada { background-color: #fef3c7; color: #92400e; }
-    .pieza-en_compra { background-color: #dbeafe; color: #1e40af; }
-    .pieza-recibida { background-color: #d1fae5; color: #065f46; }
-    .pieza-instalada { background-color: #e0e7ff; color: #3730a3; }
-    
-    .modal {
+    .pieza-en_compra  { background-color: #dbeafe; color: #1e40af; }
+    .pieza-recibida   { background-color: #d1fae5; color: #065f46; }
+    .pieza-instalada  { background-color: #e0e7ff; color: #3730a3; }
+
+    /* ── Modales ─────────────────────────────────────── */
+    .modal-backdrop {
         display: none;
         position: fixed;
+        inset: 0;
+        background-color: rgba(0,0,0,0.55);
         z-index: 1000;
-        left: 0;
-        top: 0;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 0;
+    }
+    .modal-backdrop.activo {
+        display: flex;
+    }
+    .modal-panel {
+        background: white;
         width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0,0,0,0.6);
-    }
-    
-    .modal-content {
-        background-color: #fefefe;
-        margin: 5% auto;
-        padding: 2rem;
-        border-radius: 0.75rem;
-        width: 90%;
         max-width: 600px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 1rem 1rem 0 0;
+        padding: 1.5rem;
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
     }
-    
-    .close {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
+    @media (min-width: 640px) {
+        .modal-backdrop {
+            align-items: center;
+            padding: 1rem;
+        }
+        .modal-panel {
+            border-radius: 1rem;
+        }
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+    .modal-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 1.25rem;
+        line-height: 1;
         cursor: pointer;
+        border: none;
+        transition: background 0.15s;
     }
-    
-    .close:hover,
-    .close:focus {
-        color: #000;
+    .modal-close:hover { background: #e5e7eb; color: #111827; }
+    .modal-close:focus-visible {
+        outline: 3px solid #3b82f6;
+        outline-offset: 2px;
     }
-    
+
+    /* ── Inputs dentro de modales ─────────────────────── */
+    .modal-input, .modal-select, .modal-textarea {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #111827;
+        background: white;
+        min-height: 44px;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .modal-input:focus, .modal-select:focus, .modal-textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .modal-textarea { min-height: 100px; resize: vertical; }
+
+    /* ── Checklist ────────────────────────────────────── */
     .checklist-item {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
+        gap: 0.75rem;
         padding: 0.75rem;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid #f3f4f6;
     }
-    
-    .checklist-item:last-child {
-        border-bottom: none;
+    .checklist-item:last-child { border-bottom: none; }
+    .check-ok        { color: #10b981; }
+    .check-atencion  { color: #f59e0b; }
+    .check-pendiente { color: #9ca3af; }
+
+    /* ── Tabla de piezas: scroll en móvil ─────────────── */
+    .tabla-piezas-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
-    
-    .check-ok { color: #10b981; }
-    .check-atencion { color: #f59e0b; }
-    .check-pendiente { color: #6b7280; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-6">
-    <!-- Encabezado -->
-    <div class="mb-6">
-        <div class="flex justify-between items-start mb-4">
+<div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
+
+    <!-- Encabezado ───────────────────────────────────────── -->
+    <div class="mb-5">
+        <!-- Fila superior: folio + acciones -->
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">{{ orden.folio }}</h1>
-                <p class="text-gray-600 mt-1">Orden de Trabajo</p>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ orden.folio }}</h1>
+                <p class="text-gray-500 text-sm mt-0.5">Orden de Trabajo</p>
             </div>
-            <div class="flex gap-2">
-                <a href="{% url 'taller:lista_ordenes' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
-                    ← Volver
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'taller:lista_ordenes' %}"
+                   class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg
+                          font-semibold text-sm transition min-h-[44px] inline-flex items-center">
+                    Volver
                 </a>
                 {% if perms.taller.change_ordentrabajo %}
-                <button onclick="openModal('cambiarEstadoModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                <button type="button"
+                        onclick="abrirModal('cambiarEstadoModal')"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg
+                               font-semibold text-sm transition min-h-[44px]"
+                        aria-haspopup="dialog">
                     Cambiar Estado
                 </button>
                 {% endif %}
             </div>
         </div>
-        
-        <!-- Estado y prioridad -->
-        <div class="flex gap-4 items-center">
+
+        <!-- Fila de badges de estado -->
+        <div class="flex flex-wrap gap-2 items-center">
             <span class="estado-badge estado-{{ orden.estado|lower }}">
                 {{ orden.get_estado_display }}
             </span>
@@ -150,237 +216,247 @@
                 Prioridad: {{ orden.get_prioridad_display }}
             </span>
             {% if orden.dias_en_taller > 7 %}
-            <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
-                ⚠️ {{ orden.dias_en_taller }} días en taller
+            <span class="inline-flex items-center gap-1 bg-red-100 text-red-800
+                         px-3 py-1 rounded-full text-sm font-semibold">
+                <span aria-hidden="true">&#9888;&#65039;</span>
+                {{ orden.dias_en_taller }} días en taller
             </span>
             {% endif %}
         </div>
     </div>
 
-    <!-- ========== SECCIÓN DE DIAGNÓSTICO (DESTACADA) ========== -->
-    <div class="{% if orden.diagnostico %}diagnostico-section{% else %}diagnostico-section diagnostico-empty{% endif %}">
-        <div class="flex justify-between items-start mb-4">
+    <!-- Diagnóstico técnico ───────────────────────────────── -->
+    <div class="{% if orden.diagnostico %}diagnostico-lleno{% else %}diagnostico-vacio{% endif %}">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
             <div>
-                <h2 class="text-2xl font-bold mb-2">🔍 Diagnóstico Técnico</h2>
+                <h2 class="text-xl font-bold mb-1">Diagnóstico Técnico</h2>
                 {% if orden.fecha_diagnostico %}
-                <p class="{% if orden.diagnostico %}text-blue-100{% else %}text-yellow-900{% endif %} text-sm">
+                <p class="text-sm {% if orden.diagnostico %}text-purple-100{% else %}text-yellow-900 opacity-75{% endif %}">
                     Realizado el {{ orden.fecha_diagnostico|date:"d/m/Y H:i" }}
                 </p>
                 {% endif %}
             </div>
             {% if perms.taller.diagnosticar_orden and orden.estado in "PENDIENTE,EN_DIAGNOSTICO" %}
-            <button onclick="openModal('diagnosticoModal')" class="bg-white text-purple-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">
-                {% if orden.diagnostico %}✏️ Editar{% else %}+ Agregar{% endif %} Diagnóstico
+            <button type="button"
+                    onclick="abrirModal('diagnosticoModal')"
+                    class="bg-white {% if orden.diagnostico %}text-purple-700{% else %}text-yellow-800{% endif %}
+                           hover:bg-gray-100 px-4 py-2 rounded-lg font-semibold text-sm transition
+                           min-h-[44px]"
+                    aria-haspopup="dialog">
+                {% if orden.diagnostico %}Editar Diagnóstico{% else %}Agregar Diagnóstico{% endif %}
             </button>
             {% endif %}
         </div>
-        
+
         {% if orden.diagnostico %}
         <div class="bg-white bg-opacity-20 rounded-lg p-4 backdrop-blur-sm">
-            <p class="text-white text-lg leading-relaxed whitespace-pre-wrap">{{ orden.diagnostico }}</p>
+            <p class="text-white leading-relaxed whitespace-pre-wrap">{{ orden.diagnostico }}</p>
         </div>
-        
         {% else %}
-        <div class="text-center py-8">
-            <p class="text-xl font-semibold mb-2">⚠️ Diagnóstico pendiente</p>
+        <div class="text-center py-6">
+            <p class="text-lg font-semibold mb-1">Diagnóstico pendiente</p>
             <p class="text-sm">Esta orden aún no tiene un diagnóstico técnico registrado</p>
         </div>
         {% endif %}
     </div>
 
-    <!-- Grid de información principal -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Grid de información principal ────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
         <!-- Información de la Unidad -->
         <div class="info-card">
-            <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <span class="text-2xl mr-2">🚛</span> Información de la Unidad
-            </h3>
-            <div class="space-y-2 text-sm">
+            <h3 class="text-base font-bold text-gray-900 mb-3">Información de la Unidad</h3>
+            <dl class="space-y-2 text-sm">
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Número Económico:</span>
-                    <span class="font-semibold">{{ orden.unidad.numero_economico }}</span>
+                    <dt class="text-gray-500">Número Económico</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.unidad.numero_economico }}</dd>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Placas:</span>
-                    <span class="font-semibold">{{ orden.unidad.placa }}</span>
+                    <dt class="text-gray-500">Placas</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.unidad.placa }}</dd>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Marca/Modelo:</span>
-                    <span class="font-semibold">{{ orden.unidad.marca }} {{ orden.unidad.modelo }}</span>
+                    <dt class="text-gray-500">Marca / Modelo</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.unidad.marca }} {{ orden.unidad.modelo }}</dd>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Kilometraje Ingreso:</span>
-                    <span class="font-semibold">{{ orden.kilometraje_ingreso|floatformat:0 }} km</span>
+                    <dt class="text-gray-500">Km Ingreso</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.kilometraje_ingreso|floatformat:0 }} km</dd>
                 </div>
                 {% if orden.kilometraje_salida %}
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Kilometraje Salida:</span>
-                    <span class="font-semibold">{{ orden.kilometraje_salida|floatformat:0 }} km</span>
+                    <dt class="text-gray-500">Km Salida</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.kilometraje_salida|floatformat:0 }} km</dd>
                 </div>
                 <div class="flex justify-between border-t pt-2">
-                    <span class="text-gray-600">Kms en Taller:</span>
-                    <span class="font-semibold text-blue-600">{{ orden.kilometros_recorridos_en_taller }} km</span>
+                    <dt class="text-gray-500">Km en taller</dt>
+                    <dd class="font-semibold text-blue-600">{{ orden.kilometros_recorridos_en_taller }} km</dd>
                 </div>
                 {% endif %}
-                <div class="mt-4">
-                    <a href="{% url 'taller:historial_unidad' orden.unidad.id %}" class="text-blue-600 hover:underline text-sm">
-                        Ver historial completo →
-                    </a>
-                </div>
+            </dl>
+            <div class="mt-4">
+                <a href="{% url 'taller:historial_unidad' orden.unidad.id %}"
+                   class="text-blue-600 hover:underline text-sm font-medium">
+                    Ver historial completo
+                </a>
             </div>
         </div>
 
         <!-- Información del Mantenimiento -->
         <div class="info-card">
-            <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <span class="text-2xl mr-2">🔧</span> Información del Mantenimiento
-            </h3>
-            <div class="space-y-2 text-sm">
+            <h3 class="text-base font-bold text-gray-900 mb-3">Información del Mantenimiento</h3>
+            <dl class="space-y-2 text-sm">
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Tipo de Mantenimiento:</span>
-                    <span class="font-semibold">{{ orden.tipo_mantenimiento|default:"N/A" }}</span>
+                    <dt class="text-gray-500">Tipo</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.tipo_mantenimiento|default:"—" }}</dd>
                 </div>
                 {% if orden.categoria_falla %}
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Categoría de Falla:</span>
-                    <span class="font-semibold">{{ orden.categoria_falla.nombre }}</span>
+                    <dt class="text-gray-500">Categoría de falla</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.categoria_falla.nombre }}</dd>
                 </div>
                 {% endif %}
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Fecha Creación:</span>
-                    <span class="font-semibold">{{ orden.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                    <dt class="text-gray-500">Fecha creación</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.fecha_creacion|date:"d/m/Y H:i" }}</dd>
                 </div>
                 {% if orden.fecha_programada %}
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Fecha Programada:</span>
-                    <span class="font-semibold">{{ orden.fecha_programada|date:"d/m/Y" }}</span>
+                    <dt class="text-gray-500">Fecha programada</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.fecha_programada|date:"d/m/Y" }}</dd>
                 </div>
                 {% endif %}
                 {% if orden.fecha_inicio_real %}
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Inicio Real:</span>
-                    <span class="font-semibold">{{ orden.fecha_inicio_real|date:"d/m/Y H:i" }}</span>
+                    <dt class="text-gray-500">Inicio real</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.fecha_inicio_real|date:"d/m/Y H:i" }}</dd>
                 </div>
                 {% endif %}
                 {% if orden.fecha_finalizacion %}
                 <div class="flex justify-between">
-                    <span class="text-gray-600">Finalización:</span>
-                    <span class="font-semibold">{{ orden.fecha_finalizacion|date:"d/m/Y H:i" }}</span>
+                    <dt class="text-gray-500">Finalización</dt>
+                    <dd class="font-semibold text-gray-900">{{ orden.fecha_finalizacion|date:"d/m/Y H:i" }}</dd>
                 </div>
                 <div class="flex justify-between border-t pt-2">
-                    <span class="text-gray-600">Tiempo Total:</span>
-                    <span class="font-semibold text-purple-600">{{ orden.horas_en_taller }} horas</span>
+                    <dt class="text-gray-500">Tiempo total</dt>
+                    <dd class="font-semibold text-purple-600">{{ orden.horas_en_taller }} horas</dd>
                 </div>
                 {% endif %}
-            </div>
+            </dl>
         </div>
     </div>
 
-    <!-- Descripción del Problema -->
+    <!-- Descripción del Problema ─────────────────────────── -->
     <div class="info-card">
-        <h3 class="text-xl font-bold text-gray-900 mb-4">📝 Descripción del Problema</h3>
-        <p class="text-gray-700 whitespace-pre-wrap">{{ orden.descripcion_problema }}</p>
-        
+        <h3 class="text-base font-bold text-gray-900 mb-3">Descripción del Problema</h3>
+        <p class="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{{ orden.descripcion_problema }}</p>
+
         {% if orden.sintomas %}
         <div class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-            <p class="text-sm font-semibold text-yellow-900 mb-1">Síntomas Observados:</p>
+            <p class="text-xs font-semibold text-yellow-900 uppercase mb-1">Síntomas Observados</p>
             <p class="text-sm text-yellow-800 whitespace-pre-wrap">{{ orden.sintomas }}</p>
         </div>
         {% endif %}
-        
+
         {% if orden.operador_reporta %}
-        <p class="text-sm text-gray-600 mt-3">
-            Reportado por: <span class="font-semibold">{{ orden.operador_reporta.nombre }}</span>
+        <p class="text-sm text-gray-500 mt-3">
+            Reportado por: <span class="font-semibold text-gray-700">{{ orden.operador_reporta.nombre }}</span>
         </p>
         {% endif %}
     </div>
 
-    <!-- Personal Asignado -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div class="info-card">
-            <h4 class="font-semibold text-gray-900 mb-2">👨‍🔧 Mecánico Asignado</h4>
-            <p class="text-gray-700">
+    <!-- Personal Asignado ────────────────────────────────── -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <div class="info-card !mb-0">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">Mecánico Asignado</h4>
+            <p class="text-gray-800 font-medium">
                 {% if orden.mecanico_asignado %}
                     {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
                 {% else %}
-                    <span class="text-gray-400">Sin asignar</span>
+                    <span class="text-gray-400 font-normal">Sin asignar</span>
                 {% endif %}
             </p>
         </div>
-        
-        <div class="info-card">
-            <h4 class="font-semibold text-gray-900 mb-2">👨‍💼 Supervisor</h4>
-            <p class="text-gray-700">
+        <div class="info-card !mb-0">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">Supervisor</h4>
+            <p class="text-gray-800 font-medium">
                 {% if orden.supervisor %}
                     {{ orden.supervisor.get_full_name|default:orden.supervisor.username }}
                 {% else %}
-                    <span class="text-gray-400">Sin asignar</span>
+                    <span class="text-gray-400 font-normal">Sin asignar</span>
                 {% endif %}
             </p>
         </div>
-        
-        <div class="info-card">
-            <h4 class="font-semibold text-gray-900 mb-2">📝 Creada Por</h4>
-            <p class="text-gray-700">{{ orden.creada_por.get_full_name|default:orden.creada_por.username }}</p>
+        <div class="info-card !mb-0">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2">Creada Por</h4>
+            <p class="text-gray-800 font-medium">
+                {{ orden.creada_por.get_full_name|default:orden.creada_por.username }}
+            </p>
         </div>
     </div>
 
-    <!-- Piezas Requeridas -->
-    <div class="info-card">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-900">🔩 Piezas Requeridas</h3>
-            <div class="flex gap-2">
+    <!-- Piezas Requeridas ────────────────────────────────── -->
+    <div class="info-card mt-4">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+            <h3 class="text-base font-bold text-gray-900">Piezas Requeridas</h3>
+            <div class="flex flex-wrap gap-2">
                 {% if perms.taller.change_ordentrabajo %}
-                <button onclick="openModal('agregarPiezaModal')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition">
-                    + Agregar Pieza
+                <button type="button"
+                        onclick="abrirModal('agregarPiezaModal')"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg
+                               font-semibold text-sm transition min-h-[44px]"
+                        aria-haspopup="dialog">
+                    Agregar Pieza
                 </button>
                 {% endif %}
                 {% if perms.compras.add_requisicion and piezas %}
-                <form method="post" action="{% url 'taller:generar_requisicion' orden.folio %}" style="display: inline;">
+                <form method="post" action="{% url 'taller:generar_requisicion' orden.folio %}">
                     {% csrf_token %}
-                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition">
-                        📦 Generar Requisición
+                    <button type="submit"
+                            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg
+                                   font-semibold text-sm transition min-h-[44px]">
+                        Generar Requisición
                     </button>
                 </form>
                 {% endif %}
             </div>
         </div>
-        
+
         {% if piezas %}
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+        <div class="tabla-piezas-wrap">
+            <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pieza</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fuente</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Pieza</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cant.</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fuente</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-gray-100">
                     {% for pieza in piezas %}
-                    <tr>
-                        <td class="px-4 py-3 text-sm font-medium">
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">
                             {{ pieza.nombre_display }}
                             {% if pieza.producto_almacen %}
                             <span class="ml-1 text-xs text-gray-400">SKU: {{ pieza.producto_almacen.sku }}</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-sm">{{ pieza.cantidad }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">{{ pieza.cantidad }}</td>
                         <td class="px-4 py-3 text-sm">
                             {% if pieza.producto_almacen %}
                                 {% if pieza.disponible_en_almacen %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                    ✅ Almacén ({{ pieza.producto_almacen.cantidad }} disp.)
+                                    Almacén ({{ pieza.producto_almacen.cantidad }} disp.)
                                 </span>
                                 {% else %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    ⚠️ Almacén sin stock
+                                    Almacén sin stock
                                 </span>
                                 {% endif %}
                             {% else %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
-                                    🛒 Requiere compra
+                                    Requiere compra
                                 </span>
                             {% endif %}
                         </td>
@@ -395,101 +471,123 @@
             </table>
         </div>
         {% else %}
-        <p class="text-center text-gray-500 py-4">No se han agregado piezas a esta orden</p>
+        <p class="text-center text-gray-400 text-sm py-6">No se han agregado piezas a esta orden</p>
         {% endif %}
     </div>
 
-    <!-- Checklist de Mantenimiento -->
+    <!-- Checklist de Mantenimiento ───────────────────────── -->
     {% if checklist %}
     <div class="info-card">
-        <h3 class="text-xl font-bold text-gray-900 mb-4">✅ Checklist de Mantenimiento</h3>
-        <div class="space-y-2">
+        <h3 class="text-base font-bold text-gray-900 mb-4">Checklist de Mantenimiento</h3>
+        <ul role="list" class="divide-y divide-gray-100">
             {% for item in checklist %}
-            <div class="checklist-item">
-                <span class="text-2xl mr-3 
+            <li class="checklist-item">
+                <span class="text-xl mt-0.5 flex-shrink-0
                     {% if item.estado == 'OK' %}check-ok
                     {% elif item.estado == 'REQUIERE_ATENCION' %}check-atencion
-                    {% else %}check-pendiente{% endif %}">
-                    {% if item.estado == 'OK' %}✓
-                    {% elif item.estado == 'REQUIERE_ATENCION' %}⚠
-                    {% elif item.estado == 'REPARADO' %}🔧
-                    {% elif item.estado == 'NO_APLICA' %}-
-                    {% else %}○{% endif %}
+                    {% else %}check-pendiente{% endif %}"
+                    aria-hidden="true">
+                    {% if item.estado == 'OK' %}&#10003;
+                    {% elif item.estado == 'REQUIERE_ATENCION' %}&#9888;
+                    {% elif item.estado == 'REPARADO' %}&#128296;
+                    {% elif item.estado == 'NO_APLICA' %}&mdash;
+                    {% else %}&#9675;{% endif %}
                 </span>
-                <div class="flex-1">
-                    <p class="font-medium">{{ item.item_checklist.descripcion }}</p>
+                <div class="flex-1 min-w-0">
+                    <p class="font-medium text-sm text-gray-900">{{ item.item_checklist.descripcion }}</p>
                     {% if item.observaciones %}
-                    <p class="text-sm text-gray-600">{{ item.observaciones }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">{{ item.observaciones }}</p>
                     {% endif %}
                 </div>
-                <span class="text-xs text-gray-500">{{ item.get_estado_display }}</span>
-            </div>
+                <span class="text-xs text-gray-400 flex-shrink-0">{{ item.get_estado_display }}</span>
+            </li>
             {% endfor %}
-        </div>
+        </ul>
     </div>
     {% endif %}
 
-
-    <!-- Trabajo Realizado -->
+    <!-- Trabajo Realizado ────────────────────────────────── -->
     {% if orden.trabajo_realizado %}
-    <div class="info-card bg-purple-50">
-        <h3 class="text-xl font-bold text-gray-900 mb-4">✅ Trabajo Realizado</h3>
-        <p class="text-gray-700 whitespace-pre-wrap">{{ orden.trabajo_realizado }}</p>
+    <div class="info-card bg-green-50 border border-green-200">
+        <h3 class="text-base font-bold text-gray-900 mb-3">Trabajo Realizado</h3>
+        <p class="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{{ orden.trabajo_realizado }}</p>
     </div>
     {% endif %}
 
-    <!-- Seguimientos -->
+    <!-- Seguimientos / Timeline ──────────────────────────── -->
     {% if seguimientos %}
     <div class="info-card">
-        <h3 class="text-xl font-bold text-gray-900 mb-4">📊 Historial de Seguimiento</h3>
-        <div class="space-y-3">
+        <h3 class="text-base font-bold text-gray-900 mb-4">Historial de Seguimiento</h3>
+        <ol role="list" class="space-y-3">
             {% for seguimiento in seguimientos %}
-            <div class="border-l-4 border-blue-500 pl-4 py-2">
-                <div class="flex justify-between items-start mb-1">
-                    <p class="font-semibold text-gray-900">
-                        {{ seguimiento.estado_anterior }} → {{ seguimiento.estado_nuevo }}
+            <li class="border-l-4 border-blue-500 pl-4 py-2">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-1">
+                    <p class="font-semibold text-gray-900 text-sm">
+                        {{ seguimiento.estado_anterior }} &rarr; {{ seguimiento.estado_nuevo }}
                     </p>
-                    <span class="text-xs text-gray-500">{{ seguimiento.fecha|date:"d/m/Y H:i" }}</span>
+                    <time class="text-xs text-gray-400 flex-shrink-0"
+                          datetime="{{ seguimiento.fecha|date:'Y-m-d' }}">
+                        {{ seguimiento.fecha|date:"d/m/Y H:i" }}
+                    </time>
                 </div>
                 <p class="text-sm text-gray-700">{{ seguimiento.comentario }}</p>
-                <p class="text-xs text-gray-500 mt-1">Por: {{ seguimiento.usuario.get_full_name|default:seguimiento.usuario.username }}</p>
-            </div>
+                <p class="text-xs text-gray-400 mt-1">
+                    Por: {{ seguimiento.usuario.get_full_name|default:seguimiento.usuario.username }}
+                </p>
+            </li>
             {% endfor %}
-        </div>
+        </ol>
     </div>
     {% endif %}
 
-    <!-- Observaciones -->
+    <!-- Observaciones ────────────────────────────────────── -->
     {% if orden.observaciones %}
     <div class="info-card">
-        <h3 class="text-xl font-bold text-gray-900 mb-4">📌 Observaciones</h3>
-        <p class="text-gray-700 whitespace-pre-wrap">{{ orden.observaciones }}</p>
+        <h3 class="text-base font-bold text-gray-900 mb-3">Observaciones</h3>
+        <p class="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{{ orden.observaciones }}</p>
     </div>
     {% endif %}
-</div>
 
-<!-- Modal para Actualizar Diagnóstico -->
-<div id="diagnosticoModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('diagnosticoModal')">&times;</span>
-        <h2 class="text-2xl font-bold mb-4">🔍 Actualizar Diagnóstico</h2>
+</div><!-- /max-w-7xl -->
+
+<!-- ═══ Modal: Diagnóstico ════════════════════════════════ -->
+<div id="diagnosticoModal" class="modal-backdrop" role="dialog" aria-modal="true"
+     aria-labelledby="titulo-diagnostico">
+    <div class="modal-panel">
+        <div class="modal-header">
+            <h2 id="titulo-diagnostico" class="text-xl font-bold text-gray-900">
+                Actualizar Diagnóstico
+            </h2>
+            <button type="button" class="modal-close" onclick="cerrarModal('diagnosticoModal')"
+                    aria-label="Cerrar">
+                &times;
+            </button>
+        </div>
         <form method="post" action="{% url 'taller:actualizar_diagnostico' orden.folio %}">
             {% csrf_token %}
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Diagnóstico Técnico *</label>
-                <textarea 
-                    name="diagnostico" 
-                    rows="6" 
+                <label for="diagnostico-texto" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Diagnóstico Técnico <span class="text-red-500" aria-label="requerido">*</span>
+                </label>
+                <textarea
+                    id="diagnostico-texto"
+                    name="diagnostico"
+                    rows="6"
                     required
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Describa el diagnóstico técnico completo..."
+                    class="modal-textarea"
+                    placeholder="Describa el diagnóstico técnico completo…"
                 >{{ orden.diagnostico }}</textarea>
             </div>
-            <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5
+                               rounded-lg font-semibold text-sm transition min-h-[44px]">
                     Guardar Diagnóstico
                 </button>
-                <button type="button" onclick="closeModal('diagnosticoModal')" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <button type="button"
+                        onclick="cerrarModal('diagnosticoModal')"
+                        class="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50
+                               text-sm font-semibold text-gray-700 transition min-h-[44px]">
                     Cancelar
                 </button>
             </div>
@@ -497,61 +595,72 @@
     </div>
 </div>
 
-<!-- Modal para Cambiar Estado -->
-<div id="cambiarEstadoModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('cambiarEstadoModal')">&times;</span>
-        <h2 class="text-2xl font-bold mb-4">🔄 Cambiar Estado de la Orden</h2>
+<!-- ═══ Modal: Cambiar Estado ════════════════════════════ -->
+<div id="cambiarEstadoModal" class="modal-backdrop" role="dialog" aria-modal="true"
+     aria-labelledby="titulo-estado">
+    <div class="modal-panel">
+        <div class="modal-header">
+            <h2 id="titulo-estado" class="text-xl font-bold text-gray-900">
+                Cambiar Estado de la Orden
+            </h2>
+            <button type="button" class="modal-close" onclick="cerrarModal('cambiarEstadoModal')"
+                    aria-label="Cerrar">
+                &times;
+            </button>
+        </div>
         <form method="post" action="{% url 'taller:cambiar_estado_orden' orden.folio %}">
             {% csrf_token %}
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Nuevo Estado *</label>
-                <select 
-                    name="nuevo_estado" 
-                    required
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
+                <label for="nuevo-estado" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Nuevo Estado <span class="text-red-500" aria-label="requerido">*</span>
+                </label>
+                <select id="nuevo-estado" name="nuevo_estado" required class="modal-select"
+                        onchange="toggleCamposCompletada(this.value)">
                     {% for valor, nombre in orden.ESTADO_CHOICES %}
-                    <option value="{{ valor }}" {% if orden.estado == valor %}selected{% endif %}>{{ nombre }}</option>
+                    <option value="{{ valor }}" {% if orden.estado == valor %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Comentario</label>
-                <textarea 
-                    name="comentario" 
-                    rows="3"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Comentario sobre el cambio de estado..."
-                ></textarea>
+                <label for="comentario-estado" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Comentario
+                </label>
+                <textarea id="comentario-estado" name="comentario" rows="3"
+                          class="modal-textarea"
+                          placeholder="Comentario sobre el cambio de estado…"></textarea>
             </div>
-            
-            <!-- Campos adicionales si completa -->
-            <div id="completarCampos" style="display: none;">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Trabajo Realizado</label>
-                    <textarea 
-                        name="trabajo_realizado" 
-                        rows="4"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >{{ orden.trabajo_realizado }}</textarea>
+
+            <!-- Campos adicionales al completar -->
+            <div id="completarCampos" class="hidden mb-4">
+                <div class="mb-3">
+                    <label for="trabajo-realizado" class="block text-sm font-semibold text-gray-700 mb-1">
+                        Trabajo Realizado
+                    </label>
+                    <textarea id="trabajo-realizado" name="trabajo_realizado" rows="4"
+                              class="modal-textarea">{{ orden.trabajo_realizado }}</textarea>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kilometraje Salida</label>
-                    <input
-                        type="number"
-                        name="kilometraje_salida"
-                        value="{{ orden.kilometraje_salida|default:orden.unidad.kilometraje_actual }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    >
+                <div>
+                    <label for="km-salida" class="block text-sm font-semibold text-gray-700 mb-1">
+                        Kilometraje de Salida
+                    </label>
+                    <input type="number" id="km-salida" name="kilometraje_salida"
+                           value="{{ orden.kilometraje_salida|default:orden.unidad.kilometraje_actual }}"
+                           class="modal-input">
                 </div>
             </div>
-            
-            <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5
+                               rounded-lg font-semibold text-sm transition min-h-[44px]">
                     Cambiar Estado
                 </button>
-                <button type="button" onclick="closeModal('cambiarEstadoModal')" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <button type="button"
+                        onclick="cerrarModal('cambiarEstadoModal')"
+                        class="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50
+                               text-sm font-semibold text-gray-700 transition min-h-[44px]">
                     Cancelar
                 </button>
             </div>
@@ -559,71 +668,81 @@
     </div>
 </div>
 
-<!-- Modal para Agregar Pieza -->
-<div id="agregarPiezaModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="cerrarModalPieza()">&times;</span>
-        <h2 class="text-2xl font-bold mb-4">🔩 Agregar Pieza Requerida</h2>
+<!-- ═══ Modal: Agregar Pieza ════════════════════════════ -->
+<div id="agregarPiezaModal" class="modal-backdrop" role="dialog" aria-modal="true"
+     aria-labelledby="titulo-pieza">
+    <div class="modal-panel">
+        <div class="modal-header">
+            <h2 id="titulo-pieza" class="text-xl font-bold text-gray-900">
+                Agregar Pieza Requerida
+            </h2>
+            <button type="button" class="modal-close" onclick="cerrarModalPieza()"
+                    aria-label="Cerrar">
+                &times;
+            </button>
+        </div>
         <form method="post" action="{% url 'taller:agregar_pieza' orden.folio %}" id="formAgregarPieza">
             {% csrf_token %}
-            <!-- Campo oculto: ID del producto en almacén (se llena al seleccionar) -->
             <input type="hidden" name="producto_almacen_id" id="productoAlmacenId">
 
             <!-- Buscador en almacén -->
             <div class="mb-3">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Buscar en almacén</label>
-                <div class="flex gap-2">
-                    <input
-                        type="text"
-                        id="busquedaPieza"
-                        placeholder="Escribe nombre o SKU (mín. 2 caracteres)…"
-                        autocomplete="off"
-                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    >
-                </div>
-                <!-- Resultados AJAX -->
-                <div id="resultadosBusqueda" class="mt-1 border border-gray-200 rounded-lg bg-white shadow-md hidden max-h-48 overflow-y-auto">
+                <label for="busquedaPieza" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Buscar en almacén
+                </label>
+                <input type="search"
+                       id="busquedaPieza"
+                       placeholder="Escribe nombre o SKU (mín. 2 caracteres)…"
+                       autocomplete="off"
+                       class="modal-input"
+                       aria-autocomplete="list"
+                       aria-controls="resultadosBusqueda">
+                <div id="resultadosBusqueda" role="listbox"
+                     class="mt-1 border border-gray-200 rounded-lg bg-white shadow-md hidden
+                            max-h-48 overflow-y-auto">
                 </div>
             </div>
 
-            <!-- Producto seleccionado (badge de confirmación) -->
+            <!-- Producto seleccionado -->
             <div id="productoSeleccionado" class="mb-3 hidden">
-                <div id="badgeProducto" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium"></div>
+                <div id="badgeProducto"
+                     class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium">
+                </div>
             </div>
 
-            <!-- Nombre libre (visible solo si no hay producto de almacén) -->
+            <!-- Nombre libre -->
             <div id="campoNombreLibre" class="mb-3 hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la pieza *</label>
-                <input
-                    type="text"
-                    name="nombre_pieza"
-                    id="nombrePieza"
-                    placeholder="Escribe el nombre de la pieza que necesitas"
-                    class="w-full px-4 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-                >
-                <p class="text-xs text-orange-600 mt-1">⚠️ No encontrado en almacén — se generará orden de compra</p>
+                <label for="nombrePieza" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Nombre de la pieza <span class="text-red-500" aria-label="requerido">*</span>
+                </label>
+                <input type="text" name="nombre_pieza" id="nombrePieza"
+                       placeholder="Escribe el nombre de la pieza"
+                       class="modal-input border-orange-300 focus:border-orange-400">
+                <p class="text-xs text-orange-600 mt-1">
+                    No encontrado en almacén — se generará orden de compra
+                </p>
             </div>
 
             <!-- Cantidad -->
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad *</label>
-                <input
-                    type="number"
-                    name="cantidad"
-                    id="cantidadPieza"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
+                <label for="cantidadPieza" class="block text-sm font-semibold text-gray-700 mb-1">
+                    Cantidad <span class="text-red-500" aria-label="requerido">*</span>
+                </label>
+                <input type="number" name="cantidad" id="cantidadPieza"
+                       step="0.01" min="0.01" required
+                       class="modal-input">
             </div>
 
-            <div class="flex gap-2">
+            <div class="flex gap-3">
                 <button type="submit" id="btnAgregarPieza" disabled
-                    class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-semibold transition">
+                        class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300
+                               disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg
+                               font-semibold text-sm transition min-h-[44px]">
                     Agregar Pieza
                 </button>
-                <button type="button" onclick="cerrarModalPieza()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <button type="button" onclick="cerrarModalPieza()"
+                        class="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50
+                               text-sm font-semibold text-gray-700 transition min-h-[44px]">
                     Cancelar
                 </button>
             </div>
@@ -635,41 +754,57 @@
 
 {% block extra_js %}
 <script>
-function openModal(modalId) {
-    document.getElementById(modalId).style.display = 'block';
+// ─── Utilidades de modal ──────────────────────────────────
+function abrirModal(id) {
+    const modal = document.getElementById(id);
+    modal.classList.add('activo');
+    // Focus al primer elemento interactivo del panel
+    const primero = modal.querySelector('button, input, select, textarea, [href]');
+    if (primero) setTimeout(() => primero.focus(), 50);
+    // Trampa de foco
+    document.addEventListener('keydown', escHandler);
 }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+function cerrarModal(id) {
+    document.getElementById(id).classList.remove('activo');
+    document.removeEventListener('keydown', escHandler);
 }
 
-// Cerrar modal al hacer clic fuera
-window.onclick = function(event) {
-    const modals = document.getElementsByClassName('modal');
-    for (let modal of modals) {
-        if (event.target == modal) {
-            modal.style.display = 'none';
+function escHandler(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-backdrop.activo').forEach(m => {
+            m.classList.remove('activo');
+        });
+        document.removeEventListener('keydown', escHandler);
+    }
+}
+
+// Cerrar al hacer clic en el backdrop
+document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+    backdrop.addEventListener('click', function(e) {
+        if (e.target === backdrop) {
+            backdrop.classList.remove('activo');
+            document.removeEventListener('keydown', escHandler);
         }
-    }
-}
-
-// Mostrar campos adicionales al seleccionar estado COMPLETADA
-document.querySelector('select[name="nuevo_estado"]')?.addEventListener('change', function() {
-    const completarCampos = document.getElementById('completarCampos');
-    if (this.value === 'COMPLETADA') {
-        completarCampos.style.display = 'block';
-    } else {
-        completarCampos.style.display = 'none';
-    }
+    });
 });
 
-// ─── Buscador de piezas en almacén ───────────────────────────────────────────
-const BUSCAR_URL = "{% url 'taller:buscar_producto_almacen' %}";
+// Mostrar campos adicionales al seleccionar COMPLETADA
+function toggleCamposCompletada(valor) {
+    const campos = document.getElementById('completarCampos');
+    if (valor === 'COMPLETADA') {
+        campos.classList.remove('hidden');
+    } else {
+        campos.classList.add('hidden');
+    }
+}
 
+// ─── Buscador de piezas en almacén ───────────────────────
+const BUSCAR_URL = "{% url 'taller:buscar_producto_almacen' %}";
 let busquedaTimer = null;
 
 function cerrarModalPieza() {
-    closeModal('agregarPiezaModal');
+    cerrarModal('agregarPiezaModal');
     resetModalPieza();
 }
 
@@ -697,10 +832,10 @@ function seleccionarProductoAlmacen(id, descripcion, sku, cantidad, disponible) 
     const wrap = document.getElementById('productoSeleccionado');
     if (disponible) {
         badge.className = 'flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium bg-green-50 border border-green-200 text-green-800';
-        badge.innerHTML = `<span>✅ <strong>${descripcion}</strong> <span class="font-normal text-green-600">(SKU: ${sku})</span></span><span class="text-green-700">${cantidad} disponibles</span>`;
+        badge.innerHTML = '<span><strong>' + descripcion + '</strong> <span class="font-normal text-green-600">(SKU: ' + sku + ')</span></span><span class="text-green-700">' + cantidad + ' disponibles</span>';
     } else {
         badge.className = 'flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium bg-yellow-50 border border-yellow-200 text-yellow-800';
-        badge.innerHTML = `<span>⚠️ <strong>${descripcion}</strong> <span class="font-normal">(SKU: ${sku})</span></span><span>Sin stock — se comprará</span>`;
+        badge.innerHTML = '<span><strong>' + descripcion + '</strong> <span class="font-normal">(SKU: ' + sku + ')</span></span><span>Sin stock — se comprará</span>';
     }
     wrap.classList.remove('hidden');
     document.getElementById('btnAgregarPieza').disabled = false;
@@ -724,34 +859,27 @@ document.getElementById('busquedaPieza').addEventListener('input', function () {
     }
 
     busquedaTimer = setTimeout(() => {
-        fetch(`${BUSCAR_URL}?q=${encodeURIComponent(q)}`)
+        fetch(BUSCAR_URL + '?q=' + encodeURIComponent(q))
             .then(r => r.json())
             .then(data => {
                 const lista = document.getElementById('resultadosBusqueda');
                 lista.innerHTML = '';
 
                 if (data.resultados.length === 0) {
-                    lista.innerHTML = `
-                        <div class="px-4 py-3 text-sm text-gray-500">
-                            No encontrado en almacén.
-                            <button type="button" onclick="mostrarNombreLibre()"
-                                class="ml-2 text-orange-600 font-semibold underline hover:text-orange-700">
-                                Agregar como nueva pieza →
-                            </button>
-                        </div>`;
+                    lista.innerHTML = '<div class="px-4 py-3 text-sm text-gray-500">No encontrado en almacén. ' +
+                        '<button type="button" onclick="mostrarNombreLibre()" ' +
+                        'class="ml-2 text-orange-600 font-semibold underline hover:text-orange-700">' +
+                        'Agregar como nueva pieza</button></div>';
                 } else {
-                    data.resultados.forEach(p => {
+                    data.resultados.forEach(function(p) {
                         const item = document.createElement('div');
+                        item.setAttribute('role', 'option');
                         item.className = 'px-4 py-2 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-0 flex justify-between items-center';
-                        item.innerHTML = `
-                            <div>
-                                <span class="text-sm font-medium text-gray-800">${p.descripcion}</span>
-                                <span class="ml-2 text-xs text-gray-400">SKU: ${p.sku}</span>
-                            </div>
-                            <span class="text-xs font-semibold ${p.disponible ? 'text-green-600' : 'text-red-500'}">
-                                ${p.disponible ? p.cantidad + ' disp.' : 'Sin stock'}
-                            </span>`;
-                        item.addEventListener('click', () => {
+                        item.innerHTML = '<div><span class="text-sm font-medium text-gray-800">' + p.descripcion + '</span>' +
+                            '<span class="ml-2 text-xs text-gray-400">SKU: ' + p.sku + '</span></div>' +
+                            '<span class="text-xs font-semibold ' + (p.disponible ? 'text-green-600' : 'text-red-500') + '">' +
+                            (p.disponible ? p.cantidad + ' disp.' : 'Sin stock') + '</span>';
+                        item.addEventListener('click', function() {
                             seleccionarProductoAlmacen(p.id, p.descripcion, p.sku, p.cantidad, p.disponible);
                         });
                         lista.appendChild(item);
@@ -759,11 +887,10 @@ document.getElementById('busquedaPieza').addEventListener('input', function () {
                 }
                 lista.classList.remove('hidden');
             })
-            .catch(() => {});
+            .catch(function() {});
     }, 300);
 });
 
-// Habilitar botón cuando se escribe nombre libre
 document.getElementById('nombrePieza').addEventListener('input', function () {
     document.getElementById('btnAgregarPieza').disabled = this.value.trim().length === 0;
 });

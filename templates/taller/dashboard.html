@@ -5,282 +5,370 @@
 
 {% block extra_css %}
 <style>
+    /* ── Stat cards ───────────────────────────────────── */
     .stat-card {
         background: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        padding: 1.5rem;
-        transition: transform 0.2s;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 1.25rem;
+        transition: box-shadow 0.2s;
     }
     .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
     }
+
+    /* ── Badges ──────────────────────────────────────── */
     .priority-badge {
         display: inline-block;
-        padding: 0.25rem 0.75rem;
+        padding: 0.2rem 0.6rem;
         border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
     }
-    .priority-baja { background-color: #d1fae5; color: #065f46; }
-    .priority-media { background-color: #fef3c7; color: #92400e; }
-    .priority-alta { background-color: #fed7aa; color: #9a3412; }
+    .priority-baja    { background-color: #d1fae5; color: #065f46; }
+    .priority-media   { background-color: #fef3c7; color: #92400e; }
+    .priority-alta    { background-color: #fed7aa; color: #9a3412; }
     .priority-critica { background-color: #fee2e2; color: #991b1b; }
-    
+
     .estado-badge {
         display: inline-block;
-        padding: 0.25rem 0.75rem;
+        padding: 0.2rem 0.6rem;
         border-radius: 0.375rem;
-        font-size: 0.75rem;
-        font-weight: 500;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
     }
-    .estado-pendiente { background-color: #e5e7eb; color: #374151; }
-    .estado-diagnostico { background-color: #dbeafe; color: #1e40af; }
-    .estado-esperando { background-color: #fef3c7; color: #92400e; }
-    .estado-reparacion { background-color: #ddd6fe; color: #5b21b6; }
-    .estado-pruebas { background-color: #bfdbfe; color: #1e3a8a; }
-    .estado-completada { background-color: #d1fae5; color: #065f46; }
-    
-    .chart-container {
-        position: relative;
-        height: 300px;
+    .estado-pendiente        { background-color: #e5e7eb; color: #374151; }
+    .estado-en_diagnostico   { background-color: #dbeafe; color: #1e40af; }
+    .estado-esperando_piezas { background-color: #fef3c7; color: #92400e; }
+    .estado-en_reparacion    { background-color: #ddd6fe; color: #5b21b6; }
+    .estado-en_pruebas       { background-color: #bfdbfe; color: #1e3a8a; }
+    .estado-completada       { background-color: #d1fae5; color: #065f46; }
+    .estado-cancelada        { background-color: #fee2e2; color: #991b1b; }
+
+    /* ── Tabla últimas órdenes: cards en móvil ────────── */
+    .ultimas-cards  { display: block; }
+    .ultimas-tabla  { display: none; }
+
+    @media (min-width: 768px) {
+        .ultimas-cards { display: none; }
+        .ultimas-tabla { display: block; }
     }
-    
-    .orden-critica {
-        border-left: 4px solid #ef4444;
+
+    /* ── Tabla piezas: scroll horizontal ──────────────── */
+    .tabla-piezas-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Barra de estado por etapas ─────────────────────
+       Representa visualmente el pipeline de trabajo.     */
+    .pipeline-bar {
+        display: flex;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        height: 2rem;
+    }
+    .pipeline-step {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 0 0.5rem;
+        min-width: 1rem;
+        transition: flex 0.3s;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-6">
-    <!-- Encabezado -->
-    <div class="mb-6 flex justify-between items-center flex-wrap gap-3">
-        <h1 class="text-3xl font-bold text-gray-900">🔧 Dashboard de Taller</h1>
-        <div class="flex gap-2 flex-wrap">
-            <a href="{% url 'taller:bandeja_reportes' %}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg font-semibold transition flex items-center gap-2">
-                📋 Bandeja de Reportes
-                {% with pendientes=reportes_nuevos_count %}{% if pendientes %}<span class="bg-white text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">{{ pendientes }}</span>{% endif %}{% endwith %}
+<div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
+
+    <!-- Encabezado ───────────────────────────────────────── -->
+    <div class="mb-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard de Taller</h1>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'taller:bandeja_reportes' %}"
+               class="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white
+                      px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[44px]">
+                Bandeja de Reportes
+                {% with pendientes=reportes_nuevos_count %}
+                {% if pendientes %}
+                <span class="bg-white text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full"
+                      aria-label="{{ pendientes }} reportes nuevos">{{ pendientes }}</span>
+                {% endif %}
+                {% endwith %}
             </a>
-            <a href="{% url 'taller:qr_todas_unidades' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-2 rounded-lg font-semibold transition flex items-center gap-2">
+            <a href="{% url 'taller:qr_todas_unidades' %}"
+               class="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white
+                      px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[44px]">
                 QR Unidades
             </a>
-            <a href="{% url 'taller:crear_orden' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold transition">
+            <a href="{% url 'taller:crear_orden' %}"
+               class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                      px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[44px]">
                 + Nueva Orden
             </a>
         </div>
     </div>
-    
-    <!-- Estadísticas Principales -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+    <!-- KPIs principales ─────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <div class="stat-card">
-            <p class="text-sm text-gray-600 mb-1">Total Órdenes</p>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Total Órdenes</p>
             <p class="text-3xl font-bold text-gray-900">{{ total_ordenes }}</p>
         </div>
-        
+
         <div class="stat-card">
-            <p class="text-sm text-gray-600 mb-1">Órdenes Activas</p>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Activas</p>
             <p class="text-3xl font-bold text-blue-600">{{ total_ordenes_activas }}</p>
             <p class="text-xs text-gray-500 mt-1">En proceso</p>
         </div>
-        
+
         <div class="stat-card">
-            <p class="text-sm text-gray-600 mb-1">Completadas (Mes)</p>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Completadas (mes)</p>
             <p class="text-3xl font-bold text-green-600">{{ ordenes_completadas_mes }}</p>
             <p class="text-xs text-gray-500 mt-1">Últimos 30 días</p>
         </div>
-        
-        <div class="stat-card border-l-4 {% if ordenes_criticas_count > 0 %}border-red-500{% else %}border-gray-300{% endif %}">
-            <p class="text-sm text-gray-600 mb-1">⚠️ Órdenes Críticas</p>
-            <p class="text-3xl font-bold text-red-600">{{ ordenes_criticas_count }}</p>
-            <p class="text-xs text-gray-500 mt-1">Más de 7 días en taller</p>
+
+        <div class="stat-card border-l-4 {% if ordenes_criticas_count > 0 %}border-red-500{% else %}border-gray-200{% endif %}">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">
+                <span aria-hidden="true">&#9888;&#65039; </span>Críticas
+            </p>
+            <p class="text-3xl font-bold {% if ordenes_criticas_count > 0 %}text-red-600{% else %}text-gray-400{% endif %}">
+                {{ ordenes_criticas_count }}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Más de 7 días</p>
         </div>
     </div>
-    
-    <!-- Estadísticas por Estado -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        <div class="stat-card bg-gray-50">
-            <p class="text-xs text-gray-600 mb-2">Pendientes</p>
-            <p class="text-2xl font-bold text-gray-700">{{ ordenes_pendientes }}</p>
+
+    <!-- Pipeline de estados ───────────────────────────────── -->
+    <section aria-label="Órdenes por estado" class="mb-5">
+        <h2 class="text-sm font-semibold text-gray-500 uppercase mb-3">Estado del flujo</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div class="stat-card bg-gray-50 text-center">
+                <p class="text-xs text-gray-500 mb-1">Pendientes</p>
+                <p class="text-2xl font-bold text-gray-700">{{ ordenes_pendientes }}</p>
+            </div>
+            <div class="stat-card bg-blue-50 text-center">
+                <p class="text-xs text-gray-500 mb-1">Diagnóstico</p>
+                <p class="text-2xl font-bold text-blue-700">{{ ordenes_en_diagnostico }}</p>
+            </div>
+            <div class="stat-card bg-yellow-50 text-center">
+                <p class="text-xs text-gray-500 mb-1">Esp. Piezas</p>
+                <p class="text-2xl font-bold text-yellow-700">{{ ordenes_esperando_piezas }}</p>
+            </div>
+            <div class="stat-card bg-purple-50 text-center">
+                <p class="text-xs text-gray-500 mb-1">Reparación</p>
+                <p class="text-2xl font-bold text-purple-700">{{ ordenes_en_reparacion }}</p>
+            </div>
+            <div class="stat-card bg-indigo-50 text-center col-span-2 sm:col-span-1">
+                <p class="text-xs text-gray-500 mb-1">En Pruebas</p>
+                <p class="text-2xl font-bold text-indigo-700">{{ ordenes_en_pruebas }}</p>
+            </div>
         </div>
-        
-        <div class="stat-card bg-blue-50">
-            <p class="text-xs text-gray-600 mb-2">En Diagnóstico</p>
-            <p class="text-2xl font-bold text-blue-700">{{ ordenes_en_diagnostico }}</p>
+    </section>
+
+    <!-- KPIs secundarios ─────────────────────────────────── -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div class="stat-card">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Unidades en taller</p>
+            <p class="text-2xl font-bold text-orange-600">{{ unidades_en_taller_count }}</p>
         </div>
-        
-        <div class="stat-card bg-yellow-50">
-            <p class="text-xs text-gray-600 mb-2">Esperando Piezas</p>
-            <p class="text-2xl font-bold text-yellow-700">{{ ordenes_esperando_piezas }}</p>
+        <div class="stat-card">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Piezas pendientes</p>
+            <p class="text-2xl font-bold text-yellow-600">{{ piezas_pendientes_count }}</p>
         </div>
-        
+        <div class="stat-card">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Piezas solicitadas</p>
+            <p class="text-2xl font-bold text-blue-600">{{ piezas_solicitadas }}</p>
+        </div>
         <div class="stat-card bg-purple-50">
-            <p class="text-xs text-gray-600 mb-2">En Reparación</p>
-            <p class="text-2xl font-bold text-purple-700">{{ ordenes_en_reparacion }}</p>
-        </div>
-        
-        <div class="stat-card bg-indigo-50">
-            <p class="text-xs text-gray-600 mb-2">En Pruebas</p>
-            <p class="text-2xl font-bold text-indigo-700">{{ ordenes_en_pruebas }}</p>
-        </div>
-    </div>
-    
-    <!-- Información de Unidades y Piezas -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="stat-card">
-            <p class="text-sm text-gray-600 mb-1">🚛 Unidades en Taller</p>
-            <p class="text-3xl font-bold text-orange-600">{{ unidades_en_taller_count }}</p>
-        </div>
-        
-        <div class="stat-card">
-            <p class="text-sm text-gray-600 mb-1">🔧 Piezas Pendientes</p>
-            <p class="text-3xl font-bold text-yellow-600">{{ piezas_pendientes_count }}</p>
-        </div>
-        
-        <div class="stat-card">
-            <p class="text-sm text-gray-600 mb-1">📦 Piezas Solicitadas</p>
-            <p class="text-3xl font-bold text-blue-600">{{ piezas_solicitadas }}</p>
-        </div>
-    </div>
-    
-    <!-- Tiempos -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="stat-card bg-purple-50">
-            <p class="text-sm text-gray-600 mb-1">⏱️ Tiempo Promedio</p>
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Tiempo promedio</p>
             <p class="text-2xl font-bold text-purple-700">{{ tiempo_promedio_dias }} días</p>
         </div>
     </div>
-    
-    <!-- Órdenes Críticas (más de 7 días) -->
+
+    <!-- Alerta: Órdenes Críticas ──────────────────────────── -->
     {% if ordenes_criticas %}
-    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
-        <h2 class="text-xl font-bold text-red-900 mb-4">⚠️ Órdenes Críticas (Más de 7 días en taller)</h2>
+    <section aria-label="Órdenes críticas"
+             class="bg-red-50 border border-red-200 rounded-xl p-4 sm:p-6 mb-5">
+        <h2 class="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
+            <span aria-hidden="true">&#9888;&#65039;</span>
+            Órdenes Críticas — más de 7 días en taller
+        </h2>
         <div class="space-y-3">
             {% for orden in ordenes_criticas %}
-            <div class="bg-white p-4 rounded-lg shadow-sm orden-critica">
-                <div class="flex justify-between items-start mb-2">
+            <div class="bg-white rounded-lg p-4 border-l-4 border-red-500 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
                     <div>
-                        <a href="{% url 'taller:detalle_orden' orden.folio %}" class="text-lg font-bold text-blue-600 hover:underline">
+                        <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                           class="text-base font-bold text-blue-700 hover:underline">
                             {{ orden.folio }}
                         </a>
-                        <p class="text-sm text-gray-600">{{ orden.unidad.numero_economico }} - {{ orden.unidad.placa }}</p>
+                        <p class="text-sm text-gray-500 mt-0.5">
+                            {{ orden.unidad.numero_economico }} — {{ orden.unidad.placa }}
+                        </p>
                     </div>
-                    <span class="priority-badge priority-{{ orden.prioridad|lower }}">
-                        {{ orden.get_prioridad_display }}
-                    </span>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <span class="priority-badge priority-{{ orden.prioridad|lower }}">
+                            {{ orden.get_prioridad_display }}
+                        </span>
+                        <span class="estado-badge estado-{{ orden.estado|lower }}">
+                            {{ orden.get_estado_display }}
+                        </span>
+                    </div>
                 </div>
                 <p class="text-sm text-gray-700 mb-2">{{ orden.descripcion_problema|truncatewords:20 }}</p>
-                <div class="flex justify-between items-center">
-                    <span class="estado-badge estado-{{ orden.estado|lower }}">
-                        {{ orden.get_estado_display }}
-                    </span>
-                    <span class="text-sm text-red-600 font-semibold">
-                        {{ orden.dias_en_taller }} días en taller
-                    </span>
+                <div class="flex flex-wrap justify-between items-center gap-2 text-xs text-gray-500">
+                    {% if orden.mecanico_asignado %}
+                    <span>Mecánico: {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}</span>
+                    {% endif %}
+                    <span class="text-red-600 font-bold">{{ orden.dias_en_taller }} días en taller</span>
                 </div>
-                {% if orden.mecanico_asignado %}
-                <p class="text-xs text-gray-500 mt-2">Mecánico: {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}</p>
-                {% endif %}
             </div>
             {% endfor %}
         </div>
-        <a href="{% url 'taller:lista_ordenes' %}?estado=EN_REPARACION" class="text-red-600 hover:underline mt-4 inline-block font-semibold">Ver todas las órdenes activas →</a>
-    </div>
+        <a href="{% url 'taller:lista_ordenes' %}?estado=EN_REPARACION"
+           class="text-red-600 hover:underline mt-4 inline-block font-semibold text-sm">
+            Ver todas las órdenes activas
+        </a>
+    </section>
     {% endif %}
-    
-    <!-- Piezas Pendientes -->
+
+    <!-- Piezas Pendientes ─────────────────────────────────── -->
     {% if piezas_pendientes %}
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-        <h2 class="text-xl font-bold text-yellow-900 mb-4">🔧 Piezas Pendientes de Solicitar</h2>
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orden</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Costo Est.</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for pieza in piezas_pendientes %}
-                    <tr>
-                        <td class="px-4 py-3 text-sm">
-                            <a href="{% url 'taller:detalle_orden' pieza.orden_trabajo.folio %}" class="text-blue-600 hover:underline">
-                                {{ pieza.orden_trabajo.folio }}
-                            </a>
-                        </td>
-                        <td class="px-4 py-3 text-sm">{{ pieza.producto.nombre }}</td>
-                        <td class="px-4 py-3 text-sm">{{ pieza.cantidad }}</td>
-                        <td class="px-4 py-3 text-sm font-semibold">${{ pieza.subtotal_estimado|floatformat:2 }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <section aria-label="Piezas pendientes de solicitar"
+             class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 sm:p-6 mb-5">
+        <h2 class="text-lg font-bold text-yellow-900 mb-4">Piezas Pendientes de Solicitar</h2>
+        <div class="bg-white rounded-lg overflow-hidden shadow-sm">
+            <div class="tabla-piezas-wrap">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Orden</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Producto</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cant.</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Costo est.</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for pieza in piezas_pendientes %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm">
+                                <a href="{% url 'taller:detalle_orden' pieza.orden_trabajo.folio %}"
+                                   class="text-blue-700 hover:underline font-semibold">
+                                    {{ pieza.orden_trabajo.folio }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-800">{{ pieza.producto.nombre }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ pieza.cantidad }}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+                                ${{ pieza.subtotal_estimado|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <p class="text-xs text-gray-600 mt-2">Mostrando las primeras 5 piezas. Total: {{ piezas_pendientes_count }}</p>
-    </div>
+        <p class="text-xs text-gray-500 mt-2">
+            Mostrando las primeras 5 piezas. Total: {{ piezas_pendientes_count }}
+        </p>
+    </section>
     {% endif %}
-    
-    <!-- Últimas Órdenes de Trabajo -->
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">📋 Últimas Órdenes de Trabajo</h2>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+
+    <!-- Últimas Órdenes ──────────────────────────────────── -->
+    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-5">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">Últimas Órdenes de Trabajo</h2>
+
+        <!-- Cards móvil -->
+        <div class="ultimas-cards space-y-3">
+            {% for orden in ultimas_ordenes %}
+            <div class="border border-gray-100 rounded-lg p-3">
+                <div class="flex justify-between items-start mb-1">
+                    <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                       class="font-bold text-blue-700 hover:underline text-sm">{{ orden.folio }}</a>
+                    <span class="estado-badge estado-{{ orden.estado|lower }}">{{ orden.get_estado_display }}</span>
+                </div>
+                <p class="text-sm font-semibold text-gray-800">
+                    {{ orden.unidad.numero_economico }}
+                    <span class="text-gray-400 font-normal text-xs">— {{ orden.fecha_creacion|date:"d/m/Y" }}</span>
+                </p>
+                {% if orden.mecanico_asignado %}
+                <p class="text-xs text-gray-500 mt-1">
+                    {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
+                </p>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p class="text-gray-400 text-sm text-center py-4">No hay órdenes registradas</p>
+            {% endfor %}
+        </div>
+
+        <!-- Tabla escritorio -->
+        <div class="ultimas-tabla overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Folio</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prioridad</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mecánico</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Folio</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidad</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Prioridad</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mecánico</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-gray-50">
                     {% for orden in ultimas_ordenes %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm">
-                            <a href="{% url 'taller:detalle_orden' orden.folio %}" class="text-blue-600 hover:underline font-semibold">
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                               class="font-bold text-blue-700 hover:underline text-sm">
                                 {{ orden.folio }}
                             </a>
                         </td>
-                        <td class="px-4 py-3 text-sm">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
                             {{ orden.unidad.numero_economico }}
                         </td>
-                        <td class="px-4 py-3 text-sm">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                             {% if orden.tipo_mantenimiento %}
                                 {{ orden.tipo_mantenimiento.nombre|truncatewords:3 }}
                             {% else %}
-                                <span class="text-gray-400">N/A</span>
+                                <span class="text-gray-400">—</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-sm">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <span class="estado-badge estado-{{ orden.estado|lower }}">
                                 {{ orden.get_estado_display }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-sm">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <span class="priority-badge priority-{{ orden.prioridad|lower }}">
                                 {{ orden.get_prioridad_display }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-sm">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                             {% if orden.mecanico_asignado %}
                                 {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username|truncatewords:2 }}
                             {% else %}
                                 <span class="text-gray-400">Sin asignar</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-sm text-gray-600">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                             {{ orden.fecha_creacion|date:"d/m/Y" }}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-400">
                             No hay órdenes de trabajo registradas
                         </td>
                     </tr>
@@ -288,34 +376,38 @@
                 </tbody>
             </table>
         </div>
-        <div class="mt-4">
-            <a href="{% url 'taller:lista_ordenes' %}" class="text-blue-600 hover:underline font-semibold">Ver todas las órdenes →</a>
-        </div>
-    </div>
-    
-    <!-- Enlaces Rápidos -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <a href="{% url 'taller:lista_ordenes' %}" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition font-semibold">
-            📋 Ver Todas las Órdenes
-        </a>
-        <a href="{% url 'taller:crear_orden' %}" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center transition font-semibold">
-            ➕ Nueva Orden
-        </a>
-        <a href="{% url 'taller:lista_ordenes' %}?estado=PENDIENTE" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg text-center transition font-semibold">
-            ⏳ Órdenes Pendientes
-        </a>
-        <a href="{% url 'taller:lista_ordenes' %}?estado=EN_REPARACION" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition font-semibold">
-            🔧 En Reparación
-        </a>
-    </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-    // Script para auto-refrescar el dashboard cada 5 minutos (opcional)
-    // setTimeout(function() {
-    //     window.location.reload();
-    // }, 300000);
-</script>
+        <div class="mt-4 pt-3 border-t border-gray-100">
+            <a href="{% url 'taller:lista_ordenes' %}"
+               class="text-blue-600 hover:underline font-semibold text-sm">
+                Ver todas las órdenes
+            </a>
+        </div>
+    </section>
+
+    <!-- Accesos Rápidos ──────────────────────────────────── -->
+    <nav aria-label="Accesos rápidos" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <a href="{% url 'taller:lista_ordenes' %}"
+           class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-xl text-center
+                  font-semibold text-sm transition min-h-[64px] flex items-center justify-center">
+            Todas las Órdenes
+        </a>
+        <a href="{% url 'taller:crear_orden' %}"
+           class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-xl text-center
+                  font-semibold text-sm transition min-h-[64px] flex items-center justify-center">
+            Nueva Orden
+        </a>
+        <a href="{% url 'taller:lista_ordenes' %}?estado=PENDIENTE"
+           class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-xl text-center
+                  font-semibold text-sm transition min-h-[64px] flex items-center justify-center">
+            Órdenes Pendientes
+        </a>
+        <a href="{% url 'taller:lista_ordenes' %}?estado=EN_REPARACION"
+           class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-xl text-center
+                  font-semibold text-sm transition min-h-[64px] flex items-center justify-center">
+            En Reparación
+        </a>
+    </nav>
+
+</div>
 {% endblock %}
