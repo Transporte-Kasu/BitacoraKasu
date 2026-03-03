@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <!-- Sin maximum-scale: permite zoom de accesibilidad (WCAG 1.4.4) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportar Falla - {{ unidad.numero_economico }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #f0f4f8; }
+
+        /* Boton principal de envio */
+        .btn-primary {
+            background: #1d4ed8;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+            min-height: 56px;
+        }
+        .btn-primary:active { background: #1e40af; }
+        .btn-primary:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+
+        /* Botones de categoria: ocultar radio pero mantenerlo accesible */
+        input[type=radio] {
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+        }
+
+        .categoria-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.75rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.15s;
+            width: 100%;
+            text-align: left;
+            min-height: 56px; /* Touch target minimo confiable */
+        }
+        .categoria-btn:active {
+            background: #eff6ff;
+        }
+        /* Estado seleccionado: borde + fondo + checkmark visible */
+        .categoria-btn.selected {
+            border-color: #1d4ed8;
+            border-width: 2px;
+            background: #eff6ff;
+        }
+        /* Indicador de foco para navegacion por teclado (WCAG 2.1.1) */
+        input[type=radio]:focus-visible ~ .categoria-btn {
+            outline: 3px solid #1d4ed8;
+            outline-offset: 2px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            resize: none;
+            min-height: 80px;
+        }
+        textarea:focus { outline: none; border-color: #1d4ed8; }
+
+        .foto-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            border: 2px dashed #94a3b8;
+            border-radius: 0.75rem;
+            color: #475569;
+            cursor: pointer;
+            background: white;
+            min-height: 56px;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .foto-label:active { background: #f8fafc; }
+        .foto-label.foto-cargada {
+            border-color: #16a34a;
+            border-style: solid;
+            color: #15803d;
+            background: #f0fdf4;
+        }
+
+        /* Etiqueta de campo */
+        .campo-label {
+            display: block;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        .campo-label .opcional {
+            font-weight: 400;
+            color: #64748b; /* Contraste mejorado sobre blanco: 4.6:1 */
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Cabecera: identificacion clara del vehiculo -->
+    <div class="bg-blue-700 text-white px-4 pt-8 pb-6 text-center">
+        <p class="text-blue-200 text-sm font-medium uppercase tracking-wide">Reporte de Falla</p>
+        <h1 class="text-3xl font-black mt-1">Unidad {{ unidad.numero_economico }}</h1>
+        <p class="text-blue-200 text-sm mt-1">{{ unidad.placa }} &mdash; {{ unidad.marca }} {{ unidad.modelo }}</p>
+    </div>
+
+    <!-- Formulario -->
+    <div class="flex-1 px-4 py-6 max-w-lg mx-auto w-full">
+        <form method="post" enctype="multipart/form-data" id="frmReporte" novalidate>
+            {% csrf_token %}
+
+            <!-- ──────────────────────────────────────────────────────
+                 CAMPO 1: Categoria de falla
+                 Primero porque es la accion principal y obligatoria.
+            ────────────────────────────────────────────────────────── -->
+            <div class="mb-6">
+                <label class="campo-label" id="label-categoria">
+                    ¿Que falla reportas?
+                    <span class="text-red-500 ml-1" aria-label="requerido">*</span>
+                </label>
+
+                {% if categorias %}
+                <div class="space-y-3" id="categorias" role="radiogroup" aria-labelledby="label-categoria">
+                    {% for cat in categorias %}
+                    <label class="categoria-btn" id="label-cat-{{ cat.pk }}">
+                        <input
+                            type="radio"
+                            name="categoria_falla"
+                            id="cat_{{ cat.pk }}"
+                            value="{{ cat.pk }}"
+                            aria-label="{{ cat.nombre }}{% if cat.descripcion %}: {{ cat.descripcion }}{% endif %}"
+                        >
+                        <!-- Indicador de prioridad con forma y color (no solo color) -->
+                        {% if cat.prioridad_default == 'CRITICA' %}
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-600 text-white text-xs font-black flex-shrink-0" aria-label="prioridad critica">!</span>
+                        {% elif cat.prioridad_default == 'ALTA' %}
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-black flex-shrink-0" aria-label="prioridad alta">!</span>
+                        {% elif cat.prioridad_default == 'MEDIA' %}
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-yellow-400 text-gray-800 text-xs font-black flex-shrink-0" aria-label="prioridad media">~</span>
+                        {% else %}
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-500 text-white text-xs font-black flex-shrink-0" aria-label="prioridad baja">-</span>
+                        {% endif %}
+
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900 text-base leading-snug">{{ cat.nombre }}</div>
+                            {% if cat.descripcion %}
+                            <div class="text-sm text-gray-600 mt-0.5 leading-snug">{{ cat.descripcion }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Checkmark visible al seleccionar (no depende solo de color) -->
+                        <svg class="check-icon h-5 w-5 text-blue-600 flex-shrink-0 opacity-0 transition-opacity" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <!-- Mensaje de error (oculto por default, activado por JS) -->
+                <p id="aviso-categoria" class="hidden text-red-600 text-sm mt-2 font-medium" role="alert" aria-live="assertive">
+                    Por favor selecciona el tipo de falla antes de enviar.
+                </p>
+
+                {% else %}
+                <!-- Estado vacio: sin categorias configuradas -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                    No hay tipos de falla configurados. Usa el campo de descripcion para explicar el problema.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ──────────────────────────────────────────────────────
+                 CAMPO 2: Foto
+                 Segundo por alta motivacion en campo: el operador
+                 tiene el problema frente a el y quiere fotografiarlo.
+            ────────────────────────────────────────────────────────── -->
+            <div class="mb-6">
+                <span class="campo-label" id="label-foto">
+                    Foto del problema
+                    <span class="opcional">(opcional)</span>
+                </span>
+                <label class="foto-label" for="fotoInput" aria-describedby="label-foto">
+                    <!-- Icono camara -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span id="fotoLabel">Tomar foto o elegir de galeria</span>
+                </label>
+                <!-- capture="environment" = camara trasera por default en movil -->
+                <input type="file" name="foto" id="fotoInput" accept="image/*" capture="environment" class="hidden" aria-label="Adjuntar foto del problema">
+
+                <!-- Aviso de tamano (solo visible cuando se selecciona archivo grande) -->
+                <p id="aviso-foto-tamano" class="hidden text-red-600 text-sm mt-1" role="alert">
+                    La foto es muy grande. Selecciona una imagen de menos de 10 MB.
+                </p>
+            </div>
+
+            <!-- Vista previa de foto -->
+            <div id="fotoPreview" class="mb-5 hidden">
+                <img id="fotoImg" src="" alt="Vista previa de la foto adjunta" class="w-full rounded-xl max-h-52 object-cover border-2 border-green-300">
+                <button type="button" id="btnQuitarFoto" class="mt-2 text-sm text-red-600 underline w-full text-center">
+                    Quitar foto
+                </button>
+            </div>
+
+            <!-- ──────────────────────────────────────────────────────
+                 CAMPO 3: Descripcion
+                 Opcional, para detalles adicionales.
+            ────────────────────────────────────────────────────────── -->
+            <div class="mb-5">
+                <label class="campo-label" for="id_descripcion">
+                    Descripcion
+                    <span class="opcional">(opcional)</span>
+                </label>
+                <textarea
+                    name="descripcion"
+                    id="id_descripcion"
+                    rows="3"
+                    placeholder="Describe brevemente el problema. Ejemplo: El freno hace ruido al pisar, hay fuga de aceite debajo del motor..."
+                    autocorrect="on"
+                    autocapitalize="sentences"
+                    spellcheck="true"
+                ></textarea>
+            </div>
+
+            <!-- ──────────────────────────────────────────────────────
+                 CAMPO 4: Nombre del operador
+                 Ultimo porque es opcional y el de menor prioridad.
+            ────────────────────────────────────────────────────────── -->
+            <div class="mb-6">
+                <label class="campo-label" for="id_nombre">
+                    Tu nombre
+                    <span class="opcional">(opcional)</span>
+                </label>
+                <input
+                    type="text"
+                    name="operador_nombre"
+                    id="id_nombre"
+                    placeholder="Ej. Juan Perez"
+                    class="w-full px-4 py-3 border-2 border-slate-300 rounded-xl text-base focus:outline-none focus:border-blue-600"
+                    autocomplete="name"
+                    autocorrect="off"
+                >
+            </div>
+
+            <!-- Boton de envio -->
+            <button type="submit" class="btn-primary" id="btnEnviar">
+                Enviar reporte de falla
+            </button>
+
+            <!-- Texto de estado durante envio (accesible con aria-live) -->
+            <p id="estadoEnvio" class="text-center text-gray-500 text-sm mt-3 hidden" role="status" aria-live="polite"></p>
+        </form>
+    </div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ── Resaltar categoria seleccionada ────────────────────────────────────
+    document.querySelectorAll('input[name="categoria_falla"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            // Quitar seleccion de todos
+            document.querySelectorAll('.categoria-btn').forEach(function (btn) {
+                btn.classList.remove('selected');
+                var check = btn.querySelector('.check-icon');
+                if (check) check.style.opacity = '0';
+            });
+
+            // Marcar el seleccionado
+            var labelActual = this.closest('.categoria-btn');
+            if (labelActual) {
+                labelActual.classList.add('selected');
+                var check = labelActual.querySelector('.check-icon');
+                if (check) check.style.opacity = '1';
+            }
+
+            // Ocultar mensaje de error si estaba visible
+            var aviso = document.getElementById('aviso-categoria');
+            if (aviso) aviso.classList.add('hidden');
+        });
+    });
+
+    // ── Manejo de foto ─────────────────────────────────────────────────────
+    var fotoInput = document.getElementById('fotoInput');
+    var fotoLabel = document.getElementById('fotoLabel');
+    var fotoLabelEl = document.querySelector('.foto-label');
+    var fotoPreview = document.getElementById('fotoPreview');
+    var fotoImg = document.getElementById('fotoImg');
+    var avisotamano = document.getElementById('aviso-foto-tamano');
+
+    fotoInput.addEventListener('change', function () {
+        var file = this.files[0];
+        if (!file) return;
+
+        // Validar tamano (max 10 MB)
+        if (file.size > 10 * 1024 * 1024) {
+            avisotamano.classList.remove('hidden');
+            this.value = '';
+            fotoLabel.textContent = 'Tomar foto o elegir de galeria';
+            fotoLabelEl.classList.remove('foto-cargada');
+            fotoPreview.classList.add('hidden');
+            return;
+        }
+
+        avisotamano.classList.add('hidden');
+
+        // Actualizar etiqueta con confirmacion y peso
+        var kb = Math.round(file.size / 1024);
+        var unidad = kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB';
+        fotoLabel.textContent = 'Foto adjunta (' + unidad + ')';
+        fotoLabelEl.classList.add('foto-cargada');
+
+        // Mostrar vista previa
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            fotoImg.src = e.target.result;
+            fotoPreview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Boton para quitar la foto
+    var btnQuitarFoto = document.getElementById('btnQuitarFoto');
+    if (btnQuitarFoto) {
+        btnQuitarFoto.addEventListener('click', function () {
+            fotoInput.value = '';
+            fotoPreview.classList.add('hidden');
+            fotoLabel.textContent = 'Tomar foto o elegir de galeria';
+            fotoLabelEl.classList.remove('foto-cargada');
+            avisotamano.classList.add('hidden');
+        });
+    }
+
+    // ── Validacion y envio ─────────────────────────────────────────────────
+    document.getElementById('frmReporte').addEventListener('submit', function (e) {
+        var categorias = document.querySelectorAll('input[name="categoria_falla"]');
+        var hayCategoriasDisponibles = categorias.length > 0;
+        var categoriaSeleccionada = document.querySelector('input[name="categoria_falla"]:checked');
+
+        // Si hay categorias pero ninguna seleccionada, bloquear envio
+        if (hayCategoriasDisponibles && !categoriaSeleccionada) {
+            e.preventDefault();
+            var aviso = document.getElementById('aviso-categoria');
+            if (aviso) {
+                aviso.classList.remove('hidden');
+                aviso.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        // Si pasa validacion, bloquear boton y mostrar estado
+        var btn = document.getElementById('btnEnviar');
+        var estadoEnvio = document.getElementById('estadoEnvio');
+        btn.disabled = true;
+
+        var tieneFoto = fotoInput.files && fotoInput.files.length > 0;
+        btn.textContent = tieneFoto ? 'Enviando foto... un momento' : 'Enviando reporte...';
+
+        if (estadoEnvio) {
+            estadoEnvio.classList.remove('hidden');
+            estadoEnvio.textContent = tieneFoto
+                ? 'Subiendo imagen, por favor espera...'
+                : 'Enviando reporte...';
+        }
+    });
+
+})();
+</script>
+</body>
+</html>

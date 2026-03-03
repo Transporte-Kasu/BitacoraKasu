@@ -9,7 +9,7 @@ from datetime import timedelta
 from .models import (
     OrdenTrabajo, PiezaRequerida, TipoMantenimiento,
     CategoriaFalla, SeguimientoOrden, ChecklistMantenimiento,
-    ChecklistOrden, HistorialMantenimiento
+    ChecklistOrden, HistorialMantenimiento, ReporteFalla
 )
 from modulos.compras.models import Requisicion, ItemRequisicion
 from modulos.unidades.models import Unidad
@@ -137,9 +137,13 @@ def dashboard_taller(request):
         count=Count('id')
     ).order_by('-count')[:5]
     
+    # Reportes de falla nuevos (para badge en dashboard)
+    reportes_nuevos_count = ReporteFalla.objects.filter(estado='NUEVO').count()
+
     context = {
         # Estadísticas principales
         'total_ordenes': total_ordenes,
+        'reportes_nuevos_count': reportes_nuevos_count,
         'total_ordenes_activas': total_ordenes_activas,
         'ordenes_completadas_mes': ordenes_completadas_mes,
         'ordenes_pendientes': ordenes_pendientes,
@@ -611,3 +615,207 @@ def api_ordenes_activas(request):
     )
 
     return JsonResponse(list(ordenes), safe=False)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Reportes de Falla (vía QR)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def reportar_falla(request, unidad_pk):
+    """Vista pública (sin login) para que el operador reporte una falla vía QR."""
+    unidad = get_object_or_404(Unidad, pk=unidad_pk, activa=True)
+    categorias = CategoriaFalla.objects.filter(activo=True).order_by('nombre')
+
+    if request.method == 'POST':
+        categoria_id = request.POST.get('categoria_falla') or None
+        descripcion = request.POST.get('descripcion', '').strip()
+        operador_nombre = request.POST.get('operador_nombre', '').strip()
+        foto = request.FILES.get('foto')
+
+        reporte = ReporteFalla.objects.create(
+            unidad=unidad,
+            operador_nombre=operador_nombre,
+            categoria_falla_id=categoria_id,
+            descripcion=descripcion,
+            foto=foto,
+        )
+        return redirect('taller:reporte_enviado', folio=reporte.folio)
+
+    return render(request, 'taller/reportar_falla.html', {
+        'unidad': unidad,
+        'categorias': categorias,
+    })
+
+
+def reporte_enviado(request, folio):
+    """Confirmación pública tras enviar un reporte de falla."""
+    reporte = get_object_or_404(ReporteFalla, folio=folio)
+    return render(request, 'taller/reporte_enviado.html', {'reporte': reporte})
+
+
+@login_required
+def bandeja_reportes(request):
+    """Bandeja de reportes de falla para el personal de taller."""
+    reportes = ReporteFalla.objects.select_related(
+        'unidad', 'categoria_falla', 'atendido_por'
+    )
+
+    estado = request.GET.get('estado')
+    if estado:
+        reportes = reportes.filter(estado=estado)
+
+    unidad_id = request.GET.get('unidad')
+    if unidad_id:
+        reportes = reportes.filter(unidad_id=unidad_id)
+
+    return render(request, 'taller/bandeja_reportes.html', {
+        'reportes': reportes,
+        'estados': ReporteFalla.ESTADO_CHOICES,
+        'unidades': Unidad.objects.filter(activa=True),
+        'nuevos_count': ReporteFalla.objects.filter(estado='NUEVO').count(),
+    })
+
+
+@login_required
+def detalle_reporte(request, folio):
+    """Detalle de un reporte de falla."""
+    reporte = get_object_or_404(
+        ReporteFalla.objects.select_related(
+            'unidad', 'categoria_falla', 'atendido_por', 'orden_trabajo'
+        ),
+        folio=folio
+    )
+    from modulos.almacen.models import ProductoAlmacen
+    productos_almacen = ProductoAlmacen.objects.filter(activo=True).order_by('descripcion')
+    tipos_mantenimiento = TipoMantenimiento.objects.filter(activo=True)
+
+    return render(request, 'taller/detalle_reporte.html', {
+        'reporte': reporte,
+        'productos_almacen': productos_almacen,
+        'tipos_mantenimiento': tipos_mantenimiento,
+    })
+
+
+@login_required
+def atender_reporte(request, folio):
+    """Marca el reporte como EN_ATENCION."""
+    reporte = get_object_or_404(ReporteFalla, folio=folio)
+    if reporte.estado == 'NUEVO':
+        reporte.estado = 'EN_ATENCION'
+        reporte.atendido_por = request.user
+        reporte.fecha_atencion = timezone.now()
+        reporte.save()
+        messages.success(request, f'Reporte {folio} tomado. En atención.')
+    return redirect('taller:detalle_reporte', folio=folio)
+
+
+@login_required
+def resolver_reporte(request, folio):
+    """
+    Resuelve el reporte directamente. Opcionalmente genera una
+    AsignacionDirectaAlmacen si se indicaron piezas usadas.
+    """
+    reporte = get_object_or_404(ReporteFalla, folio=folio)
+
+    if request.method == 'POST':
+        notas = request.POST.get('notas_taller', '').strip()
+        producto_id = request.POST.get('producto_id', '').strip()
+        cantidad = request.POST.get('cantidad', '').strip()
+        motivo_asignacion = request.POST.get('motivo_asignacion', '').strip()
+
+        reporte.notas_taller = notas
+        reporte.estado = 'RESUELTO'
+        reporte.fecha_resolucion = timezone.now()
+        if not reporte.atendido_por:
+            reporte.atendido_por = request.user
+        reporte.save()
+
+        # Si se indicó pieza, crear AsignacionDirectaAlmacen
+        if producto_id and cantidad:
+            try:
+                from modulos.almacen.models import AsignacionDirectaAlmacen, ProductoAlmacen
+                producto = get_object_or_404(ProductoAlmacen, pk=producto_id)
+                AsignacionDirectaAlmacen.objects.create(
+                    producto=producto,
+                    unidad=reporte.unidad,
+                    cantidad=cantidad,
+                    motivo=motivo_asignacion or f'Reporte {reporte.folio}: {reporte.descripcion[:100]}',
+                    entregado_por=request.user,
+                )
+                messages.success(
+                    request,
+                    f'Reporte {folio} resuelto y pieza asignada a la unidad.'
+                )
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Reporte resuelto pero error al registrar pieza: {e}'
+                )
+        else:
+            messages.success(request, f'Reporte {folio} marcado como resuelto.')
+
+    return redirect('taller:bandeja_reportes')
+
+
+@login_required
+def convertir_reporte_a_ot(request, folio):
+    """Convierte un reporte de falla en una OrdenTrabajo completa."""
+    reporte = get_object_or_404(ReporteFalla, folio=folio)
+
+    if request.method == 'POST':
+        try:
+            orden = OrdenTrabajo.objects.create(
+                unidad=reporte.unidad,
+                tipo_mantenimiento_id=request.POST.get('tipo_mantenimiento') or None,
+                categoria_falla=reporte.categoria_falla,
+                descripcion_problema=reporte.descripcion or str(reporte.categoria_falla or 'Sin descripción'),
+                sintomas=request.POST.get('sintomas', ''),
+                prioridad=request.POST.get('prioridad', 'MEDIA'),
+                kilometraje_ingreso=request.POST.get('kilometraje_ingreso', reporte.unidad.kilometraje_actual),
+                observaciones=f'Generada desde reporte {reporte.folio}',
+                creada_por=request.user,
+            )
+
+            # Vincular OT al reporte y cerrarlo
+            reporte.orden_trabajo = orden
+            reporte.estado = 'EN_ATENCION'
+            if not reporte.atendido_por:
+                reporte.atendido_por = request.user
+                reporte.fecha_atencion = timezone.now()
+            reporte.save()
+
+            messages.success(
+                request,
+                f'Orden de trabajo {orden.folio} creada desde reporte {folio}.'
+            )
+            return redirect('taller:detalle_orden', folio=orden.folio)
+
+        except Exception as e:
+            messages.error(request, f'Error al crear la orden: {e}')
+
+    return redirect('taller:detalle_reporte', folio=folio)
+
+
+@login_required
+def cancelar_reporte(request, folio):
+    """Cancela un reporte de falla."""
+    reporte = get_object_or_404(ReporteFalla, folio=folio)
+    if request.method == 'POST' and reporte.estado not in ('RESUELTO', 'CANCELADO'):
+        reporte.estado = 'CANCELADO'
+        reporte.notas_taller += f"\nCANCELADO por {request.user.get_full_name() or request.user.username}"
+        reporte.save()
+        messages.info(request, f'Reporte {folio} cancelado.')
+    return redirect('taller:bandeja_reportes')
+
+
+@login_required
+def qr_unidad(request, unidad_pk):
+    """Muestra el QR de reporte de falla para una unidad (para imprimir)."""
+    unidad = get_object_or_404(Unidad, pk=unidad_pk, activa=True)
+    url_reporte = request.build_absolute_uri(
+        f'/taller/reportar/{unidad.pk}/'
+    )
+    return render(request, 'taller/qr_unidad.html', {
+        'unidad': unidad,
+        'url_reporte': url_reporte,
+    })

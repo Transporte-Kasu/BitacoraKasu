@@ -56,11 +56,17 @@
 {% block content %}
 <div class="max-w-7xl mx-auto py-6">
     <!-- Encabezado -->
-    <div class="mb-6 flex justify-between items-center">
+    <div class="mb-6 flex justify-between items-center flex-wrap gap-3">
         <h1 class="text-3xl font-bold text-gray-900">🔧 Dashboard de Taller</h1>
-        <a href="{% url 'taller:crear_orden' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
-            + Nueva Orden
-        </a>
+        <div class="flex gap-2 flex-wrap">
+            <a href="{% url 'taller:bandeja_reportes' %}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg font-semibold transition flex items-center gap-2">
+                📋 Bandeja de Reportes
+                {% with pendientes=reportes_nuevos_count %}{% if pendientes %}<span class="bg-white text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">{{ pendientes }}</span>{% endif %}{% endwith %}
+            </a>
+            <a href="{% url 'taller:crear_orden' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold transition">
+                + Nueva Orden
+            </a>
+        </div>
     </div>
     
     <!-- Estadísticas Principales -->

@@ -21,6 +21,21 @@ urlpatterns = [
     # Historial
     path('historial/unidad/<int:unidad_id>/', views.historial_unidad, name='historial_unidad'),
 
+    # Reportes de falla (operador vía QR, sin login)
+    path('reportar/<int:unidad_pk>/', views.reportar_falla, name='reportar_falla'),
+    path('reportar/enviado/<str:folio>/', views.reporte_enviado, name='reporte_enviado'),
+
+    # Bandeja de reportes (taller)
+    path('reportes/', views.bandeja_reportes, name='bandeja_reportes'),
+    path('reportes/<str:folio>/', views.detalle_reporte, name='detalle_reporte'),
+    path('reportes/<str:folio>/atender/', views.atender_reporte, name='atender_reporte'),
+    path('reportes/<str:folio>/resolver/', views.resolver_reporte, name='resolver_reporte'),
+    path('reportes/<str:folio>/convertir-ot/', views.convertir_reporte_a_ot, name='convertir_reporte_a_ot'),
+    path('reportes/<str:folio>/cancelar/', views.cancelar_reporte, name='cancelar_reporte'),
+
+    # QR por unidad (para imprimir y pegar en el vehículo)
+    path('unidades/<int:unidad_pk>/qr/', views.qr_unidad, name='qr_unidad'),
+
     # API
     path('api/ordenes-activas/', views.api_ordenes_activas, name='api_ordenes_activas'),
     path('api/buscar-producto-almacen/', views.buscar_producto_almacen, name='buscar_producto_almacen'),

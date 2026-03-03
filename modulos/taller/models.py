@@ -546,6 +546,99 @@ class ChecklistOrden(models.Model):
         return f"{self.orden_trabajo.folio} - {self.item_checklist.descripcion}"
 
 
+class ReporteFalla(models.Model):
+    """Reporte rápido de falla enviado por operador vía QR (sin login)"""
+    ESTADO_CHOICES = [
+        ('NUEVO', 'Nuevo'),
+        ('EN_ATENCION', 'En Atención'),
+        ('RESUELTO', 'Resuelto'),
+        ('CANCELADO', 'Cancelado'),
+    ]
+
+    folio = models.CharField(max_length=20, unique=True, editable=False)
+    unidad = models.ForeignKey(
+        Unidad,
+        on_delete=models.CASCADE,
+        related_name='reportes_falla',
+        verbose_name='Unidad'
+    )
+
+    # Datos del operador (captura libre, sin requerir login)
+    operador_nombre = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name='Nombre del operador'
+    )
+    categoria_falla = models.ForeignKey(
+        CategoriaFalla,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reportes',
+        verbose_name='Categoría de falla'
+    )
+    descripcion = models.TextField(
+        blank=True,
+        verbose_name='Descripción del problema'
+    )
+    foto = models.ImageField(
+        upload_to='taller/reportes/%Y/%m/',
+        null=True,
+        blank=True,
+        verbose_name='Foto del problema'
+    )
+
+    # Estado y fechas
+    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='NUEVO')
+    fecha_reporte = models.DateTimeField(auto_now_add=True)
+    fecha_atencion = models.DateTimeField(null=True, blank=True)
+    fecha_resolucion = models.DateTimeField(null=True, blank=True)
+
+    # Gestión por taller
+    atendido_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reportes_falla_atendidos',
+        verbose_name='Atendido por'
+    )
+    notas_taller = models.TextField(blank=True, verbose_name='Notas de taller')
+
+    # Vínculo opcional con OrdenTrabajo (si se escaló)
+    orden_trabajo = models.ForeignKey(
+        OrdenTrabajo,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reporte_origen',
+        verbose_name='Orden de trabajo generada'
+    )
+
+    class Meta:
+        verbose_name = 'Reporte de Falla'
+        verbose_name_plural = 'Reportes de Falla'
+        ordering = ['-fecha_reporte']
+        indexes = [
+            models.Index(fields=['estado', '-fecha_reporte']),
+            models.Index(fields=['unidad', '-fecha_reporte']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.folio:
+            from django.db.models import Max
+            fecha = timezone.now().strftime('%Y%m%d')
+            ultimo = ReporteFalla.objects.filter(
+                folio__startswith=f'RF-{fecha}'
+            ).aggregate(Max('folio'))['folio__max']
+            numero = (int(ultimo.split('-')[-1]) + 1) if ultimo else 1
+            self.folio = f'RF-{fecha}-{numero:03d}'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.folio} - {self.unidad.numero_economico} - {self.get_estado_display()}"
+
+
 class HistorialMantenimiento(models.Model):
     """Historial resumido de mantenimientos por unidad"""
     unidad = models.ForeignKey(

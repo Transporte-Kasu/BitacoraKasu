@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte enviado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-green-50 min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-sm w-full text-center">
+
+        <div class="text-7xl mb-4">✅</div>
+
+        <h1 class="text-2xl font-black text-green-800 mb-2">¡Reporte enviado!</h1>
+        <p class="text-green-700 mb-6">El equipo de taller recibió tu reporte y lo atenderá a la brevedad.</p>
+
+        <div class="bg-white rounded-2xl shadow-md p-5 mb-6 text-left">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-500 text-sm">Folio</span>
+                <span class="font-mono font-bold text-blue-700 text-lg">{{ reporte.folio }}</span>
+            </div>
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-500 text-sm">Unidad</span>
+                <span class="font-semibold text-gray-800">{{ reporte.unidad.numero_economico }}</span>
+            </div>
+            {% if reporte.categoria_falla %}
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-500 text-sm">Falla reportada</span>
+                <span class="font-semibold text-gray-800">{{ reporte.categoria_falla.nombre }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between items-center">
+                <span class="text-gray-500 text-sm">Fecha</span>
+                <span class="text-gray-800">{{ reporte.fecha_reporte|date:"d/m/Y H:i" }}</span>
+            </div>
+        </div>
+
+        <p class="text-gray-500 text-sm">
+            Guarda el folio <strong>{{ reporte.folio }}</strong> para dar seguimiento.
+        </p>
+
+        <a href="/taller/reportar/{{ reporte.unidad.pk }}/"
+           class="mt-5 inline-block text-blue-600 text-sm underline">
+            Reportar otro problema en esta unidad
+        </a>
+    </div>
+</body>
+</html>
