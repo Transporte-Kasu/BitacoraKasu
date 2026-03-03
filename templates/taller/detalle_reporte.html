@@ -95,8 +95,19 @@
                 <span class="dl-value">{{ reporte.unidad.numero_economico }} — {{ reporte.unidad.placa }}</span>
             </div>
             <div class="dl-row">
-                <span class="dl-label">Operador</span>
-                <span class="dl-value">{{ reporte.operador_nombre|default:"No indicado" }}</span>
+                <span class="dl-label">Operador(es) asignado(s)</span>
+                <span class="dl-value">
+                    {% with ops=reporte.unidad.operadores.all %}
+                        {% if ops %}
+                            {% for op in ops %}{{ op.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        {% else %}
+                            <span class="text-gray-400">Sin asignar</span>
+                        {% endif %}
+                    {% endwith %}
+                    {% if reporte.operador_nombre %}
+                    <span class="text-gray-400 text-xs block mt-0.5">Reportó: {{ reporte.operador_nombre }}</span>
+                    {% endif %}
+                </span>
             </div>
             <div class="dl-row">
                 <span class="dl-label">Categoría</span>
@@ -119,7 +130,7 @@
             <h2 class="font-bold text-gray-700 text-sm uppercase tracking-wide mb-4">Atención</h2>
             <div class="dl-row">
                 <span class="dl-label">Atendido por</span>
-                <span class="dl-value">{{ reporte.atendido_por.get_full_name|default:reporte.atendido_por.username|default:"Sin asignar" }}</span>
+                <span class="dl-value">{% if reporte.atendido_por %}{{ reporte.atendido_por.get_full_name|default:reporte.atendido_por.username }}{% else %}Sin asignar{% endif %}</span>
             </div>
             {% if reporte.fecha_atencion %}
             <div class="dl-row">
