@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'modulos.compras',
     'modulos.taller',
     'modulos.almacen',
+    'modulos.reportes',
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Historial de Reportes{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
+
+    <!-- Encabezado -->
+    <div class="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Historial de Reportes</h1>
+            <p class="text-gray-500 mt-0.5 text-sm">Registros de reportes generados y enviados automáticamente</p>
+        </div>
+        <a href="{% url 'reportes:configuracion_list' %}"
+           class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                  font-semibold text-sm px-4 py-2 rounded-lg transition">
+            ⚙️ Configurar reportes
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+        <form method="get" class="flex flex-wrap gap-3 items-end">
+            <div class="flex-1 min-w-[140px]">
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Módulo</label>
+                <select name="modulo"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[44px]">
+                    <option value="">Todos</option>
+                    {% for val, label in modulo_choices %}
+                    <option value="{{ val }}" {% if modulo_filtro == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[140px]">
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Estado</label>
+                <select name="estado"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[44px]">
+                    <option value="">Todos</option>
+                    {% for val, label in estado_choices %}
+                    <option value="{{ val }}" {% if estado_filtro == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px]">
+                    Filtrar
+                </button>
+                <a href="{% url 'reportes:historial' %}"
+                   class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px] inline-flex items-center">
+                    Limpiar
+                </a>
+            </div>
+        </form>
+    </section>
+
+    <!-- Tabla -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reporte</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Módulo</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Período</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Generado</th>
+                    <th class="px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for r in reportes %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-800">
+                        {{ r.configuracion.nombre }}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                        {{ r.configuracion.get_modulo_display }}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                        {{ r.periodo_inicio|date:"d/m/Y" }} – {{ r.periodo_fin|date:"d/m/Y" }}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if r.estado == 'GENERADO' %}
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Enviado</span>
+                        {% elif r.estado == 'ERROR' %}
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">Error</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">{{ r.get_estado_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                        {{ r.fecha_generacion|date:"d/m/Y H:i" }}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <a href="{% url 'reportes:detalle' r.pk %}"
+                           class="text-blue-600 hover:text-blue-800 text-sm font-semibold">Ver</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-12 text-center text-gray-400">
+                        <p class="text-4xl mb-3">📊</p>
+                        <p>Aún no se han generado reportes</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="flex justify-center gap-2 mt-4">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if modulo_filtro %}&modulo={{ modulo_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}"
+           class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">← Anterior</a>
+        {% endif %}
+        <span class="px-3 py-1.5 text-sm text-gray-600">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if modulo_filtro %}&modulo={{ modulo_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}"
+           class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">Siguiente →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

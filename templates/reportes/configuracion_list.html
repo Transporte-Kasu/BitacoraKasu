@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Configuración de Reportes{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
+
+    <!-- Encabezado -->
+    <div class="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Reportes Programados</h1>
+            <p class="text-gray-500 mt-0.5 text-sm">
+                Los reportes se ejecutan automáticamente según su frecuencia.
+                &nbsp;·&nbsp; <a href="{% url 'reportes:historial' %}" class="text-blue-600 hover:underline">Ver historial</a>
+            </p>
+        </div>
+        <a href="{% url 'reportes:configuracion_create' %}"
+           class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                  font-semibold text-sm px-4 py-2 rounded-lg transition whitespace-nowrap">
+            + Nuevo reporte
+        </a>
+    </div>
+
+    <!-- Cards de configuraciones -->
+    {% if configs %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for c in configs %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5
+                    {% if not c.activo %}opacity-60{% endif %}">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <p class="font-semibold text-gray-900">{{ c.nombre }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">{{ c.get_modulo_display }} · {{ c.get_tipo_reporte_display }}</p>
+                </div>
+                {% if c.activo %}
+                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Activo</span>
+                {% else %}
+                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Inactivo</span>
+                {% endif %}
+            </div>
+
+            <dl class="space-y-1 mb-4">
+                <div class="flex gap-2 text-sm">
+                    <dt class="text-gray-400 w-20 shrink-0">Frecuencia</dt>
+                    <dd class="text-gray-700 font-medium">{{ c.get_frecuencia_display }}
+                        {% if c.frecuencia == 'SEMANAL' and c.dia_semana is not None %}
+                            — {{ c.get_dia_semana_display }}
+                        {% elif c.frecuencia == 'MENSUAL' and c.dia_mes %}
+                            — día {{ c.dia_mes }}
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="flex gap-2 text-sm">
+                    <dt class="text-gray-400 w-20 shrink-0">Último envío</dt>
+                    <dd class="text-gray-700">
+                        {% if c.ultimo_envio %}{{ c.ultimo_envio|date:"d/m/Y H:i" }}{% else %}<span class="text-gray-400">Nunca</span>{% endif %}
+                    </dd>
+                </div>
+                <div class="flex gap-2 text-sm">
+                    <dt class="text-gray-400 w-20 shrink-0">Destinatarios</dt>
+                    <dd class="text-gray-700 truncate" title="{{ c.destinatarios }}">{{ c.destinatarios|truncatechars:50 }}</dd>
+                </div>
+            </dl>
+
+            <div class="flex gap-2 pt-3 border-t border-gray-100">
+                <a href="{% url 'reportes:configuracion_update' c.pk %}"
+                   class="flex-1 text-center py-1.5 text-sm font-semibold text-blue-600
+                          hover:bg-blue-50 rounded-lg transition">Editar</a>
+                <a href="{% url 'reportes:configuracion_delete' c.pk %}"
+                   class="flex-1 text-center py-1.5 text-sm font-semibold text-red-500
+                          hover:bg-red-50 rounded-lg transition">Eliminar</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-16 text-center text-gray-400">
+        <p class="text-4xl mb-3">📋</p>
+        <p class="font-medium text-gray-600 mb-1">Sin reportes configurados</p>
+        <p class="text-sm mb-4">Crea tu primer reporte programado para automatizar el envío de información.</p>
+        <a href="{% url 'reportes:configuracion_create' %}"
+           class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+            + Configurar primer reporte
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Nota sobre ejecución -->
+    <div class="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+        <p class="font-semibold mb-1">¿Cómo funcionan los reportes automáticos?</p>
+        <p>El comando <code class="bg-blue-100 px-1 rounded">python manage.py generar_reportes</code>
+           se ejecuta periódicamente (GitHub Actions / DigitalOcean Scheduler) y envía por correo
+           los reportes cuya fecha de ejecución haya llegado. También puedes ejecutarlo manualmente
+           desde la consola del servidor.</p>
+    </div>
+
+</div>
+{% endblock %}
