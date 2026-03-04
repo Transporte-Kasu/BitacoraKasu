@@ -11,7 +11,7 @@ class ConfiguracionReporteForm(forms.ModelForm):
         model = ConfiguracionReporte
         fields = [
             'nombre', 'modulo', 'tipo_reporte', 'frecuencia',
-            'dia_semana', 'dia_mes', 'destinatarios', 'activo',
+            'dia_semana', 'dia_mes', 'destinatarios', 'activo', 'adjuntar_excel',
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'Ej: Inventario semanal de almacén'}),
@@ -25,4 +25,5 @@ class ConfiguracionReporteForm(forms.ModelForm):
                 'placeholder': 'correo1@empresa.com, correo2@empresa.com',
             }),
             'activo': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 rounded'}),
+            'adjuntar_excel': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-green-600 rounded'}),
         }

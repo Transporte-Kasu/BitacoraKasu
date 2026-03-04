@@ -60,6 +60,11 @@ class ConfiguracionReporte(models.Model):
     )
 
     activo = models.BooleanField(default=True, verbose_name='Activo')
+    adjuntar_excel = models.BooleanField(
+        default=False,
+        verbose_name='Adjuntar Excel',
+        help_text='Adjunta un archivo Excel con el detalle completo del período al correo'
+    )
     ultimo_envio = models.DateTimeField(
         null=True, blank=True,
         verbose_name='Último envío',

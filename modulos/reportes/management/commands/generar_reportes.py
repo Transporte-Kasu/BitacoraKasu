@@ -13,6 +13,10 @@ Flags opcionales:
 
 import logging
 from datetime import date, timedelta
+from io import BytesIO
+
+import openpyxl
+from openpyxl.styles import Alignment, Font, PatternFill
 
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
@@ -48,7 +52,55 @@ def _periodo(frecuencia: str, dia_semana, dia_mes):
     return inicio, fin
 
 
-def _enviar_email(config: ConfiguracionReporte, datos: dict, dry_run: bool) -> list:
+def _generar_excel(datos: dict) -> bytes:
+    """Genera un archivo Excel con el detalle del período reportado."""
+    wb = openpyxl.Workbook()
+
+    # --- Hoja de detalle ---
+    ws = wb.active
+    ws.title = datos.get('titulo', 'Reporte')[:31]
+
+    filas = datos.get('filas', [])
+    if filas:
+        headers = list(filas[0].keys())
+        fill_azul = PatternFill(start_color='1D4ED8', end_color='1D4ED8', fill_type='solid')
+        font_blanco_bold = Font(bold=True, color='FFFFFF')
+
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header.replace('_', ' ').title())
+            cell.font = font_blanco_bold
+            cell.fill = fill_azul
+            cell.alignment = Alignment(horizontal='center')
+
+        for row_idx, fila in enumerate(filas, 2):
+            for col_idx, header in enumerate(headers, 1):
+                ws.cell(row=row_idx, column=col_idx, value=fila.get(header))
+
+        # Ajustar ancho de columnas
+        for col in ws.columns:
+            max_len = max((len(str(cell.value or '')) for cell in col), default=8)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+
+    # --- Hoja de resumen ---
+    ws_res = wb.create_sheet('Resumen')
+    ws_res['A1'] = 'Métrica'
+    ws_res['B1'] = 'Valor'
+    ws_res['A1'].font = Font(bold=True)
+    ws_res['B1'].font = Font(bold=True)
+    for idx, (k, v) in enumerate(datos.get('resumen', {}).items(), 2):
+        ws_res.cell(row=idx, column=1, value=k.replace('_', ' ').title())
+        ws_res.cell(row=idx, column=2, value=v)
+    ws_res.column_dimensions['A'].width = 30
+    ws_res.column_dimensions['B'].width = 20
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+
+def _enviar_email(config: ConfiguracionReporte, datos: dict, dry_run: bool,
+                  excel_bytes: bytes = None) -> list:
     """Envía el reporte por correo. Devuelve lista de destinatarios enviados."""
     destinatarios = config.get_destinatarios_list()
     if not destinatarios:
@@ -73,6 +125,18 @@ def _enviar_email(config: ConfiguracionReporte, datos: dict, dry_run: bool) -> l
         to=destinatarios,
     )
     msg.attach_alternative(html, 'text/html')
+
+    if excel_bytes:
+        nombre_excel = (
+            f"reporte_{datos.get('tipo', 'reporte')}_"
+            f"{datos['periodo_inicio']}_{datos['periodo_fin']}.xlsx"
+        )
+        msg.attach(
+            nombre_excel,
+            excel_bytes,
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
     msg.send(fail_silently=False)
     return destinatarios
 
@@ -122,7 +186,8 @@ class Command(BaseCommand):
 
             try:
                 datos = generador(periodo_inicio, periodo_fin)
-                enviados = _enviar_email(config, datos, dry_run)
+                excel_bytes = _generar_excel(datos) if config.adjuntar_excel else None
+                enviados = _enviar_email(config, datos, dry_run, excel_bytes=excel_bytes)
 
                 if not dry_run:
                     ReporteGenerado.objects.create(

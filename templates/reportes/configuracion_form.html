@@ -84,10 +84,17 @@
                 {% endif %}
             </div>
 
-            <!-- Activo -->
-            <div class="mb-6 flex items-center gap-2">
+            <!-- Activo + Adjuntar Excel -->
+            <div class="mb-4 flex items-center gap-2">
                 {{ form.activo }}
                 <label class="text-sm font-semibold text-gray-700">{{ form.activo.label }}</label>
+            </div>
+            <div class="mb-6 flex items-start gap-2">
+                <div class="mt-0.5">{{ form.adjuntar_excel }}</div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">{{ form.adjuntar_excel.label }}</label>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ form.adjuntar_excel.help_text }}</p>
+                </div>
             </div>
 
             <div class="flex gap-3 pt-4 border-t border-gray-100">
