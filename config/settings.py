@@ -67,8 +67,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
-# Google Maps API
+# Google APIs
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+GOOGLE_VISION_API_KEY = os.environ.get('GOOGLE_VISION_API_KEY', '')
 
 TEMPLATES = [
     {

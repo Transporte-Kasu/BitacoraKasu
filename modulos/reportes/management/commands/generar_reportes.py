@@ -17,6 +17,7 @@ from io import BytesIO
 
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.styles.colors import Color
 
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
@@ -58,7 +59,8 @@ def _generar_excel(datos: dict) -> bytes:
 
     # --- Hoja de detalle ---
     ws = wb.active
-    ws.title = datos.get('titulo', 'Reporte')[:31]
+    titulo_hoja = datos.get('titulo', 'Reporte').replace('/', '-').replace('\\', '-')[:31]
+    ws.title = titulo_hoja
 
     filas = datos.get('filas', [])
     if filas:
@@ -72,14 +74,30 @@ def _generar_excel(datos: dict) -> bytes:
             cell.fill = fill_azul
             cell.alignment = Alignment(horizontal='center')
 
+        # Detectar qué columnas son de foto (contienen URLs)
+        foto_headers = {h for h in headers if h.startswith('foto_')}
+        font_link = Font(color='1D4ED8', underline='single')
+
         for row_idx, fila in enumerate(filas, 2):
             for col_idx, header in enumerate(headers, 1):
-                ws.cell(row=row_idx, column=col_idx, value=fila.get(header))
+                valor = fila.get(header) or ''
+                cell = ws.cell(row=row_idx, column=col_idx)
+                if header in foto_headers and valor:
+                    cell.value = 'Ver foto'
+                    cell.hyperlink = valor
+                    cell.font = font_link
+                else:
+                    cell.value = valor if valor != '' else None
 
-        # Ajustar ancho de columnas
+        # Ajustar ancho de columnas (fotos fijas en 12)
         for col in ws.columns:
-            max_len = max((len(str(cell.value or '')) for cell in col), default=8)
-            ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+            header_cell = col[0]
+            letter = header_cell.column_letter
+            if header_cell.value and str(header_cell.value).lower().startswith('foto'):
+                ws.column_dimensions[letter].width = 12
+            else:
+                max_len = max((len(str(cell.value or '')) for cell in col), default=8)
+                ws.column_dimensions[letter].width = min(max_len + 4, 40)
 
     # --- Hoja de resumen ---
     ws_res = wb.create_sheet('Resumen')

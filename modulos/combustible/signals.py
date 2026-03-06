@@ -1,6 +1,11 @@
+import logging
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import CargaCombustible, AlertaCombustible
+
+from .models import CargaCombustible, AlertaCombustible, FotoCandadoNuevo
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=CargaCombustible)
@@ -46,3 +51,52 @@ def generar_alertas_combustible(sender, instance, created, **kwargs):
                 )
             }
         )
+
+    # OCR del candado anterior al completar la carga
+    if not instance.ocr_candado_anterior_ok and instance.foto_candado_anterior:
+        _procesar_ocr_candado_anterior(instance)
+
+
+@receiver(post_save, sender=FotoCandadoNuevo)
+def procesar_ocr_foto_candado_nuevo(sender, instance, created, **kwargs):
+    """Ejecuta OCR sobre cada foto de candado nuevo al guardarla."""
+    if not created or instance.ocr_procesado:
+        return
+    _procesar_ocr_foto_nueva(instance)
+
+
+def _procesar_ocr_candado_anterior(carga):
+    """Lee el número del candado anterior por OCR y verifica el ciclo."""
+    from config.services.ocr_service import leer_numero_candado
+    from .services import verificar_ciclo_candados
+
+    numero = leer_numero_candado(carga.foto_candado_anterior)
+    CargaCombustible.objects.filter(pk=carga.pk).update(
+        numero_candado_anterior=numero,
+        ocr_candado_anterior_ok=True,
+    )
+    # Actualizar instancia en memoria para la verificación
+    carga.numero_candado_anterior = numero
+    carga.ocr_candado_anterior_ok = True
+
+    logger.info(
+        "OCR candado anterior — carga #%s unidad %s: '%s'",
+        carga.pk, carga.unidad.numero_economico, numero or '(no detectado)',
+    )
+
+    verificar_ciclo_candados(carga)
+
+
+def _procesar_ocr_foto_nueva(foto):
+    """Lee el número del candado nuevo por OCR."""
+    from config.services.ocr_service import leer_numero_candado
+
+    numero = leer_numero_candado(foto.foto)
+    FotoCandadoNuevo.objects.filter(pk=foto.pk).update(
+        numero_candado=numero,
+        ocr_procesado=True,
+    )
+    logger.info(
+        "OCR candado nuevo — carga #%s '%s': '%s'",
+        foto.carga_id, foto.descripcion or foto.pk, numero or '(no detectado)',
+    )

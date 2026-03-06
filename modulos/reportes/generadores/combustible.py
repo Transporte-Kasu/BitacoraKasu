@@ -2,12 +2,13 @@
 
 from datetime import date
 from django.utils import timezone
-from django.db.models import Sum, Count, Avg
+from django.db.models import Sum, Count, Avg, Prefetch
 
 
 def generar_cargas_periodo(periodo_inicio: date, periodo_fin: date) -> dict:
     """Reporte de todas las cargas de combustible en el período."""
     from modulos.combustible.models import CargaCombustible
+    from modulos.operadores.models import Operador
 
     cargas = (
         CargaCombustible.objects
@@ -17,22 +18,52 @@ def generar_cargas_periodo(periodo_inicio: date, periodo_fin: date) -> dict:
             estado='COMPLETADO',
         )
         .select_related('unidad', 'despachador')
+        .prefetch_related(
+            Prefetch(
+                'unidad__operadores',
+                queryset=Operador.objects.filter(activo=True),
+                to_attr='operadores_activos',
+            ),
+            'fotos_candado_nuevo',
+        )
         .order_by('-fecha_hora_inicio')
     )
 
+    # Calcular el número máximo de candados nuevos para generar columnas fijas
+    todas_cargas = list(cargas)
+    max_candados_nuevos = max(
+        (c.fotos_candado_nuevo.all().count() for c in todas_cargas),
+        default=1,
+    )
+    max_candados_nuevos = max(max_candados_nuevos, 1)
+
     filas = []
     total_litros = 0
-    for c in cargas:
-        filas.append({
+    for c in todas_cargas:
+        operadores_activos = getattr(c.unidad, 'operadores_activos', [])
+        nombre_operador = operadores_activos[0].nombre if operadores_activos else ''
+
+        fotos_nuevos = list(c.fotos_candado_nuevo.all())
+
+        fila = {
             'fecha': c.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M'),
             'unidad': c.unidad.numero_economico,
             'placa': c.unidad.placa if hasattr(c.unidad, 'placa') else '',
-            'despachador': str(c.despachador),
+            'operador': nombre_operador,
+            'despachador': c.despachador.nombre if c.despachador else '',
             'litros': float(c.cantidad_litros),
             'kilometraje': c.kilometraje_actual,
             'estado_candado': c.get_estado_candado_anterior_display(),
-            'tiene_alerta': c.tiene_alertas(),
-        })
+            'candado_anterior': c.numero_candado_anterior or '',
+            'foto_candado_anterior': c.foto_candado_anterior.url if c.foto_candado_anterior else '',
+        }
+        # Una columna de número y una de foto por cada candado nuevo posible
+        for i in range(1, max_candados_nuevos + 1):
+            foto = fotos_nuevos[i - 1] if i <= len(fotos_nuevos) else None
+            fila[f'candado_nuevo_{i}'] = foto.numero_candado if foto else ''
+            fila[f'foto_candado_nuevo_{i}'] = foto.foto.url if (foto and foto.foto) else ''
+
+        filas.append(fila)
         total_litros += float(c.cantidad_litros)
 
     return {
@@ -44,7 +75,6 @@ def generar_cargas_periodo(periodo_inicio: date, periodo_fin: date) -> dict:
         'resumen': {
             'total_cargas': len(filas),
             'total_litros': round(total_litros, 2),
-            'cargas_con_alerta': sum(1 for f in filas if f['tiene_alerta']),
         },
         'filas': filas,
     }

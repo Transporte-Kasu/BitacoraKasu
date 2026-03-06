@@ -156,6 +156,18 @@ class CargaCombustible(models.Model):
         verbose_name="Estado de la carga"
     )
 
+    # Número de candado anterior (leído por OCR de foto_candado_anterior)
+    numero_candado_anterior = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Número de candado anterior",
+        help_text="Extraído automáticamente por OCR de la foto del candado anterior"
+    )
+    ocr_candado_anterior_ok = models.BooleanField(
+        default=False,
+        verbose_name="OCR candado anterior procesado"
+    )
+
     # Metadatos
     notas = models.TextField(blank=True, verbose_name="Notas adicionales")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -219,6 +231,7 @@ class AlertaCombustible(models.Model):
         ('CANDADO_VIOLADO', 'Candado Violado'),
         ('SIN_CANDADO', 'Sin Candado'),
         ('EXCESO_COMBUSTIBLE', 'Exceso de Combustible'),
+        ('CANDADO_NO_COINCIDE', 'Candado no coincide con carga anterior'),
     ]
 
     carga = models.ForeignKey(
@@ -279,6 +292,16 @@ class FotoCandadoNuevo(models.Model):
         blank=True,
         verbose_name="Descripción",
         help_text="Ej: Tanque 1, Tanque 2"
+    )
+    numero_candado = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Número de candado",
+        help_text="Extraído automáticamente por OCR de la foto"
+    )
+    ocr_procesado = models.BooleanField(
+        default=False,
+        verbose_name="OCR procesado"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

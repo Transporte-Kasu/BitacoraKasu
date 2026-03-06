@@ -191,19 +191,36 @@ Proceso en 5 pasos con evidencia fotográfica:
 
 **Estado del candado:** `NORMAL` / `ALTERADO` / `VIOLADO` / `SIN_CANDADO`
 
+**Campos OCR (migración 0007):**
+| Campo | Descripción |
+|-------|-------------|
+| `numero_candado_anterior` | Número leído por OCR de `foto_candado_anterior` |
+| `ocr_candado_anterior_ok` | BooleanField — indica si el OCR ya se procesó |
+
 **`save()` override:**
 - Calcula `tiempo_carga_minutos` automáticamente
 - Actualiza `unidad.kilometraje_actual` al completarse
 
 **Signal en `combustible/signals.py`:**
-- Al guardar `CargaCombustible`, si `estado_candado_anterior` es `ALTERADO`, `VIOLADO` o `SIN_CANDADO` → genera `AlertaCombustible` automáticamente
-- Si `cantidad_litros > unidad.capacidad_combustible` → genera alerta de `EXCESO_COMBUSTIBLE`
+- Al guardar `CargaCombustible` con `estado=COMPLETADO` → genera `AlertaCombustible` por candado anómalo o exceso de litros
+- Al completarse → llama OCR sobre `foto_candado_anterior` → guarda `numero_candado_anterior` → llama `verificar_ciclo_candados()`
+- Al guardar `FotoCandadoNuevo` → llama OCR sobre `foto` → guarda `numero_candado`
+
+**Servicio OCR (`config/services/ocr_service.py`):**
+- `leer_numero_candado(imagen_field) → str` — extrae número de serie de un candado
+- Backend: **pytesseract** (Tesseract OCR, libre y gratuito)
+- Pipeline: escala de grises → contraste → nitidez → umbral binario → dos intentos (PSM 6 y PSM 8)
+- Funciona con imágenes locales y DigitalOcean Spaces (via `storage.open()`)
+- Seguro si pytesseract no está instalado (devuelve `''` con log)
+
+**Servicio de ciclo (`combustible/services.py`):**
+- `verificar_ciclo_candados(carga)` — compara `numero_candado_anterior` de la carga actual con los `numero_candado` de `FotoCandadoNuevo` de la carga anterior de la misma unidad → genera `AlertaCombustible(CANDADO_NO_COINCIDE)` si no coinciden
 
 #### `AlertaCombustible`
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | `carga` | FK → CargaCombustible | Origen de la alerta |
-| `tipo_alerta` | choices | `CANDADO_ALTERADO / CANDADO_VIOLADO / SIN_CANDADO / EXCESO_COMBUSTIBLE` |
+| `tipo_alerta` | choices | `CANDADO_ALTERADO / CANDADO_VIOLADO / SIN_CANDADO / EXCESO_COMBUSTIBLE / CANDADO_NO_COINCIDE` |
 | `mensaje` | TextField | Descripción del problema |
 | `resuelta` / `resuelta_por` / `fecha_resolucion` | | Control de resolución |
 
@@ -214,6 +231,11 @@ Proceso en 5 pasos con evidencia fotográfica:
 #### `FotoCandadoNuevo`
 - Permite múltiples fotos del candado nuevo por carga (relación 1:N)
 - Campo `descripcion`: "Tanque 1", "Tanque 2", etc.
+- Campos OCR: `numero_candado` (CharField), `ocr_procesado` (BooleanField)
+
+**Despliegue DigitalOcean:** `apt.txt` en raíz instala `tesseract-ocr` y `tesseract-ocr-spa` automáticamente vía buildpack.
+
+**Reporte Excel combustible:** columnas `candado_anterior` + `candado_nuevo_1`, `candado_nuevo_2`… (dinámicas según número de tanques).
 
 **URLs:** 10 patrones
 **Templates:** 10 (wizard 5 pasos + listado + detalle + alertas)
@@ -568,6 +590,8 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 | Signal | Módulo | Disparador | Efecto |
 |--------|--------|-----------|--------|
 | `post_save CargaCombustible` | combustible | Candado ALTERADO/VIOLADO/SIN_CANDADO o exceso litros | Crea `AlertaCombustible` |
+| `post_save CargaCombustible` | combustible | `estado=COMPLETADO` + foto candado anterior | OCR → `numero_candado_anterior` → `verificar_ciclo_candados()` → alerta `CANDADO_NO_COINCIDE` si no coincide |
+| `post_save FotoCandadoNuevo` | combustible | Creación | OCR → guarda `numero_candado` en la foto |
 | `post_save OrdenTrabajo` | taller | Creación | Email a grupo "Supervisores Taller" |
 | `post_save OrdenTrabajo` | taller | >7 días en taller | Email de alerta a supervisores/gerentes |
 | `post_save OrdenTrabajo` | taller | Estado COMPLETADA | Email al creador |
@@ -777,6 +801,7 @@ pillow==12.0.0                    # Imágenes
 requests==2.32.5                  # HTTP (Google Maps)
 openpyxl==3.1.5                   # Generación de Excel en reportes
 django-template-maths==0.2.0      # Operaciones matemáticas en templates
+pytesseract==0.3.13               # OCR para lectura de números de candado (requiere tesseract-ocr binario vía apt.txt)
 apscheduler==3.11.2               # Scheduler de tareas
 django-apscheduler==0.7.0         # Integración Django + APScheduler
 sendgrid==6.12.5                  # Email transaccional
