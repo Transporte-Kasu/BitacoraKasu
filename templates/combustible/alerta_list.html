@@ -48,7 +48,10 @@
                         <span class="inline-flex items-center px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">Resuelta</span>
                         {% endif %}
                         <!-- Unidad -->
-                        <span class="text-xs text-gray-500">{{ alerta.carga.unidad.numero_economico }}</span>
+                        <a href="{% url 'unidades:detail' alerta.carga.unidad.pk %}" target="_blank"
+                           class="text-xs text-blue-500 hover:text-blue-700 hover:underline">
+                            ECO {{ alerta.carga.unidad.numero_economico }}
+                        </a>
                     </div>
                     <p class="text-sm text-gray-700">{{ alerta.mensaje }}</p>
                     <div class="flex gap-4 mt-1.5 text-xs text-gray-400">
@@ -59,7 +62,8 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <a href="{% url 'combustible:detalle' alerta.carga.pk %}" class="text-xs text-gray-400 hover:text-gray-600">
+                    <a href="{% url 'combustible:detalle' alerta.carga.pk %}" target="_blank"
+                       class="text-xs text-gray-400 hover:text-gray-600">
                         Ver carga
                     </a>
                     {% if not alerta.resuelta %}

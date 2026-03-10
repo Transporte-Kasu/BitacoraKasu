@@ -305,14 +305,18 @@
                             <span>Unidades</span>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" style="position:relative;">
                         <a href="{% url 'combustible:dashboard' %}" class="nav-link">
                             <span class="nav-icon">⛽</span>
                             <span>Combustible</span>
-                            {% if user.is_superuser and alertas_combustible_pendientes > 0 %}
-                            <a href="{% url 'combustible:alertas' %}" title="{{ alertas_combustible_pendientes }} alerta{{ alertas_combustible_pendientes|pluralize:'s' }} pendiente{{ alertas_combustible_pendientes|pluralize:'s' }}" style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;background:#ef4444;color:#fff;border-radius:9999px;font-size:10px;font-weight:600;padding:0 4px;line-height:1;text-decoration:none;margin-left:4px;" onclick="event.stopPropagation();">{{ alertas_combustible_pendientes }}</a>
-                            {% endif %}
                         </a>
+                        {% if user.is_superuser and alertas_combustible_pendientes > 0 %}
+                        <a href="{% url 'combustible:alertas' %}"
+                           title="{{ alertas_combustible_pendientes }} alerta{{ alertas_combustible_pendientes|pluralize:'s' }} pendiente{{ alertas_combustible_pendientes|pluralize:'s' }}"
+                           style="position:absolute;top:4px;right:4px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:#ef4444;color:#fff;border-radius:9999px;font-size:9px;font-weight:700;padding:0 3px;line-height:1;text-decoration:none;">
+                            {{ alertas_combustible_pendientes }}
+                        </a>
+                        {% endif %}
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'bitacoras:dashboard' %}" class="nav-link">
