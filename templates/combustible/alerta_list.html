@@ -40,6 +40,7 @@
                             {% if alerta.tipo_alerta == 'CANDADO_VIOLADO' %}bg-red-100 text-red-700
                             {% elif alerta.tipo_alerta == 'CANDADO_ALTERADO' %}bg-yellow-100 text-yellow-700
                             {% elif alerta.tipo_alerta == 'SIN_CANDADO' %}bg-orange-100 text-orange-700
+                            {% elif alerta.tipo_alerta == 'KILOMETRAJE_MENOR' %}bg-purple-100 text-purple-700
                             {% else %}bg-blue-100 text-blue-700{% endif %}">
                             {{ alerta.get_tipo_alerta_display }}
                         </span>
@@ -50,7 +51,7 @@
                         <!-- Unidad -->
                         <a href="{% url 'unidades:detail' alerta.carga.unidad.pk %}" target="_blank"
                            class="text-xs text-blue-500 hover:text-blue-700 hover:underline">
-                            ECO {{ alerta.carga.unidad.numero_economico }}
+                            {{ alerta.carga.unidad.numero_economico }}
                         </a>
                     </div>
                     <p class="text-sm text-gray-700">{{ alerta.mensaje }}</p>

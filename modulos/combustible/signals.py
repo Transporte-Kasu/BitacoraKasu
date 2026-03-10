@@ -52,6 +52,30 @@ def generar_alertas_combustible(sender, instance, created, **kwargs):
             }
         )
 
+    # Alerta por kilometraje menor al de la carga anterior de la misma unidad
+    carga_anterior = (
+        CargaCombustible.objects
+        .filter(unidad=instance.unidad, estado='COMPLETADO')
+        .exclude(pk=instance.pk)
+        .order_by('-fecha_hora_inicio')
+        .first()
+    )
+    if carga_anterior and instance.kilometraje_actual < carga_anterior.kilometraje_actual:
+        AlertaCombustible.objects.get_or_create(
+            carga=instance,
+            tipo_alerta='KILOMETRAJE_MENOR',
+            defaults={
+                'mensaje': (
+                    f"Unidad ECO {instance.unidad.numero_economico}: el kilometraje registrado "
+                    f"({instance.kilometraje_actual:,} km) es MENOR al de la carga anterior "
+                    f"({carga_anterior.kilometraje_actual:,} km) del "
+                    f"{carga_anterior.fecha_hora_inicio.strftime('%d/%m/%Y')}. "
+                    f"Posible retroceso de odómetro o error de captura. "
+                    f"Despachador: {instance.despachador.nombre}."
+                )
+            }
+        )
+
     # OCR del candado anterior al completar la carga
     if not instance.ocr_candado_anterior_ok and instance.foto_candado_anterior:
         _procesar_ocr_candado_anterior(instance)

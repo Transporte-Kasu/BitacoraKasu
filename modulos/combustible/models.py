@@ -232,6 +232,7 @@ class AlertaCombustible(models.Model):
         ('SIN_CANDADO', 'Sin Candado'),
         ('EXCESO_COMBUSTIBLE', 'Exceso de Combustible'),
         ('CANDADO_NO_COINCIDE', 'Candado no coincide con carga anterior'),
+        ('KILOMETRAJE_MENOR', 'Kilometraje menor al anterior'),
     ]
 
     carga = models.ForeignKey(
