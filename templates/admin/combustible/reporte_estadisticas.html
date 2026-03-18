@@ -1,0 +1,888 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Estadísticas de Combustible | Admin{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .reporte-wrapper { max-width: 1400px; margin: 0 auto; padding: 20px 10px; }
+
+  /* ── Breadcrumb ── */
+  .reporte-breadcrumb { margin-bottom: 16px; font-size: 13px; color: #666; }
+  .reporte-breadcrumb a { color: #417690; text-decoration: none; }
+  .reporte-breadcrumb a:hover { text-decoration: underline; }
+
+  /* ── Header ── */
+  .reporte-header { display: flex; align-items: center; justify-content: space-between;
+                    flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .reporte-titulo { font-size: 22px; font-weight: 700; color: #1F4E79; margin: 0; }
+  .reporte-acciones { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  /* ── Filtro de fechas ── */
+  .filtro-card { background: #F0F6FF; border: 1px solid #C7DCEF; border-radius: 8px;
+                 padding: 16px 20px; margin-bottom: 24px; }
+  .filtro-card form { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .filtro-grupo { display: flex; flex-direction: column; gap: 4px; }
+  .filtro-grupo label { font-size: 12px; font-weight: 600; color: #417690; }
+  .filtro-grupo input[type="date"] {
+    border: 1px solid #C7DCEF; border-radius: 5px; padding: 7px 10px;
+    font-size: 13px; color: #333; background: white;
+  }
+  .btn-filtrar {
+    background: #1F4E79; color: white; border: none; padding: 8px 18px;
+    border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-filtrar:hover { background: #17406A; }
+  .btn-excel {
+    background: #1A6B3C; color: white; border: none; padding: 8px 18px;
+    border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    transition: background 0.2s;
+  }
+  .btn-excel:hover { background: #145530; color: white; }
+
+  /* ── KPI cards ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+              gap: 14px; margin-bottom: 28px; }
+  .kpi-card { background: white; border: 1px solid #E5E7EB; border-radius: 10px;
+              padding: 16px 18px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .kpi-card .kpi-valor { font-size: 28px; font-weight: 800; line-height: 1.1; margin-bottom: 4px; }
+  .kpi-card .kpi-label { font-size: 11px; color: #6B7280; text-transform: uppercase;
+                          letter-spacing: .5px; font-weight: 600; }
+  .kpi-azul   { border-top: 4px solid #1F4E79; }
+  .kpi-verde  { border-top: 4px solid #1A6B3C; }
+  .kpi-morado { border-top: 4px solid #7C3AED; }
+  .kpi-naranja{ border-top: 4px solid #D97706; }
+  .kpi-rojo   { border-top: 4px solid #DC2626; }
+  .kpi-azul   .kpi-valor { color: #1F4E79; }
+  .kpi-verde  .kpi-valor { color: #1A6B3C; }
+  .kpi-morado .kpi-valor { color: #7C3AED; }
+  .kpi-naranja .kpi-valor { color: #D97706; }
+  .kpi-rojo   .kpi-valor { color: #DC2626; }
+
+  /* ── Charts grid ── */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+  .chart-card { background: white; border: 1px solid #E5E7EB; border-radius: 10px;
+                padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .chart-card.full-width { grid-column: 1 / -1; }
+  .chart-titulo { font-size: 14px; font-weight: 700; color: #374151; margin: 0 0 14px 0;
+                  padding-bottom: 10px; border-bottom: 1px solid #F3F4F6; }
+  .chart-canvas-wrapper { position: relative; height: 260px; }
+  .chart-canvas-wrapper.tall { height: 320px; }
+
+  /* ── Tablas ── */
+  .tabla-card { background: white; border: 1px solid #E5E7EB; border-radius: 10px;
+                padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .tabla-titulo { font-size: 14px; font-weight: 700; color: #374151; margin: 0 0 14px 0;
+                  padding-bottom: 10px; border-bottom: 1px solid #F3F4F6; }
+  .tabla-responsive { overflow-x: auto; }
+  table.reporte-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.reporte-tabla thead th {
+    background: #1F4E79; color: white; padding: 9px 12px;
+    text-align: left; font-weight: 600; white-space: nowrap;
+  }
+  table.reporte-tabla tbody tr:nth-child(even) { background: #F0F6FF; }
+  table.reporte-tabla tbody tr:hover { background: #DBEAFE; }
+  table.reporte-tabla tbody td { padding: 8px 12px; border-bottom: 1px solid #E5E7EB; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .badge-normal   { background: #D1FAE5; color: #065F46; }
+  .badge-alerta   { background: #FEF3C7; color: #92400E; }
+  .badge-peligro  { background: #FEE2E2; color: #991B1B; }
+  .badge-info     { background: #DBEAFE; color: #1E40AF; }
+
+  /* ── Nivel bars ── */
+  .nivel-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .nivel-bar-bg { flex: 1; background: #E5E7EB; border-radius: 4px; height: 8px; }
+  .nivel-bar-fill { height: 100%; border-radius: 4px; background: #1F4E79; }
+
+  /* ── Proyecciones ── */
+  .proy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+               gap: 14px; margin-bottom: 28px; }
+  .proy-card { background: white; border: 1px solid #E5E7EB; border-radius: 10px;
+               padding: 16px 18px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+               border-top: 4px solid #7C3AED; }
+  .proy-card .proy-valor { font-size: 24px; font-weight: 800; color: #7C3AED; line-height: 1.1; }
+  .proy-card .proy-label { font-size: 11px; color: #6B7280; text-transform: uppercase;
+                            letter-spacing: .5px; font-weight: 600; margin-top: 4px; }
+  .proy-card .proy-sub { font-size: 11px; color: #9CA3AF; margin-top: 3px; }
+  .proy-tendencia { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
+                    border-radius: 20px; font-size: 12px; font-weight: 700; margin-top: 6px; }
+  .tend-verde  { background: #D1FAE5; color: #065F46; }
+  .tend-amarillo { background: #FEF3C7; color: #92400E; }
+  .tend-rojo   { background: #FEE2E2; color: #991B1B; }
+  .tend-azul   { background: #DBEAFE; color: #1E40AF; }
+
+  /* ── Interpretaciones ── */
+  .interp-section { margin-bottom: 28px; }
+  .interp-titulo-sec { font-size: 16px; font-weight: 700; color: #374151;
+                        margin: 0 0 14px 0; padding-bottom: 10px; border-bottom: 2px solid #E5E7EB; }
+  .interp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .interp-card { background: white; border: 1px solid #E5E7EB; border-radius: 10px;
+                 padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+                 display: flex; gap: 12px; align-items: flex-start; }
+  .interp-semaforo { width: 10px; min-width: 10px; border-radius: 5px; align-self: stretch; }
+  .sem-verde   { background: #10B981; }
+  .sem-amarillo { background: #F59E0B; }
+  .sem-rojo    { background: #EF4444; }
+  .sem-azul    { background: #3B82F6; }
+  .interp-body { flex: 1; }
+  .interp-titulo { font-size: 13px; font-weight: 700; color: #374151; margin: 0 0 5px; }
+  .interp-texto { font-size: 12px; color: #6B7280; line-height: 1.6; margin: 0; }
+
+  @media (max-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-card.full-width { grid-column: 1; }
+    .interp-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reporte-wrapper">
+
+  <!-- Breadcrumb -->
+  <div class="reporte-breadcrumb">
+    <a href="{% url 'admin:index' %}">Inicio</a> &rsaquo;
+    <a href="{% url 'admin:combustible_cargacombustible_changelist' %}">Cargas de Combustible</a> &rsaquo;
+    Estadísticas
+  </div>
+
+  <!-- Header -->
+  <div class="reporte-header">
+    <h1 class="reporte-titulo">⛽ Estadísticas de Combustible</h1>
+    <div class="reporte-acciones">
+      <a href="{% url 'admin:combustible_cargacombustible_estadisticas_excel' %}?desde={{ desde }}&hasta={{ hasta }}"
+         class="btn-excel">
+        📥 Exportar Excel
+      </a>
+    </div>
+  </div>
+
+  <!-- Filtro de fechas -->
+  <div class="filtro-card">
+    <form method="get" action="">
+      <div class="filtro-grupo">
+        <label for="id_desde">Desde</label>
+        <input type="date" id="id_desde" name="desde" value="{{ desde }}">
+      </div>
+      <div class="filtro-grupo">
+        <label for="id_hasta">Hasta</label>
+        <input type="date" id="id_hasta" name="hasta" value="{{ hasta }}">
+      </div>
+      <button type="submit" class="btn-filtrar">🔍 Aplicar filtro</button>
+      <a href="?desde={{ desde }}&hasta={{ hasta }}"
+         style="font-size:12px; color:#417690; text-decoration:none; margin-left:8px;">
+        Solo completadas
+      </a>
+    </form>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-azul">
+      <div class="kpi-valor">{{ totales.total_cargas }}</div>
+      <div class="kpi-label">Cargas Completadas</div>
+    </div>
+    <div class="kpi-card kpi-verde">
+      <div class="kpi-valor">{{ totales.total_litros|floatformat:0 }}</div>
+      <div class="kpi-label">Litros Totales</div>
+    </div>
+    <div class="kpi-card kpi-morado">
+      <div class="kpi-valor">{{ totales.promedio_litros|floatformat:1 }}</div>
+      <div class="kpi-label">Litros Promedio</div>
+    </div>
+    <div class="kpi-card kpi-naranja">
+      <div class="kpi-valor">{{ totales.max_litros|floatformat:0 }}</div>
+      <div class="kpi-label">Carga Máxima (lt)</div>
+    </div>
+    <div class="kpi-card kpi-azul">
+      <div class="kpi-valor">{{ totales.promedio_tiempo|floatformat:0 }}</div>
+      <div class="kpi-label">Tiempo Prom. (min)</div>
+    </div>
+    <div class="kpi-card {% if total_alertas_pendientes > 0 %}kpi-rojo{% else %}kpi-verde{% endif %}">
+      <div class="kpi-valor">{{ total_alertas_pendientes }}</div>
+      <div class="kpi-label">Alertas Pendientes</div>
+    </div>
+    <div class="kpi-card kpi-naranja">
+      <div class="kpi-valor">{{ estados_count.CANCELADO }}</div>
+      <div class="kpi-label">Canceladas</div>
+    </div>
+    <div class="kpi-card kpi-morado">
+      <div class="kpi-valor">{{ estados_count.EN_PROCESO }}</div>
+      <div class="kpi-label">En Proceso</div>
+    </div>
+  </div>
+
+  <!-- Fila 1: Nivel inicial + Litros por día -->
+  <div class="charts-grid">
+
+    <div class="chart-card">
+      <h3 class="chart-titulo">🪣 Distribución por Nivel Inicial de Combustible</h3>
+      <div class="chart-canvas-wrapper">
+        <canvas id="chartNivel"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-titulo">📈 Litros Cargados por Día</h3>
+      <div class="chart-canvas-wrapper">
+        <canvas id="chartDia"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Fila 2: Estado candados + Top unidades -->
+  <div class="charts-grid">
+
+    <div class="chart-card">
+      <h3 class="chart-titulo">🔒 Estado de Candados</h3>
+      <div class="chart-canvas-wrapper">
+        <canvas id="chartCandados"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-titulo">🚛 Top 10 Unidades por Litros Cargados</h3>
+      <div class="chart-canvas-wrapper tall">
+        <canvas id="chartTopUnidades"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Fila 3: Por despachador + Historial mensual -->
+  <div class="charts-grid">
+
+    <div class="chart-card">
+      <h3 class="chart-titulo">👤 Litros por Despachador</h3>
+      <div class="chart-canvas-wrapper">
+        <canvas id="chartDesp"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-titulo">📅 Historial Mensual (últimos 12 meses)</h3>
+      <div class="chart-canvas-wrapper">
+        <canvas id="chartMensual"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Gráfica promedio de litros según nivel inicial (full width) -->
+  <div class="charts-grid">
+    <div class="chart-card full-width">
+      <h3 class="chart-titulo">⚖️ Promedio de Litros Cargados Según Nivel Inicial</h3>
+      <div class="chart-canvas-wrapper">
+        <canvas id="chartNivelPromedio"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- PROYECCIONES                                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <div style="margin-bottom: 10px;">
+    <h2 style="font-size:17px; font-weight:700; color:#1F4E79; margin:0 0 16px 0;
+               padding-bottom:10px; border-bottom:2px solid #E5E7EB;">
+      📡 Proyecciones de Consumo
+    </h2>
+  </div>
+
+  <div class="proy-grid">
+
+    <div class="proy-card">
+      <div class="proy-valor">{{ promedio_diario_litros|floatformat:1 }} lt</div>
+      <div class="proy-label">Promedio diario</div>
+      <div class="proy-sub">en el período analizado</div>
+    </div>
+
+    <div class="proy-card">
+      <div class="proy-valor">{{ proyeccion_30_dias|floatformat:0 }} lt</div>
+      <div class="proy-label">Proyección 30 días</div>
+      <div class="proy-sub">≈ {{ proyeccion_cargas_30 }} cargas estimadas</div>
+    </div>
+
+    <div class="proy-card">
+      <div class="proy-valor">{{ proyeccion_90_dias|floatformat:0 }} lt</div>
+      <div class="proy-label">Proyección 90 días</div>
+      <div class="proy-sub">próximo trimestre</div>
+    </div>
+
+    <div class="proy-card">
+      <div class="proy-valor">{{ proyeccion_anual|floatformat:0 }} lt</div>
+      <div class="proy-label">Proyección anual</div>
+      <div class="proy-sub">a ritmo actual</div>
+    </div>
+
+    <div class="proy-card" style="border-top-color: {% if tendencia_color == 'verde' %}#10B981{% elif tendencia_color == 'rojo' %}#EF4444{% elif tendencia_color == 'amarillo' %}#F59E0B{% else %}#3B82F6{% endif %};">
+      <div class="proy-valor" style="font-size:16px; color: {% if tendencia_color == 'verde' %}#065F46{% elif tendencia_color == 'rojo' %}#991B1B{% elif tendencia_color == 'amarillo' %}#92400E{% else %}#1E40AF{% endif %};">
+        {% if variacion_interna >= 0 %}+{% endif %}{{ variacion_interna }}%
+      </div>
+      <div class="proy-label">Tendencia del período</div>
+      <span class="proy-tendencia tend-{{ tendencia_color }}">
+        {% if tendencia_label == 'alza' %}▲ En alza{% elif tendencia_label == 'baja' %}▼ En baja{% else %}● Estable{% endif %}
+      </span>
+    </div>
+
+    {% if variacion_vs_anterior is not None %}
+    <div class="proy-card" style="border-top-color: {% if variacion_vs_anterior > 10 %}#F59E0B{% elif variacion_vs_anterior < -10 %}#10B981{% else %}#3B82F6{% endif %};">
+      <div class="proy-valor" style="font-size:16px;">
+        {% if variacion_vs_anterior >= 0 %}+{% endif %}{{ variacion_vs_anterior }}%
+      </div>
+      <div class="proy-label">vs período anterior</div>
+      <div class="proy-sub">{{ litros_periodo_anterior|floatformat:0 }} lt período previo</div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Gráfica de proyección -->
+  <div class="charts-grid" style="margin-bottom:28px;">
+    <div class="chart-card full-width">
+      <h3 class="chart-titulo">📡 Histórico + Proyección de Litros (próximos 6 meses)</h3>
+      <div class="chart-canvas-wrapper tall">
+        <canvas id="chartProyeccion"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- INTERPRETACIONES                                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  {% if interpretaciones %}
+  <div class="interp-section">
+    <h2 class="interp-titulo-sec">🔍 Interpretaciones del Período</h2>
+    <div class="interp-grid">
+      {% for item in interpretaciones %}
+      <div class="interp-card">
+        <div class="interp-semaforo sem-{{ item.semaforo }}"></div>
+        <div class="interp-body">
+          <p class="interp-titulo">{{ item.titulo }}</p>
+          <p class="interp-texto">{{ item.texto }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Tabla: Análisis por nivel inicial -->
+  <div class="tabla-card">
+    <h3 class="tabla-titulo">🪣 Análisis Detallado por Nivel Inicial</h3>
+    {% if niveles %}
+    {% with max_litros_nivel=niveles.0.litros %}
+    <div class="tabla-responsive">
+      <table class="reporte-tabla">
+        <thead>
+          <tr>
+            <th>Nivel</th>
+            <th># Cargas</th>
+            <th>Total Litros</th>
+            <th>Promedio Litros</th>
+            <th>Distribución</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for nivel in niveles %}
+          <tr>
+            <td><strong>{{ nivel.label }}</strong></td>
+            <td style="text-align:center;">{{ nivel.total }}</td>
+            <td style="text-align:right;">{{ nivel.litros|floatformat:2 }} lt</td>
+            <td style="text-align:right;">
+              <strong>{{ nivel.promedio|floatformat:2 }} lt</strong>
+            </td>
+            <td style="min-width:160px;">
+              {% if totales.total_cargas > 0 %}
+              {% widthratio nivel.total totales.total_cargas 100 as pct %}
+              <div class="nivel-bar-wrap">
+                <div class="nivel-bar-bg">
+                  <div class="nivel-bar-fill" style="width: {{ pct }}%;"></div>
+                </div>
+                <span style="font-size:11px; color:#666; width:34px; text-align:right;">{{ pct }}%</span>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endwith %}
+    {% else %}
+    <p style="color:#888; text-align:center; padding:20px;">Sin datos en el período seleccionado.</p>
+    {% endif %}
+  </div>
+
+  <!-- Tabla: Top unidades -->
+  <div class="tabla-card">
+    <h3 class="tabla-titulo">🚛 Top Unidades por Consumo</h3>
+    {% if top_unidades %}
+    <div class="tabla-responsive">
+      <table class="reporte-tabla">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>N° Económico</th>
+            <th>Placa</th>
+            <th>Tipo</th>
+            <th># Cargas</th>
+            <th>Total Litros</th>
+            <th>Promedio / Carga</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in top_unidades %}
+          <tr>
+            <td style="text-align:center; color:#888;">{{ forloop.counter }}</td>
+            <td><strong>{{ u.unidad__numero_economico }}</strong></td>
+            <td>{{ u.unidad__placa }}</td>
+            <td>{{ u.unidad__tipo }}</td>
+            <td style="text-align:center;">{{ u.total_cargas }}</td>
+            <td style="text-align:right;"><strong>{{ u.total_litros|floatformat:2 }} lt</strong></td>
+            <td style="text-align:right;">{{ u.promedio_litros|floatformat:2 }} lt</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:#888; text-align:center; padding:20px;">Sin datos en el período seleccionado.</p>
+    {% endif %}
+  </div>
+
+  <!-- Tabla: Alertas -->
+  {% if alertas %}
+  <div class="tabla-card">
+    <h3 class="tabla-titulo">⚠️ Alertas Generadas en el Período</h3>
+    <div class="tabla-responsive">
+      <table class="reporte-tabla">
+        <thead>
+          <tr>
+            <th>Tipo de Alerta</th>
+            <th>Total</th>
+            <th>Pendientes</th>
+            <th>Resueltas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in alertas %}
+          <tr>
+            <td>{{ a.label }}</td>
+            <td style="text-align:center;"><strong>{{ a.total }}</strong></td>
+            <td style="text-align:center;">
+              {% if a.pendientes > 0 %}
+              <span class="badge badge-peligro">{{ a.pendientes }}</span>
+              {% else %}
+              <span style="color:#888;">0</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              <span class="badge badge-normal">{{ a.resueltas }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Tabla: Por despachador -->
+  {% if por_desp %}
+  <div class="tabla-card">
+    <h3 class="tabla-titulo">👤 Resumen por Despachador</h3>
+    <div class="tabla-responsive">
+      <table class="reporte-tabla">
+        <thead>
+          <tr>
+            <th>Despachador</th>
+            <th># Cargas</th>
+            <th>Total Litros</th>
+            <th>Promedio Litros</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in por_desp %}
+          <tr>
+            <td><strong>{{ d.despachador__nombre }}</strong></td>
+            <td style="text-align:center;">{{ d.total_cargas }}</td>
+            <td style="text-align:right;">{{ d.total_litros|floatformat:2 }} lt</td>
+            <td style="text-align:right;">{{ d.promedio_litros|floatformat:2 }} lt</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /.reporte-wrapper -->
+
+<!-- ── Chart.js scripts ─────────────────────────────────────────────────── -->
+<script>
+(function () {
+  const AZUL  = '#1F4E79';
+  const VERDE = '#1A6B3C';
+  const MORADO = '#7C3AED';
+  const NARANJA = '#D97706';
+  const ROJO = '#DC2626';
+  const GRIS = '#6B7280';
+
+  const COLORES_DONUT = [ROJO, NARANJA, AZUL, VERDE];
+  const COLORES_CANDADO = [VERDE, NARANJA, ROJO, GRIS];
+
+  // 1. Nivel inicial — Donut
+  new Chart(document.getElementById('chartNivel'), {
+    type: 'doughnut',
+    data: {
+      labels: {{ nivel_labels_json|safe }},
+      datasets: [{
+        data: {{ nivel_totales_json|safe }},
+        backgroundColor: COLORES_DONUT,
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw} cargas`
+          }
+        }
+      }
+    }
+  });
+
+  // 2. Litros por día — Line
+  new Chart(document.getElementById('chartDia'), {
+    type: 'line',
+    data: {
+      labels: {{ dias_labels_json|safe }},
+      datasets: [
+        {
+          label: 'Litros',
+          data: {{ dias_litros_json|safe }},
+          borderColor: AZUL,
+          backgroundColor: 'rgba(31,78,121,0.12)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: AZUL,
+          yAxisID: 'yLitros',
+        },
+        {
+          label: '# Cargas',
+          data: {{ dias_cargas_json|safe }},
+          borderColor: NARANJA,
+          backgroundColor: 'rgba(217,119,6,0.10)',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          borderDash: [5, 3],
+          yAxisID: 'yCargas',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+      scales: {
+        yLitros: {
+          type: 'linear', position: 'left',
+          title: { display: true, text: 'Litros' },
+          beginAtZero: true,
+        },
+        yCargas: {
+          type: 'linear', position: 'right',
+          title: { display: true, text: '# Cargas' },
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+        }
+      }
+    }
+  });
+
+  // 3. Estado candados — Pie
+  new Chart(document.getElementById('chartCandados'), {
+    type: 'pie',
+    data: {
+      labels: {{ candados_labels_json|safe }},
+      datasets: [{
+        data: {{ candados_totales_json|safe }},
+        backgroundColor: COLORES_CANDADO,
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } },
+      }
+    }
+  });
+
+  // 4. Top unidades — Horizontal bar
+  new Chart(document.getElementById('chartTopUnidades'), {
+    type: 'bar',
+    data: {
+      labels: {{ top_unidades_labels_json|safe }},
+      datasets: [
+        {
+          label: 'Total Litros',
+          data: {{ top_unidades_litros_json|safe }},
+          backgroundColor: AZUL,
+          borderRadius: 4,
+        },
+        {
+          label: '# Cargas',
+          data: {{ top_unidades_cargas_json|safe }},
+          backgroundColor: MORADO,
+          borderRadius: 4,
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 } } },
+      },
+      scales: {
+        x: { beginAtZero: true }
+      }
+    }
+  });
+
+  // 5. Por despachador — Bar
+  new Chart(document.getElementById('chartDesp'), {
+    type: 'bar',
+    data: {
+      labels: {{ desp_labels_json|safe }},
+      datasets: [
+        {
+          label: 'Total Litros',
+          data: {{ desp_litros_json|safe }},
+          backgroundColor: VERDE,
+          borderRadius: 4,
+          yAxisID: 'yLitros',
+        },
+        {
+          label: '# Cargas',
+          data: {{ desp_cargas_json|safe }},
+          backgroundColor: NARANJA,
+          borderRadius: 4,
+          yAxisID: 'yCargas',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+      scales: {
+        yLitros: {
+          type: 'linear', position: 'left',
+          title: { display: true, text: 'Litros' },
+          beginAtZero: true,
+        },
+        yCargas: {
+          type: 'linear', position: 'right',
+          title: { display: true, text: '# Cargas' },
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+        }
+      }
+    }
+  });
+
+  // 6. Historial mensual — Bar + Line
+  new Chart(document.getElementById('chartMensual'), {
+    type: 'bar',
+    data: {
+      labels: {{ hist_labels_json|safe }},
+      datasets: [
+        {
+          label: 'Litros totales',
+          data: {{ hist_litros_json|safe }},
+          backgroundColor: 'rgba(31,78,121,0.75)',
+          borderColor: AZUL,
+          borderWidth: 1,
+          borderRadius: 4,
+          yAxisID: 'yLitros',
+        },
+        {
+          label: '# Cargas',
+          type: 'line',
+          data: {{ hist_cargas_json|safe }},
+          borderColor: NARANJA,
+          backgroundColor: 'rgba(217,119,6,0.15)',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          yAxisID: 'yCargas',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+      scales: {
+        yLitros: {
+          type: 'linear', position: 'left',
+          title: { display: true, text: 'Litros' },
+          beginAtZero: true,
+        },
+        yCargas: {
+          type: 'linear', position: 'right',
+          title: { display: true, text: '# Cargas' },
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+        }
+      }
+    }
+  });
+
+  // 7. Proyección histórico + futuro
+  new Chart(document.getElementById('chartProyeccion'), {
+    type: 'line',
+    data: {
+      labels: {{ hist_proy_labels|safe }},
+      datasets: [
+        {
+          label: 'Litros históricos',
+          data: {{ hist_proy_hist|safe }},
+          borderColor: AZUL,
+          backgroundColor: 'rgba(31,78,121,0.12)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: AZUL,
+          spanGaps: false,
+        },
+        {
+          label: 'Proyección',
+          data: {{ hist_proy_proy|safe }},
+          borderColor: MORADO,
+          backgroundColor: 'rgba(124,58,237,0.08)',
+          fill: true,
+          tension: 0,
+          pointRadius: 5,
+          pointBackgroundColor: MORADO,
+          borderDash: [8, 4],
+          spanGaps: false,
+        },
+        {
+          label: 'Unión',
+          data: {{ hist_proy_union|safe }},
+          borderColor: MORADO,
+          pointRadius: 0,
+          borderWidth: 1,
+          borderDash: [4, 4],
+          fill: false,
+          spanGaps: true,
+          tension: 0,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 12 },
+            filter: item => item.text !== 'Unión',
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.raw !== null
+              ? ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString('es-MX', {minimumFractionDigits: 0})} lt`
+              : null
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          title: { display: true, text: 'Litros' },
+        }
+      }
+    }
+  });
+
+  // 8. Nivel inicial → promedio de litros cargados — Bar agrupada
+  new Chart(document.getElementById('chartNivelPromedio'), {
+    type: 'bar',
+    data: {
+      labels: {{ nivel_labels_json|safe }},
+      datasets: [
+        {
+          label: 'Promedio litros cargados',
+          data: {{ nivel_promedios_json|safe }},
+          backgroundColor: [ROJO, NARANJA, AZUL, VERDE],
+          borderRadius: 6,
+        },
+        {
+          label: 'Total litros',
+          data: {{ nivel_litros_json|safe }},
+          backgroundColor: ['rgba(220,38,38,.25)', 'rgba(217,119,6,.25)', 'rgba(31,78,121,.25)', 'rgba(26,107,60,.25)'],
+          borderColor: [ROJO, NARANJA, AZUL, VERDE],
+          borderWidth: 2,
+          borderRadius: 6,
+          type: 'bar',
+          yAxisID: 'yTotal',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString('es-MX', {minimumFractionDigits: 2})} lt`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Litros promedio' }
+        },
+        yTotal: {
+          type: 'linear', position: 'right',
+          beginAtZero: true,
+          title: { display: true, text: 'Total litros' },
+          grid: { drawOnChartArea: false },
+        }
+      }
+    }
+  });
+
+})();
+</script>
+{% endblock %}
