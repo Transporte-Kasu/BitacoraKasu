@@ -91,7 +91,13 @@ class ConfiguracionReporte(models.Model):
         return [e.strip() for e in self.destinatarios.split(',') if e.strip()]
 
     def es_debido(self):
-        """Determina si este reporte debe ejecutarse ahora según su frecuencia."""
+        """Determina si este reporte debe ejecutarse ahora según su frecuencia.
+
+        El scheduler llama a generar_reportes diariamente; este método decide
+        si cada reporte individual debe dispararse en ese momento.
+        Se usa ventana de catch-up: si ya pasó el tiempo requerido, se ejecuta
+        sin importar el día exacto (evita perderse reportes por días sin ejecución).
+        """
         ahora = timezone.now()
 
         if not self.ultimo_envio:
@@ -103,20 +109,14 @@ class ConfiguracionReporte(models.Model):
             return delta.days >= 1
 
         if self.frecuencia == 'SEMANAL':
-            if delta.days < 7:
-                return False
-            # Verificar día de la semana si está configurado
-            if self.dia_semana is not None:
-                return ahora.weekday() == self.dia_semana
-            return True
+            # Ejecutar si han pasado 7 o más días desde el último envío
+            return delta.days >= 7
 
         if self.frecuencia == 'MENSUAL':
-            if delta.days < 28:
-                return False
-            # Verificar día del mes si está configurado
-            if self.dia_mes is not None:
-                return ahora.day == self.dia_mes
-            return True
+            # Ejecutar si estamos en un mes calendario distinto al último envío
+            ultimo = self.ultimo_envio.date()
+            hoy = ahora.date()
+            return (hoy.year, hoy.month) > (ultimo.year, ultimo.month)
 
         return False
 

@@ -202,16 +202,18 @@ Proceso en 5 pasos con evidencia fotográfica:
 - Actualiza `unidad.kilometraje_actual` al completarse
 
 **Signal en `combustible/signals.py`:**
-- Al guardar `CargaCombustible` con `estado=COMPLETADO` → genera `AlertaCombustible` por candado anómalo o exceso de litros
+- Al guardar `CargaCombustible` con `estado=COMPLETADO` → genera `AlertaCombustible` por candado anómalo, exceso de litros o `KILOMETRAJE_MENOR` (odómetro retrocede)
 - Al completarse → llama OCR sobre `foto_candado_anterior` → guarda `numero_candado_anterior` → llama `verificar_ciclo_candados()`
 - Al guardar `FotoCandadoNuevo` → llama OCR sobre `foto` → guarda `numero_candado`
 
 **Servicio OCR (`config/services/ocr_service.py`):**
 - `leer_numero_candado(imagen_field) → str` — extrae número de serie de un candado
-- Backend: **pytesseract** (Tesseract OCR, libre y gratuito)
-- Pipeline: escala de grises → contraste → nitidez → umbral binario → dos intentos (PSM 6 y PSM 8)
+- Backend **primario:** Google Cloud Vision API (`_leer_con_vision_api`) — usa `GOOGLE_VISION_API_KEY`
+- Backend **fallback:** pytesseract local (`_leer_con_tesseract`) si Vision no disponible
+- Pipeline pytesseract: escala de grises → contraste → nitidez → umbral binario → dos intentos (PSM 6 y PSM 8)
+- Patrón extraído: `\d{4,}` (4 o más dígitos consecutivos)
 - Funciona con imágenes locales y DigitalOcean Spaces (via `storage.open()`)
-- Seguro si pytesseract no está instalado (devuelve `''` con log)
+- Seguro si ningún backend está disponible (devuelve `''` con log)
 
 **Servicio de ciclo (`combustible/services.py`):**
 - `verificar_ciclo_candados(carga)` — compara `numero_candado_anterior` de la carga actual con los `numero_candado` de `FotoCandadoNuevo` de la carga anterior de la misma unidad → genera `AlertaCombustible(CANDADO_NO_COINCIDE)` si no coinciden
@@ -220,7 +222,7 @@ Proceso en 5 pasos con evidencia fotográfica:
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | `carga` | FK → CargaCombustible | Origen de la alerta |
-| `tipo_alerta` | choices | `CANDADO_ALTERADO / CANDADO_VIOLADO / SIN_CANDADO / EXCESO_COMBUSTIBLE / CANDADO_NO_COINCIDE` |
+| `tipo_alerta` | choices | `CANDADO_ALTERADO / CANDADO_VIOLADO / SIN_CANDADO / EXCESO_COMBUSTIBLE / CANDADO_NO_COINCIDE / KILOMETRAJE_MENOR` |
 | `mensaje` | TextField | Descripción del problema |
 | `resuelta` / `resuelta_por` / `fecha_resolucion` | | Control de resolución |
 
@@ -317,7 +319,37 @@ PENDIENTE → EN_DIAGNOSTICO → ESPERANDO_PIEZAS → EN_REPARACION → EN_PRUEB
 
 #### `HistorialMantenimiento`
 - Resumen consolidado por unidad, vinculado 1:1 a `OrdenTrabajo`
-- Métricas: `costo_total`, `tiempo_fuera_servicio_dias/horas`
+- Campos: `fecha_servicio`, `kilometraje_ingreso/salida`, `tipo_servicio`, `descripcion_breve`
+- Métricas: `costo_total`, `tiempo_fuera_servicio_dias`, `tiempo_fuera_servicio_horas`
+
+#### `ReporteFalla` — Reporte Público sin Login
+**Folio:** `RF-YYYYMMDD-XXX` (auto-generado en `save()`)
+
+| Campo | Descripción |
+|-------|-------------|
+| `unidad` | FK → Unidad |
+| `operador_nombre` | Texto libre (quien reporta) |
+| `categoria_falla` | FK → CategoriaFalla |
+| `descripcion` | Descripción del problema |
+| `foto` | ImageField (evidencia opcional) |
+| `estado` | `NUEVO → EN_ATENCION → RESUELTO / CANCELADO` |
+| `fecha_reporte` | Auto |
+| `atendido_por` | FK → User (personal taller) |
+| `notas_taller` | Respuesta / resolución |
+| `orden_trabajo` | FK → OrdenTrabajo (opcional, si se escala) |
+
+**Vistas públicas (sin `LoginRequiredMixin`):**
+- `GET/POST /taller/reportar/<unidad_pk>/` — formulario de reporte, accesible sin autenticarse
+- `GET /taller/reportar/enviado/<folio>/` — confirmación tras envío
+- Ideal para imprimir QR por unidad y pegarlo en la cabina del vehículo
+
+**Flujo de atención:**
+1. Operador escanea QR → llena formulario → se crea `ReporteFalla(estado=NUEVO)`
+2. Taller ve bandeja en `/taller/reportes/` → puede **atender**, **resolver**, **convertir a OT** o **cancelar**
+3. Resolver directo → puede crear `AsignacionDirectaAlmacen` para piezas inmediatas
+4. Convertir → crea `OrdenTrabajo` y vincula el reporte
+
+**URLs QR:** `/taller/unidades/<unidad_pk>/qr/` (imprimible), `/taller/unidades/qr-todas/`
 
 **Signals en `taller/signals.py`:**
 - `notificar_nueva_orden` → email a grupo "Supervisores Taller"
@@ -326,7 +358,24 @@ PENDIENTE → EN_DIAGNOSTICO → ESPERANDO_PIEZAS → EN_REPARACION → EN_PRUEB
 - `actualizar_estado_orden_por_piezas` → OT pasa a `ESPERANDO_PIEZAS` al agregar piezas
 - `actualizar_piezas_recibidas` → al recibir `ItemRecepcion`, actualiza `PiezaRequerida` y puede pasar OT a `EN_REPARACION`
 
-**URLs:** 12 patrones (incluye `api/buscar-producto-almacen/`)
+**Servicios en `taller/services.py`:**
+
+`ServicioMantenimiento` — análisis predictivo de flota:
+- `obtener_unidades_requieren_mantenimiento()` → lista de unidades por fecha vencida o km excedido
+- `calcular_costo_total_mantenimiento(unidad, fecha_inicio, fecha_fin)` → suma histórica
+- `calcular_estadisticas_unidad(unidad)` → dict completo: costos, tiempos promedio, frecuencia, eficiencia
+- `obtener_unidades_en_taller()` → unidades con órdenes activas (no COMPLETADA/CANCELADA)
+- `generar_pronostico_mantenimiento(unidad, meses=6)` → pronóstico basado en historial de km y periodicidad
+
+`ReporteTaller` — reportes consolidados:
+- `reporte_mensual(mes, anio)` → estadísticas de órdenes del mes (conteos, tiempos, categorías)
+- `reporte_por_unidad(unidad, fecha_inicio, fecha_fin)` → detalle completo de OTs de una unidad
+- `top_unidades_costosas(limite=10, fecha_inicio, fecha_fin)` → ranking por costo total
+
+**URLs:** 20+ patrones
+- Bandeja de reportes de falla: `/taller/reportes/`, `/taller/reportes/<folio>/`, `/taller/reportes/<folio>/atender/`, `/taller/reportes/<folio>/resolver/`, `/taller/reportes/<folio>/convertir-ot/`, `/taller/reportes/<folio>/cancelar/`
+- QR por unidad: `/taller/unidades/<unidad_pk>/qr/`, `/taller/unidades/qr-todas/`
+- APIs: `/taller/api/ordenes-activas/`, `/taller/api/buscar-producto-almacen/`
 
 **UI — costos eliminados de templates:**
 - `dashboard.html`: eliminadas tarjetas "Costo Estimado Activas" y "Costo Real (Mes)"; solo se muestra "Tiempo Promedio"
@@ -518,6 +567,74 @@ Método `resolver(usuario)` para cierre de alerta.
 
 ---
 
+### 8. `reportes` — Reportes Configurables
+
+**Propósito:** Generación y envío programado de reportes de almacén, combustible y taller; con historial de envíos auditado.
+
+**Modelos:**
+
+#### `ConfiguracionReporte`
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `nombre` | CharField | Nombre descriptivo |
+| `modulo` | choices | `ALMACEN / COMBUSTIBLE / TALLER` |
+| `tipo_reporte` | choices | Tipo específico según módulo |
+| `frecuencia` | choices | `DIARIO / SEMANAL / MENSUAL` |
+| `dia_semana` | choices | Lunes–Domingo (para frecuencia SEMANAL) |
+| `dia_mes` | IntegerField | 1-28 (para MENSUAL) |
+| `destinatarios` | TextField | Emails separados por comas |
+| `activo` | BooleanField | Habilita/deshabilita el reporte |
+| `adjuntar_excel` | BooleanField | Incluye Excel en el correo |
+| `ultimo_envio` | DateTimeField | Última vez que se ejecutó |
+| `creado_por` | FK → User | |
+
+**Métodos:** `get_destinatarios_list()` → lista de emails; `es_debido()` → `True` si corresponde ejecutar según frecuencia y `ultimo_envio`
+
+#### `ReporteGenerado` — Historial de envíos
+| Campo | Descripción |
+|-------|-------------|
+| `configuracion` | FK → ConfiguracionReporte |
+| `fecha_generacion` | Timestamp |
+| `periodo_inicio / periodo_fin` | Rango cubierto |
+| `estado` | `GENERADO / ERROR / PARCIAL` |
+| `destinatarios_enviados` | TextField |
+| `resumen` | JSONField — datos clave del reporte |
+| `mensaje_error` | Descripción si falló |
+
+**Generadores modulares en `modulos/reportes/generadores/`:**
+
+`almacen.py` — dict `GENERADORES` con:
+- `ALMACEN_INVENTARIO` — snapshot completo del inventario
+- `ALMACEN_STOCK_CRITICO` — productos con stock bajo o agotado
+- `ALMACEN_CADUCIDAD` — próximos a vencer (≤30 días)
+- `ALMACEN_MOVIMIENTOS` — historial de entradas/salidas del período
+
+`combustible.py` — dict `GENERADORES` con:
+- `COMBUSTIBLE_CARGAS` — todas las cargas del período
+- `COMBUSTIBLE_CONSUMO` — consumo agregado por unidad
+- `COMBUSTIBLE_ALERTAS` — alertas de candado generadas
+
+**Management command:** `python manage.py generar_reportes [--forzar-id N] [--dry-run]`
+- Itera `ConfiguracionReporte` activas que `es_debido() == True`
+- Llama al generador correspondiente del dict `GENERADORES`
+- Genera Excel con openpyxl (estilos, colores) si `adjuntar_excel=True`
+- Envía `EmailMultiAlternatives` (HTML + adjunto) vía SendGrid
+- Registra resultado en `ReporteGenerado`
+- `--forzar-id N`: ejecuta el reporte con id=N sin revisar frecuencia
+- `--dry-run`: simula sin enviar ni guardar
+
+**Vistas:**
+- `ConfiguracionListView`, `CreateView`, `UpdateView`, `DeleteView`
+- `HistorialReportesView`, `DetalleReporteGeneradoView`
+
+**URLs:** 6 patrones
+- `/reportes/configuraciones/`, `/reportes/configuraciones/nueva/`, `/reportes/configuraciones/<pk>/editar/`, `/reportes/configuraciones/<pk>/eliminar/`
+- `/reportes/historial/`, `/reportes/historial/<pk>/`
+
+**Template email:** `templates/reportes/email/reporte_base.html` — HTML para emails
+
+---
+
 ## Servicios Externos
 
 ### `config/services/google_maps.py` — GoogleMapsService
@@ -534,6 +651,10 @@ Usado en:
 ---
 
 ## Sistema de Reportes Automáticos
+
+> **Nota:** Existen dos sistemas de reportes paralelos:
+> - **`config/reportes/`** — funciones legacy llamadas por APScheduler (proceso en Procfile)
+> - **`modulos/reportes/`** — módulo con UI de configuración + management command (ver sección 8)
 
 ### `config/reportes/combustible.py` — `enviar_reporte_combustible()`
 - Resumen: total cargas, litros, promedio del período
@@ -571,7 +692,7 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 | **Unidades** | Total, activas, próximo mantenimiento (≤7 días) |
 | **Bitácoras** | Total, completados, en curso, del último mes, rendimiento promedio, velocidad promedio |
 | **Combustible** | Cargas hoy, completadas, en proceso, alertas candado, litros hoy/mes, promedio/mes |
-| **Taller** | OT pendientes, completadas este mes, unidades en taller |
+| **Taller** | OT pendientes, completadas este mes, unidades en taller, reportes de falla nuevos |
 | **Compras** | Requisiciones pendientes, OC activas, proveedores activos |
 | **Almacén** | Productos activos, stock bajo, alertas sin resolver, valor total inventario |
 
@@ -589,8 +710,8 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 
 | Signal | Módulo | Disparador | Efecto |
 |--------|--------|-----------|--------|
-| `post_save CargaCombustible` | combustible | Candado ALTERADO/VIOLADO/SIN_CANDADO o exceso litros | Crea `AlertaCombustible` |
-| `post_save CargaCombustible` | combustible | `estado=COMPLETADO` + foto candado anterior | OCR → `numero_candado_anterior` → `verificar_ciclo_candados()` → alerta `CANDADO_NO_COINCIDE` si no coincide |
+| `post_save CargaCombustible` | combustible | Candado ALTERADO/VIOLADO/SIN_CANDADO, exceso litros o kilometraje_actual menor al anterior | Crea `AlertaCombustible` (incl. `KILOMETRAJE_MENOR`) |
+| `post_save CargaCombustible` | combustible | `estado=COMPLETADO` + foto candado anterior | OCR (Vision/pytesseract) → `numero_candado_anterior` → `verificar_ciclo_candados()` → alerta `CANDADO_NO_COINCIDE` si no coincide |
 | `post_save FotoCandadoNuevo` | combustible | Creación | OCR → guarda `numero_candado` en la foto |
 | `post_save OrdenTrabajo` | taller | Creación | Email a grupo "Supervisores Taller" |
 | `post_save OrdenTrabajo` | taller | >7 días en taller | Email de alerta a supervisores/gerentes |
@@ -621,6 +742,7 @@ Todos los folios se generan automáticamente en `save()` con el patrón `PREFIJO
 | `SalidaAlmacen` | `SAL` | `SAL-20260227-001` |
 | `SalidaRapidaConsumible` | `CON` | `CON-20260227-001` |
 | `AsignacionDirectaAlmacen` | `ADI` | `ADI-20260227-001` |
+| `ReporteFalla` | `RF` | `RF-20260227-001` |
 
 **Algoritmo:** Busca el `Max(folio)` del día → extrae sufijo numérico → incrementa → formato `{n:03d}`.
 
@@ -764,6 +886,7 @@ DEBUG=True
 SECRET_KEY=...
 DBURL=postgres://user:pass@host:port/db   # PostgreSQL en producción
 GOOGLE_MAPS_API_KEY=...
+GOOGLE_VISION_API_KEY=...                  # Google Cloud Vision para OCR de candados
 EMAIL_HOST_PASSWORD=...                    # SendGrid API key
 USE_SPACES=True/False
 SPACES_ACCESS_KEY=...
@@ -811,4 +934,4 @@ gunicorn                          # WSGI server
 
 ---
 
-*Última actualización: 2026-02-27 (piezas taller + buscador almacén + costos removidos de UI)*
+*Última actualización: 2026-03-18 (OCR Vision API + AlertaCombustible KILOMETRAJE_MENOR + ReporteFalla módulo taller + ServicioMantenimiento/ReporteTaller services + módulo reportes completo + RF- folio + GOOGLE_VISION_API_KEY)*
