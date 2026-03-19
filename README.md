@@ -270,6 +270,8 @@ Procfile: web: gunicorn config.wsgi
 - Sistema de medidas métrico (km, litros, kg)
 - Todas las vistas requieren autenticación
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Transporte-Kasu/BitacoraKasu)
+
 ## Licencia
 
 Proyecto privado y confidencial.
