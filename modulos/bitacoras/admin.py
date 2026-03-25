@@ -16,7 +16,7 @@ class BitacoraViajeAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'operador__nombre', 'unidad__numero_economico', 'unidad__placa',
-        'contenedor', 'destino', 'cp_destino'
+        'contenedor', 'contenedor_2', 'destino', 'cp_destino', 'salida_a_ruta'
     ]
     readonly_fields = [
         'created_at', 'updated_at',
@@ -29,22 +29,26 @@ class BitacoraViajeAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Asignación', {
-            'fields': ('operador', 'unidad')
+            'fields': ('operador', 'unidad', 'modalidad', 'salida_a_ruta')
         }),
-        ('Información del Viaje', {
-            'fields': (
-                'modalidad', 'contenedor', 'peso', 'reparto',
-                'fecha_carga', 'fecha_salida', 'fecha_llegada', 'completado'
-            )
+        ('Contenedor 1', {
+            'fields': ('contenedor', 'peso', 'sellos')
         }),
-        ('Ubicación', {
-            'fields': ('cp_origen', 'cp_destino', 'destino')
+        ('Contenedor 2 (FULL)', {
+            'fields': ('contenedor_2', 'peso_2', 'sellos_2', 'reparto'),
+            'classes': ('collapse',)
+        }),
+        ('Fechas', {
+            'fields': ('fecha_carga', 'fecha_salida', 'fecha_llegada', 'completado')
         }),
         ('Combustible y Kilometraje', {
             'fields': (
                 'diesel_cargado', 'kilometraje_salida', 'kilometraje_llegada',
                 'kilometros_recorridos_display', 'rendimiento_combustible_display'
             )
+        }),
+        ('Destino', {
+            'fields': ('cp_origen', 'cp_destino', 'destino')
         }),
         ('Datos Google Maps', {
             'fields': (
@@ -60,9 +64,6 @@ class BitacoraViajeAdmin(admin.ModelAdmin):
             ),
             'classes': ('collapse',)
         }),
-        ('Seguridad', {
-            'fields': ('sellos',)
-        }),
         ('Observaciones', {
             'fields': ('observaciones',)
         }),
@@ -77,6 +78,7 @@ class BitacoraViajeAdmin(admin.ModelAdmin):
         colors = {
             'SENCILLO': '#3b82f6',
             'FULL': '#8b5cf6',
+            'LOCAL': '#10b981',
         }
         color = colors.get(obj.modalidad, '#6b7280')
         return format_html(

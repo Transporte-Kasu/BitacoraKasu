@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bitácora #{{ bitacora.id }} — Detalle{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+    .card-title {
+        font-size: 0.875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .dato-label { font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; }
+    .dato-valor { font-size: 0.9375rem; font-weight: 600; color: #111827; margin-top: 0.125rem; }
+    .dato-group { margin-bottom: 0.875rem; }
+
+    .stat-card {
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 1rem 1.25rem;
+        text-align: center;
+    }
+    .stat-value { font-size: 1.5rem; font-weight: 800; color: #111827; }
+    .stat-label { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+    .stat-alerta .stat-value { color: #ef4444; }
+
+    .modal-badge {
+        display: inline-block;
+        padding: 0.3rem 0.85rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .modal-sencillo { background: #dbeafe; color: #1e40af; }
+    .modal-full     { background: #ede9fe; color: #5b21b6; }
+    .modal-local    { background: #d1fae5; color: #065f46; }
+
+    .estado-badge {
+        display: inline-block;
+        padding: 0.3rem 0.85rem;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .estado-completado { background: #d1fae5; color: #065f46; }
+    .estado-en-curso   { background: #fef3c7; color: #92400e; }
+
+    .contenedor-box {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.875rem;
+    }
+    .full-contenedor-box {
+        border-color: #c4b5fd;
+        background: #faf5ff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-4 px-4 sm:py-6">
+
+    <!-- Encabezado -->
+    <div class="mb-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <div>
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <h1 class="text-2xl font-bold text-gray-900">Bitácora #{{ bitacora.id }}</h1>
+                    <span class="modal-badge modal-{{ bitacora.modalidad|lower }}">{{ bitacora.get_modalidad_display }}</span>
+                    <span class="estado-badge {% if bitacora.completado %}estado-completado{% else %}estado-en-curso{% endif %}">
+                        {% if bitacora.completado %}Completado{% else %}En curso{% endif %}
+                    </span>
+                </div>
+                <p class="text-gray-500 text-sm">Salida: {{ bitacora.fecha_salida|date:"d/m/Y H:i" }}</p>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex flex-wrap gap-2">
+                {% if not bitacora.completado %}
+                <a href="{% url 'bitacoras:completar' bitacora.pk %}"
+                   class="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white
+                          px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[40px]">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Completar Viaje
+                </a>
+                {% endif %}
+                <a href="{% url 'bitacoras:update' bitacora.pk %}"
+                   class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700
+                          px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[40px]">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    Editar
+                </a>
+                <a href="{% url 'bitacoras:list' %}"
+                   class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700
+                          px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[40px]">
+                    Volver
+                </a>
+                <a href="{% url 'bitacoras:delete' bitacora.pk %}"
+                   class="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600
+                          px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[40px]">
+                    Eliminar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats (solo si completado) -->
+    {% if bitacora.completado and bitacora.kilometros_recorridos %}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div class="stat-card">
+            <div class="stat-value">{{ bitacora.kilometros_recorridos }}</div>
+            <div class="stat-label">Km Recorridos</div>
+        </div>
+        <div class="stat-card {% if bitacora.alerta_bajo_rendimiento %}stat-alerta{% endif %}">
+            <div class="stat-value">{{ bitacora.rendimiento_combustible }}</div>
+            <div class="stat-label">km/lt</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ bitacora.horas_viaje }}</div>
+            <div class="stat-label">Horas de viaje</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ bitacora.velocidad_promedio }}</div>
+            <div class="stat-label">km/h promedio</div>
+        </div>
+    </div>
+    {% if bitacora.alerta_bajo_rendimiento %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-5 flex items-center gap-2 text-red-700 text-sm font-semibold">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        Alerta: rendimiento por debajo del umbral ({{ bitacora.rendimiento_combustible }} km/lt &lt; 2.5 km/lt)
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-5">
+        <!-- Columna izquierda -->
+        <div>
+            <!-- Información general -->
+            <div class="info-card">
+                <h2 class="card-title">Información General</h2>
+                <div class="grid grid-cols-2 gap-x-4">
+                    <div class="dato-group">
+                        <div class="dato-label">Operador</div>
+                        <div class="dato-valor">{{ bitacora.operador.nombre }}</div>
+                    </div>
+                    <div class="dato-group">
+                        <div class="dato-label">Tipo</div>
+                        <div class="dato-valor">{{ bitacora.operador.get_tipo_display }}</div>
+                    </div>
+                    <div class="dato-group">
+                        <div class="dato-label">Unidad</div>
+                        <div class="dato-valor">{{ bitacora.unidad.numero_economico }}</div>
+                    </div>
+                    <div class="dato-group">
+                        <div class="dato-label">Placas</div>
+                        <div class="dato-valor">{{ bitacora.unidad.placa }}</div>
+                    </div>
+                    {% if bitacora.salida_a_ruta %}
+                    <div class="dato-group col-span-2">
+                        <div class="dato-label">Salida a Ruta</div>
+                        <div class="dato-valor">{{ bitacora.salida_a_ruta }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Fechas y combustible -->
+            <div class="info-card">
+                <h2 class="card-title">Fechas y Combustible</h2>
+                <div class="grid grid-cols-2 gap-x-4">
+                    <div class="dato-group">
+                        <div class="dato-label">Fecha de Carga</div>
+                        <div class="dato-valor">{{ bitacora.fecha_carga|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    <div class="dato-group">
+                        <div class="dato-label">Fecha de Salida</div>
+                        <div class="dato-valor">{{ bitacora.fecha_salida|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    {% if bitacora.fecha_llegada %}
+                    <div class="dato-group col-span-2">
+                        <div class="dato-label">Fecha de Llegada</div>
+                        <div class="dato-valor">{{ bitacora.fecha_llegada|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="dato-group">
+                        <div class="dato-label">Diesel Cargado</div>
+                        <div class="dato-valor">{{ bitacora.diesel_cargado }} lt</div>
+                    </div>
+                    <div class="dato-group">
+                        <div class="dato-label">Km Salida</div>
+                        <div class="dato-valor">{{ bitacora.kilometraje_salida|floatformat:"0" }} km</div>
+                    </div>
+                    {% if bitacora.kilometraje_llegada %}
+                    <div class="dato-group">
+                        <div class="dato-label">Km Llegada</div>
+                        <div class="dato-valor">{{ bitacora.kilometraje_llegada|floatformat:"0" }} km</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha -->
+        <div>
+            <!-- Contenedores -->
+            <div class="info-card">
+                <h2 class="card-title">
+                    Contenedor{% if es_full %}es{% endif %}
+                    {% if bitacora.reparto %}
+                    <span class="ml-2 inline-block px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-semibold">Con Reparto</span>
+                    {% endif %}
+                </h2>
+
+                <div class="contenedor-box {% if es_full %}mb-3{% endif %}">
+                    <p class="text-xs font-semibold text-gray-500 uppercase mb-2">{% if es_full %}Contenedor 1{% else %}Contenedor{% endif %}</p>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <div class="dato-label">Número</div>
+                            <div class="dato-valor text-sm">{{ bitacora.contenedor|default:"—" }}</div>
+                        </div>
+                        <div>
+                            <div class="dato-label">Peso</div>
+                            <div class="dato-valor text-sm">{% if bitacora.peso %}{{ bitacora.peso }} kg{% else %}—{% endif %}</div>
+                        </div>
+                        <div>
+                            <div class="dato-label">Sellos</div>
+                            <div class="dato-valor text-sm">{{ bitacora.sellos|default:"—" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if es_full %}
+                <div class="contenedor-box full-contenedor-box">
+                    <p class="text-xs font-semibold text-purple-600 uppercase mb-2">Contenedor 2</p>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <div class="dato-label">Número</div>
+                            <div class="dato-valor text-sm">{{ bitacora.contenedor_2|default:"—" }}</div>
+                        </div>
+                        <div>
+                            <div class="dato-label">Peso</div>
+                            <div class="dato-valor text-sm">{% if bitacora.peso_2 %}{{ bitacora.peso_2 }} kg{% else %}—{% endif %}</div>
+                        </div>
+                        <div>
+                            <div class="dato-label">Sellos</div>
+                            <div class="dato-valor text-sm">{{ bitacora.sellos_2|default:"—" }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Destino -->
+            <div class="info-card">
+                <h2 class="card-title">Destino</h2>
+                <div class="dato-group">
+                    <div class="dato-label">Descripción</div>
+                    <div class="dato-valor">{{ bitacora.destino }}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-x-4">
+                    <div class="dato-group">
+                        <div class="dato-label">CP Origen</div>
+                        <div class="dato-valor">{{ bitacora.cp_origen }}</div>
+                    </div>
+                    {% if bitacora.cp_destino %}
+                    <div class="dato-group">
+                        <div class="dato-label">CP Destino</div>
+                        <div class="dato-valor">{{ bitacora.cp_destino }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if tiene_distancia %}
+                <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+                    <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                    <div>
+                        <p class="text-sm font-bold text-green-800">{{ bitacora.distancia_calculada }} km según Google Maps</p>
+                        {% if bitacora.duracion_estimada %}
+                        <p class="text-xs text-green-600">Duración estimada: {{ bitacora.duracion_estimada }} min</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <form method="post" action="{% url 'bitacoras:calcular_distancia' bitacora.pk %}" class="mt-2">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="text-sm text-blue-600 hover:text-blue-800 font-semibold underline">
+                        Calcular distancia con Google Maps
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Observaciones -->
+    {% if bitacora.observaciones %}
+    <div class="info-card">
+        <h2 class="card-title">Observaciones</h2>
+        <p class="text-sm text-gray-700 whitespace-pre-line">{{ bitacora.observaciones }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Metadatos -->
+    <p class="text-xs text-gray-400 text-center mt-2">
+        Creado {{ bitacora.created_at|date:"d/m/Y H:i" }} &nbsp;·&nbsp; Actualizado {{ bitacora.updated_at|date:"d/m/Y H:i" }}
+    </p>
+
+</div>
+{% endblock %}

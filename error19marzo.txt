@@ -1,0 +1,263 @@
+Mar 19 00:10:30  Using Spaces: disco-kasu at https://sfo3.digitaloceanspaces.com/disco-kasu/media/
+Mar 19 00:10:33  /workspace/.heroku/python/lib/python3.13/site-packages/django/db/backends/utils.py:98: RuntimeWarning: Accessing the database during app initialization is discouraged. To fix this warning, avoid executing queries in AppConfig.ready() or when your app modules are imported.
+Mar 19 00:10:33    warnings.warn(self.APPS_NOT_READY_WARNING_MSG, category=RuntimeWarning)
+Mar 19 00:10:34  Using Spaces: disco-kasu at https://sfo3.digitaloceanspaces.com/disco-kasu/media/
+Mar 19 00:10:35  Watching for file changes with StatReloader
+Mar 19 00:10:35  Performing system checks...
+Mar 19 00:10:35  
+Mar 19 00:10:35  System check identified no issues (0 silenced).
+Mar 19 00:10:36  March 18, 2026 - 18:10:36
+Mar 19 00:10:36  Django version 5.2.7, using settings 'config.settings'
+Mar 19 00:10:36  Starting development server at http://0.0.0.0:8080/
+Mar 19 00:10:36  Quit the server with CONTROL-C.
+Mar 19 00:10:36  
+Mar 19 00:10:36  WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+Mar 19 00:10:36  For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Mar 19 13:00:00    SKIP  Reporte Mensual de Combustible (no es su momento)
+Mar 19 13:00:00    SKIP  Reporte Semanal de Combustible (no es su momento)
+Mar 19 13:00:00  
+Mar 19 13:00:00  Ejecutados: 0  Errores: 0
+Mar 19 13:54:18  /workspace/.heroku/python/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1612: RuntimeWarning: DateTimeField BitacoraViaje.fecha_salida received a naive datetime (2026-02-17 00:00:00) while time zone support is active.
+Mar 19 13:54:18    warnings.warn(
+Mar 19 13:54:19  /workspace/.heroku/python/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1612: RuntimeWarning: DateTimeField OrdenTrabajo.fecha_finalizacion received a naive datetime (2026-02-17 00:00:00) while time zone support is active.
+Mar 19 13:54:19    warnings.warn(
+Mar 19 13:54:19  [19/Mar/2026 07:54:19] "GET / HTTP/1.1" 200 33923
+Mar 19 14:58:40  [19/Mar/2026 08:58:40] "GET / HTTP/1.1" 200 33923
+Mar 19 14:58:53  [19/Mar/2026 08:58:53] "GET /combustible/ HTTP/1.1" 200 31991
+Mar 19 16:35:04  Internal Server Error: /bitacoras/
+Mar 19 16:35:04  Traceback (most recent call last):
+Mar 19 16:35:04    File "/workspace/.heroku/python/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+Mar 19 16:35:04      response = get_response(request)
+Mar 19 16:35:04    File "/workspace/.heroku/python/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+Mar 19 16:35:04      response = wrapped_callback(request, *callback_args, **callback_kwargs)
+Mar 19 16:35:04    File "/workspace/modulos/bitacoras/views.py", line 186, in bitacora_dashboard
+Mar 19 16:35:04      return render(request, 'bitacoras/bitacora_dashboard.html', context)
+Mar 19 16:35:04    File "/workspace/.heroku/python/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+Mar 19 16:35:04      content = loader.render_to_string(template_name, context, request, using=using)
+Mar 19 16:35:04    File "/workspace/.heroku/python/lib/python3.13/site-packages/django/template/loader.py", line 61, in render_to_string
+Mar 19 16:35:04      template = get_template(template_name, using=using)
+Mar 19 16:35:04    File "/workspace/.heroku/python/lib/python3.13/site-packages/django/template/loader.py", line 19, in get_template
+Mar 19 16:35:04      raise TemplateDoesNotExist(template_name, chain=chain)
+Mar 19 16:35:04  django.template.exceptions.TemplateDoesNotExist: bitacoras/bitacora_dashboard.html
+Mar 19 16:35:04  [19/Mar/2026 10:35:04] "GET /bitacoras/ HTTP/1.1" 500 85080
+Mar 19 16:35:04  Not Found: /favicon.ico
+Mar 19 16:35:04  [19/Mar/2026 10:35:04] "GET /favicon.ico HTTP/1.1" 404 4110
+Mar 19 16:35:07  [19/Mar/2026 10:35:07] "GET /compras/ HTTP/1.1" 200 21307
+Mar 19 16:35:11  [19/Mar/2026 10:35:11] "GET /almacen/ HTTP/1.1" 200 20089
+Mar 19 16:35:18  [19/Mar/2026 10:35:18] "GET /almacen/solicitudes/ HTTP/1.1" 200 38008
+Mar 19 16:35:35  [19/Mar/2026 10:35:35] "GET /almacen/ HTTP/1.1" 200 20089
+Mar 19 16:35:38  [19/Mar/2026 10:35:38] "GET /almacen/consumibles/salida-rapida/ HTTP/1.1" 200 35107
+Mar 19 16:35:56  [19/Mar/2026 10:35:56] "GET / HTTP/1.1" 200 33923
+Mar 19 16:35:59  [19/Mar/2026 10:35:59] "GET /unidades/ HTTP/1.1" 200 28658
+Mar 19 16:36:02  [19/Mar/2026 10:36:02] "GET /combustible/ HTTP/1.1" 200 31991
+Mar 19 16:58:05  [19/Mar/2026 10:58:05] "GET /admin/ HTTP/1.1" 200 36673
+Mar 19 16:58:10  [19/Mar/2026 10:58:10] "GET /admin/combustible/despachador/ HTTP/1.1" 200 34897
+Mar 19 16:58:10  [19/Mar/2026 10:58:10] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:56:15  [19/Mar/2026 11:56:15] "GET / HTTP/1.1" 200 33923
+Mar 19 17:56:19  [19/Mar/2026 11:56:19] "GET /admin/ HTTP/1.1" 200 36673
+Mar 19 17:56:32  [19/Mar/2026 11:56:32] "GET /admin/auth/user/ HTTP/1.1" 200 37073
+Mar 19 17:56:32  [19/Mar/2026 11:56:32] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:56:35  [19/Mar/2026 11:56:35] "GET /admin/auth/user/ HTTP/1.1" 302 0
+Mar 19 17:56:35  [19/Mar/2026 11:56:35] "GET /admin/login/?next=/admin/auth/user/ HTTP/1.1" 200 4257
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/css/dark_mode.css HTTP/1.1" 200 2808
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/css/responsive.css HTTP/1.1" 200 16565
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/css/base.css HTTP/1.1" 200 22120
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 200 2810
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/js/theme.js HTTP/1.1" 200 1653
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/css/login.css HTTP/1.1" 200 951
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /admin/auth/user/add/ HTTP/1.1" 200 32761
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 200 3063
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/css/unusable_password_field.css HTTP/1.1" 200 663
+Mar 19 17:56:36  [19/Mar/2026 11:56:36] "GET /static/admin/js/unusable_password_field.js HTTP/1.1" 200 1480
+Mar 19 17:56:37  Not Found: /favicon.ico
+Mar 19 17:56:37  [19/Mar/2026 11:56:37] "GET /favicon.ico HTTP/1.1" 404 4110
+Mar 19 17:56:39  [19/Mar/2026 11:56:39] "GET /admin/auth/user/add/ HTTP/1.1" 302 0
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /admin/login/?next=/admin/auth/user/add/ HTTP/1.1" 200 4265
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /static/admin/css/responsive.css HTTP/1.1" 200 16565
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /static/admin/css/dark_mode.css HTTP/1.1" 200 2808
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /static/admin/css/login.css HTTP/1.1" 200 951
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 200 2810
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /static/admin/css/base.css HTTP/1.1" 200 22120
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /static/admin/js/theme.js HTTP/1.1" 200 1653
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 200 3063
+Mar 19 17:56:40  Not Found: /favicon.ico
+Mar 19 17:56:40  [19/Mar/2026 11:56:40] "GET /favicon.ico HTTP/1.1" 404 4110
+Mar 19 17:57:07  [19/Mar/2026 11:57:07] "POST /admin/auth/user/add/ HTTP/1.1" 302 0
+Mar 19 17:57:07  [19/Mar/2026 11:57:07] "GET /admin/auth/user/15/change/ HTTP/1.1" 200 59715
+Mar 19 17:57:07  [19/Mar/2026 11:57:07] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:57:07  [19/Mar/2026 11:57:07] "GET /static/admin/js/SelectBox.js HTTP/1.1" 200 4530
+Mar 19 17:57:07  [19/Mar/2026 11:57:07] "GET /static/admin/js/SelectFilter2.js HTTP/1.1" 200 15845
+Mar 19 17:57:07  [19/Mar/2026 11:57:07] "GET /static/admin/img/selector-icons.svg HTTP/1.1" 200 3291
+Mar 19 17:58:34  [19/Mar/2026 11:58:34] "POST /admin/auth/user/15/change/ HTTP/1.1" 302 0
+Mar 19 17:58:34  [19/Mar/2026 11:58:34] "GET /admin/auth/user/ HTTP/1.1" 200 37749
+Mar 19 17:58:34  [19/Mar/2026 11:58:34] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:58:39  [19/Mar/2026 11:58:39] "GET /admin/auth/user/12/change/ HTTP/1.1" 200 59560
+Mar 19 17:58:39  [19/Mar/2026 11:58:39] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:59:10  [19/Mar/2026 11:59:10] "POST /admin/auth/user/12/change/ HTTP/1.1" 302 0
+Mar 19 17:59:10  [19/Mar/2026 11:59:10] "GET /admin/auth/user/ HTTP/1.1" 200 37746
+Mar 19 17:59:10  [19/Mar/2026 11:59:10] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:59:14  [19/Mar/2026 11:59:14] "GET /admin/auth/user/15/change/ HTTP/1.1" 200 59530
+Mar 19 17:59:14  [19/Mar/2026 11:59:14] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:59:18  [19/Mar/2026 11:59:18] "POST /admin/auth/user/15/change/ HTTP/1.1" 302 0
+Mar 19 17:59:19  [19/Mar/2026 11:59:19] "GET /admin/auth/user/ HTTP/1.1" 200 37749
+Mar 19 17:59:19  [19/Mar/2026 11:59:19] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:59:24  [19/Mar/2026 11:59:24] "GET /admin/auth/user/9/change/ HTTP/1.1" 200 59510
+Mar 19 17:59:25  [19/Mar/2026 11:59:25] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 17:59:35  [19/Mar/2026 11:59:35] "POST /admin/auth/user/9/change/ HTTP/1.1" 302 0
+Mar 19 17:59:35  [19/Mar/2026 11:59:35] "GET /admin/auth/user/ HTTP/1.1" 200 37745
+Mar 19 17:59:35  [19/Mar/2026 11:59:35] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 19 19:51:57  [19/Mar/2026 13:51:57] "GET / HTTP/1.1" 200 33923
+Mar 20 13:00:00    SKIP  Reporte Mensual de Combustible (no es su momento)
+Mar 20 13:00:00    SKIP  Reporte Semanal de Combustible (no es su momento)
+Mar 20 13:00:00  
+Mar 20 13:00:00  Ejecutados: 0  Errores: 0
+Mar 20 15:04:05  /workspace/.heroku/python/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1612: RuntimeWarning: DateTimeField BitacoraViaje.fecha_salida received a naive datetime (2026-02-18 00:00:00) while time zone support is active.
+Mar 20 15:04:05    warnings.warn(
+Mar 20 15:04:06  /workspace/.heroku/python/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1612: RuntimeWarning: DateTimeField OrdenTrabajo.fecha_finalizacion received a naive datetime (2026-02-18 00:00:00) while time zone support is active.
+Mar 20 15:04:06    warnings.warn(
+Mar 20 15:04:06  [20/Mar/2026 09:04:06] "GET / HTTP/1.1" 200 33121
+Mar 20 15:04:06  [20/Mar/2026 09:04:06] "GET / HTTP/1.1" 200 33121
+Mar 20 15:04:11  [20/Mar/2026 09:04:11] "GET /almacen/ HTTP/1.1" 200 19294
+Mar 20 15:04:13  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:13  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:13  Unsafe operation: 0.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  Unsafe operation: 1.00 1.2.
+Mar 20 15:04:14  [20/Mar/2026 09:04:14] "GET /almacen/productos/ HTTP/1.1" 200 56530
+Mar 20 15:04:17  Unsafe operation: 10.00 1.2.
+Mar 20 15:04:17  [20/Mar/2026 09:04:17] "GET /almacen/productos/?buscar=HIELO&categoria=&subcategoria=&activo= HTTP/1.1" 200 26848
+Mar 20 15:04:20  [20/Mar/2026 09:04:20] "GET /almacen/productos/270/editar/?next=/almacen/productos/%3Fbuscar%3DHIELO%26categoria%3D%26subcategoria%3D%26activo%3D HTTP/1.1" 200 31543
+Mar 20 15:04:41  [20/Mar/2026 09:04:41] "POST /almacen/productos/270/editar/?next=/almacen/productos/%3Fbuscar%3DHIELO%26categoria%3D%26subcategoria%3D%26activo%3D HTTP/1.1" 302 0
+Mar 20 15:04:42  Unsafe operation: 10.00 1.2.
+Mar 20 15:04:42  [20/Mar/2026 09:04:42] "GET /almacen/productos/?buscar=HIELO&categoria=&subcategoria=&activo= HTTP/1.1" 200 27235
+Mar 20 15:26:43  [20/Mar/2026 09:26:43] "GET / HTTP/1.1" 200 33921
+Mar 20 15:26:49  [20/Mar/2026 09:26:49] "GET /admin/ HTTP/1.1" 200 36664
+Mar 20 15:26:54  [20/Mar/2026 09:26:54] "GET /combustible/nueva-carga/ HTTP/1.1" 200 26682
+Mar 20 15:28:46  [20/Mar/2026 09:28:46] "POST /combustible/nueva-carga/ HTTP/1.1" 302 0
+Mar 20 15:28:47  [20/Mar/2026 09:28:47] "GET /combustible/nueva-carga/paso/2/ HTTP/1.1" 200 26899
+Mar 20 15:29:40  [20/Mar/2026 09:29:40] "GET /combustible/nueva-carga/paso/3/ HTTP/1.1" 200 28046
+Mar 20 15:30:02  [20/Mar/2026 09:30:02] "GET /combustible/nueva-carga/paso/4/ HTTP/1.1" 200 31597
+Mar 20 15:31:49  [20/Mar/2026 09:31:49] "GET /combustible/nueva-carga/paso/5/ HTTP/1.1" 200 25831
+Mar 20 15:33:23  [20/Mar/2026 09:33:23] "GET /combustible/nueva-carga/paso/6/ HTTP/1.1" 200 21181
+Mar 20 15:34:27  [20/Mar/2026 09:34:27] "GET /combustible HTTP/1.1" 301 0
+Mar 20 15:34:27  [20/Mar/2026 09:34:27] "GET /combustible/ HTTP/1.1" 200 31997
+Mar 20 15:34:31  [20/Mar/2026 09:34:31] "GET /combustible/lista/ HTTP/1.1" 200 67629
+Mar 20 15:34:41  [20/Mar/2026 09:34:41] "GET /combustible/246/ HTTP/1.1" 200 23707
+Mar 20 15:35:24  [20/Mar/2026 09:35:24] "GET /combustible/241/ HTTP/1.1" 200 23705
+Mar 20 15:35:46  [20/Mar/2026 09:35:46] "GET /combustible/240/ HTTP/1.1" 200 23697
+Mar 20 15:35:56  [20/Mar/2026 09:35:56] "GET /combustible/238/ HTTP/1.1" 200 23701
+Mar 20 15:36:24  [20/Mar/2026 09:36:24] "GET /combustible/236/ HTTP/1.1" 200 23705
+Mar 20 15:36:46  [20/Mar/2026 09:36:46] "GET /combustible/230/ HTTP/1.1" 200 23684
+Mar 20 15:36:56  [20/Mar/2026 09:36:56] "GET /combustible/lista/ HTTP/1.1" 200 67629
+Mar 20 15:37:04  [20/Mar/2026 09:37:04] "GET /combustible/229/ HTTP/1.1" 200 23703
+Mar 20 15:37:16  [20/Mar/2026 09:37:16] "GET /combustible/225/ HTTP/1.1" 200 23707
+Mar 20 15:50:43  [20/Mar/2026 09:50:43] "GET /admin/ HTTP/1.1" 200 36664
+Mar 20 15:50:44  Not Found: /favicon.ico
+Mar 20 15:50:44  [20/Mar/2026 09:50:44] "GET /favicon.ico HTTP/1.1" 404 4110
+Mar 20 15:50:48  [20/Mar/2026 09:50:48] "GET /admin/combustible/cargacombustible/ HTTP/1.1" 200 133275
+Mar 20 15:50:48  [20/Mar/2026 09:50:48] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 20 15:50:57  [20/Mar/2026 09:50:57] "POST /admin/combustible/cargacombustible/ HTTP/1.1" 200 28275
+Mar 20 15:50:59  [20/Mar/2026 09:50:59] "POST /admin/combustible/cargacombustible/ HTTP/1.1" 302 0
+Mar 20 15:50:59  [20/Mar/2026 09:50:59] "GET /admin/combustible/cargacombustible/ HTTP/1.1" 200 132510
+Mar 20 15:50:59  [20/Mar/2026 09:50:59] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 20 17:01:23  [20/Mar/2026 11:01:23] "GET / HTTP/1.1" 200 33921
+Mar 20 17:03:15  [20/Mar/2026 11:03:15] "GET /admin/ HTTP/1.1" 200 36664
+Mar 20 17:03:18  Not Found: /favicon.ico
+Mar 20 17:03:18  [20/Mar/2026 11:03:18] "GET /favicon.ico HTTP/1.1" 404 4110
+Mar 20 17:03:23  [20/Mar/2026 11:03:23] "GET /admin/combustible/cargacombustible/ HTTP/1.1" 200 132356
+Mar 20 17:03:23  [20/Mar/2026 11:03:23] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 20 17:03:26  [20/Mar/2026 11:03:26] "GET /admin/combustible/cargacombustible/estadisticas/ HTTP/1.1" 200 64115
+Mar 20 17:13:44  [20/Mar/2026 11:13:44] "GET /admin/combustible/cargacombustible/estadisticas/exportar-excel/?desde=2026-02-18&hasta=2026-03-20 HTTP/1.1" 200 18586
+Mar 20 17:13:50  [20/Mar/2026 11:13:50] "GET /admin/combustible/cargacombustible/estadisticas/exportar-excel/?desde=2026-02-18&hasta=2026-03-20 HTTP/1.1" 302 0
+Mar 20 17:13:50  [20/Mar/2026 11:13:50] "GET /admin/login/?next=/admin/combustible/cargacombustible/estadisticas/exportar-excel/%3Fdesde%3D2026-02-18%26hasta%3D2026-03-20 HTTP/1.1" 200 4431
+Mar 20 17:13:50  [20/Mar/2026 11:13:50] "GET /static/admin/css/dark_mode.css HTTP/1.1" 200 2808
+Mar 20 17:13:50  [20/Mar/2026 11:13:50] "GET /static/admin/css/responsive.css HTTP/1.1" 200 16565
+Mar 20 17:13:50  [20/Mar/2026 11:13:50] "GET /static/admin/css/base.css HTTP/1.1" 200 22120
+Mar 20 17:13:50  [20/Mar/2026 11:13:50] "GET /static/admin/js/theme.js HTTP/1.1" 200 1653
+Mar 20 17:13:51  [20/Mar/2026 11:13:50] "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 200 2810
+Mar 20 17:13:51  [20/Mar/2026 11:13:51] "GET /static/admin/css/login.css HTTP/1.1" 200 951
+Mar 20 17:13:51  [20/Mar/2026 11:13:51] "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 200 3063
+Mar 20 17:13:51  Not Found: /favicon.ico
+Mar 20 17:13:51  [20/Mar/2026 11:13:51] "GET /favicon.ico HTTP/1.1" 404 4110
+Mar 20 17:25:14  [20/Mar/2026 11:25:14] "GET / HTTP/1.1" 200 33921
+Mar 20 17:25:17  [20/Mar/2026 11:25:17] "GET /reportes/configuraciones/ HTTP/1.1" 200 20740
+Mar 20 17:25:21  [20/Mar/2026 11:25:21] "GET /reportes/configuraciones/1/editar/ HTTP/1.1" 200 23098
+Mar 20 17:25:40  [20/Mar/2026 11:25:40] "POST /reportes/configuraciones/1/editar/ HTTP/1.1" 302 0
+Mar 20 17:25:40  [20/Mar/2026 11:25:40] "GET /reportes/configuraciones/ HTTP/1.1" 200 21178
+Mar 20 18:10:25  [20/Mar/2026 12:10:25] "GET /reportes/historial/ HTTP/1.1" 200 23380
+Mar 20 18:10:58  [20/Mar/2026 12:10:58] "GET /reportes/configuraciones/ HTTP/1.1" 200 20780
+Mar 20 18:11:06  [20/Mar/2026 12:11:06] "GET /reportes/configuraciones/1/editar/ HTTP/1.1" 200 23138
+Mar 20 18:11:11  [20/Mar/2026 12:11:11] "GET /reportes/configuraciones/ HTTP/1.1" 200 20780
+Mar 20 18:14:40  [20/Mar/2026 12:14:40] "GET /almacen/ HTTP/1.1" 200 19294
+Mar 20 18:15:40  [20/Mar/2026 12:15:40] "GET /reportes/configuraciones/2/editar/ HTTP/1.1" 200 23178
+Mar 20 18:16:15  [20/Mar/2026 12:16:15] "POST /reportes/configuraciones/2/editar/ HTTP/1.1" 302 0
+Mar 20 18:16:15  [20/Mar/2026 12:16:15] "GET /reportes/configuraciones/ HTTP/1.1" 200 21202
+Mar 20 18:16:17  [20/Mar/2026 12:16:17] "GET /reportes/configuraciones/1/editar/ HTTP/1.1" 200 23138
+Mar 20 18:16:37  [20/Mar/2026 12:16:37] "POST /reportes/configuraciones/1/editar/ HTTP/1.1" 302 0
+Mar 20 18:16:37  [20/Mar/2026 12:16:37] "GET /reportes/configuraciones/ HTTP/1.1" 200 21201
+Mar 20 18:16:40  [20/Mar/2026 12:16:40] "GET /reportes/configuraciones/1/editar/ HTTP/1.1" 200 23137
+Mar 20 18:16:49  [20/Mar/2026 12:16:49] "POST /reportes/configuraciones/1/editar/ HTTP/1.1" 302 0
+Mar 20 18:16:50  [20/Mar/2026 12:16:50] "GET /reportes/configuraciones/ HTTP/1.1" 200 21201
+Mar 20 18:16:51  [20/Mar/2026 12:16:51] "GET /reportes/configuraciones/2/editar/ HTTP/1.1" 200 23202
+Mar 20 18:17:01  [20/Mar/2026 12:17:01] "POST /reportes/configuraciones/2/editar/ HTTP/1.1" 302 0
+Mar 20 18:17:01  [20/Mar/2026 12:17:01] "GET /reportes/configuraciones/ HTTP/1.1" 200 21200
+Mar 20 18:32:22  [20/Mar/2026 12:32:22] "GET /combustible/alertas/ HTTP/1.1" 200 26711
+Mar 21 02:40:12  /workspace/.heroku/python/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1612: RuntimeWarning: DateTimeField BitacoraViaje.fecha_salida received a naive datetime (2026-02-19 00:00:00) while time zone support is active.
+Mar 21 02:40:12    warnings.warn(
+Mar 21 02:40:12  /workspace/.heroku/python/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1612: RuntimeWarning: DateTimeField OrdenTrabajo.fecha_finalizacion received a naive datetime (2026-02-19 00:00:00) while time zone support is active.
+Mar 21 02:40:12    warnings.warn(
+Mar 21 02:40:12  [20/Mar/2026 20:40:12] "GET / HTTP/1.1" 200 33918
+Mar 21 03:28:49  [20/Mar/2026 21:28:49] "GET / HTTP/1.1" 200 33918
+Mar 21 03:28:59  [20/Mar/2026 21:28:59] "GET /admin HTTP/1.1" 301 0
+Mar 21 03:28:59  [20/Mar/2026 21:28:59] "GET /admin/ HTTP/1.1" 200 36664
+Mar 21 03:29:00  Not Found: /favicon.ico
+Mar 21 03:29:00  [20/Mar/2026 21:29:00] "GET /favicon.ico HTTP/1.1" 404 4110
+Mar 21 03:29:08  [20/Mar/2026 21:29:08] "GET /admin/combustible/cargacombustible/ HTTP/1.1" 200 132356
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/admin/RelatedObjectLookups.js HTTP/1.1" 200 9777
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/img/search.svg HTTP/1.1" 200 458
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/core.js HTTP/1.1" 200 6208
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/css/changelists.css HTTP/1.1" 200 6878
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 200 285314
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/prepopulate.js HTTP/1.1" 200 1531
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /admin/jsi18n/ HTTP/1.1" 200 9760
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/urlify.js HTTP/1.1" 200 7887
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/jquery.init.js HTTP/1.1" 200 347
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/actions.js HTTP/1.1" 200 8076
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/vendor/xregexp/xregexp.js HTTP/1.1" 200 325171
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/js/filters.js HTTP/1.1" 200 978
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/img/tooltag-add.svg HTTP/1.1" 200 331
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/img/icon-viewlink.svg HTTP/1.1" 200 581
+Mar 21 03:29:09  [20/Mar/2026 21:29:09] "GET /static/admin/img/sorting-icons.svg HTTP/1.1" 200 1097
+Mar 21 03:29:11  [20/Mar/2026 21:29:11] "GET /admin/combustible/cargacombustible/estadisticas/ HTTP/1.1" 200 64115
+Mar 21 03:50:48  [20/Mar/2026 21:50:48] "GET /admin/ HTTP/1.1" 200 36664
+Mar 21 03:50:50  [20/Mar/2026 21:50:50] "GET / HTTP/1.1" 200 33918
+Mar 21 03:51:01  [20/Mar/2026 21:51:01] "GET /combustible/ HTTP/1.1" 200 31991
+Mar 21 13:00:00    SKIP  Reporte Mensual de Combustible (no es su momento)
+Mar 21 13:00:00    SKIP  Reporte Semanal de Combustible (no es su momento)
+Mar 21 13:00:00  
+Mar 21 13:00:00  Ejecutados: 0  Errores: 0
+Mar 21 19:31:17  [21/Mar/2026 13:31:17] "GET /combustible/nueva-carga/ HTTP/1.1" 302 0
+Mar 21 19:31:17  [21/Mar/2026 13:31:17] "GET /login/?next=/combustible/nueva-carga/ HTTP/1.1" 200 4986
+Mar 21 23:13:09  [21/Mar/2026 17:13:09] "GET /almacen/consumible/270/asignar-unidad/ HTTP/1.1" 302 0
+Mar 22 09:47:27  [22/Mar/2026 03:47:27] "GET /login/?next=/combustible/nueva-carga/ HTTP/1.1" 200 4986
+Mar 22 13:00:00    SKIP  Reporte Mensual de Combustible (no es su momento)
+Mar 22 13:00:00    SKIP  Reporte Semanal de Combustible (no es su momento)
+Mar 22 13:00:00  
+Mar 22 13:00:00  Ejecutados: 0  Errores: 0
+Mar 23 13:00:00    SKIP  Reporte Mensual de Combustible (no es su momento)
+Mar 23 13:00:00    SKIP  Reporte Semanal de Combustible (no es su momento)
+Mar 23 13:00:00  
+Mar 23 13:00:00  Ejecutados: 0  Errores: 0

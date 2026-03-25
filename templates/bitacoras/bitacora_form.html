@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if object %}Editar Bitácora #{{ object.id }}{% else %}Nueva Bitácora{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+    }
+    .section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 1rem;
+        padding-bottom: 0.625rem;
+        border-bottom: 1px solid #f3f4f6;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .form-label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.375rem;
+    }
+    .form-label .req { color: #ef4444; margin-left: 0.15rem; }
+    .form-label .opt { color: #9ca3af; font-weight: 400; margin-left: 0.25rem; }
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #111827;
+        background: white;
+        min-height: 44px;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .form-input[readonly] { background: #f9fafb; color: #6b7280; }
+    .form-textarea { resize: vertical; min-height: 72px; }
+    .form-help { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+    .form-error { font-size: 0.75rem; color: #ef4444; margin-top: 0.25rem; }
+    .form-group { margin-bottom: 1rem; }
+
+    /* Sección FULL */
+    #seccion-full {
+        border: 2px dashed #8b5cf6;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        background: #faf5ff;
+        margin-top: 0.75rem;
+    }
+    #seccion-full .section-title { color: #6d28d9; border-color: #ede9fe; }
+
+    /* Operador bloqueado */
+    #operador-wrapper { position: relative; }
+    #btn-reasignar {
+        display: none;
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #2563eb;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        text-decoration: underline;
+    }
+    #btn-reasignar:hover { color: #1d4ed8; }
+    select:disabled { background: #f3f4f6; color: #6b7280; cursor: not-allowed; }
+
+    /* Preview distancia */
+    #distancia-preview {
+        display: none;
+        margin-top: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: #ecfdf5;
+        border: 1px solid #6ee7b7;
+        border-radius: 0.5rem;
+        font-size: 0.8125rem;
+        color: #065f46;
+        font-weight: 600;
+    }
+    #distancia-preview.error {
+        background: #fef2f2;
+        border-color: #fca5a5;
+        color: #991b1b;
+    }
+    #distancia-spinner { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-4 px-4 sm:py-6">
+
+    <!-- Encabezado -->
+    <div class="mb-5 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+                {% if object %}Editar Bitácora #{{ object.id }}{% else %}Nueva Bitácora{% endif %}
+            </h1>
+            <p class="text-gray-500 mt-0.5 text-sm">
+                {% if object %}Modifica los datos del viaje{% else %}Registrar un nuevo viaje{% endif %}
+            </p>
+        </div>
+        <a href="{% if request.GET.next %}{{ request.GET.next }}{% else %}{% url 'bitacoras:list' %}{% endif %}"
+           class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg
+                  font-semibold text-sm transition min-h-[44px] inline-flex items-center self-start">
+            Cancelar
+        </a>
+    </div>
+
+    <!-- Errores generales -->
+    {% if form.non_field_errors %}
+    <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+        {% for error in form.non_field_errors %}
+        <p class="text-sm text-red-700">{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Sección 1: Datos generales -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <svg class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Datos Generales
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="id_modalidad" class="form-label">
+                        Modalidad <span class="req">*</span>
+                    </label>
+                    {{ form.modalidad }}
+                    {% if form.modalidad.errors %}<p class="form-error">{{ form.modalidad.errors|join:", " }}</p>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.salida_a_ruta.id_for_label }}" class="form-label">
+                        Salida a Ruta <span class="opt">(opcional)</span>
+                    </label>
+                    {{ form.salida_a_ruta }}
+                    {% if form.salida_a_ruta.errors %}<p class="form-error">{{ form.salida_a_ruta.errors|join:", " }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="id_unidad" class="form-label">
+                        Unidad <span class="req">*</span>
+                    </label>
+                    <select name="unidad" id="id_unidad" class="form-select" required>
+                        <option value="">Seleccione una unidad</option>
+                        {% for u in unidades_form %}
+                        <option value="{{ u.id }}"
+                                data-tipo="{{ u.tipo }}"
+                                data-placa="{{ u.placa }}"
+                                data-km="{{ u.kilometraje_actual }}"
+                                {% if form.unidad.value|stringformat:"s" == u.id|stringformat:"s" %}selected{% endif %}>
+                            {{ u.numero_economico }} — {{ u.placa }}
+                            {% if u.tipo == 'LOCAL' %}(Local){% elif u.tipo == 'ESPERANZA' %}(Esp.){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.unidad.errors %}<p class="form-error">{{ form.unidad.errors|join:", " }}</p>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_operador" class="form-label">
+                        Operador <span class="req">*</span>
+                    </label>
+                    <div id="operador-wrapper">
+                        <select name="operador" id="id_operador" class="form-select" required>
+                            <option value="">Seleccione un operador</option>
+                            {% for op in operadores_form %}
+                            <option value="{{ op.id }}"
+                                    data-tipo="{{ op.tipo }}"
+                                    {% if form.operador.value|stringformat:"s" == op.id|stringformat:"s" %}selected{% endif %}>
+                                {{ op.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" id="btn-reasignar">
+                            Reasignar operador
+                        </button>
+                    </div>
+                    {% if form.operador.errors %}<p class="form-error">{{ form.operador.errors|join:", " }}</p>{% endif %}
+                    <p class="form-help" id="operador-hint" style="display:none;">
+                        Operador asignado a esta unidad. Haz clic en "Reasignar" para cambiarlo.
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-group sm:max-w-xs">
+                <label class="form-label">Placas</label>
+                <input type="text" id="id_placas_display" class="form-input" readonly
+                       placeholder="Se llena al seleccionar unidad"
+                       value="{% if object %}{{ object.unidad.placa }}{% endif %}">
+                <p class="form-help">Dato de la unidad seleccionada</p>
+            </div>
+        </div>
+
+        <!-- Sección 2: Fecha -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <svg class="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Fecha
+            </h2>
+
+            <div class="form-group sm:max-w-xs">
+                <label for="{{ form.fecha_salida.id_for_label }}" class="form-label">
+                    Fecha de Salida <span class="req">*</span>
+                </label>
+                {{ form.fecha_salida }}
+                {% if form.fecha_salida.errors %}<p class="form-error">{{ form.fecha_salida.errors|join:", " }}</p>{% endif %}
+            </div>
+        </div>
+
+        <!-- Sección 3: Contenedor principal -->
+        <div class="form-section">
+            <h2 class="section-title" id="titulo-contenedor-1">
+                <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <span id="label-contenedor-1">Contenedor</span>
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="form-group">
+                    <label for="{{ form.contenedor.id_for_label }}" class="form-label">
+                        Número de Contenedor <span class="req">*</span>
+                    </label>
+                    {{ form.contenedor }}
+                    {% if form.contenedor.errors %}<p class="form-error">{{ form.contenedor.errors|join:", " }}</p>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.peso.id_for_label }}" class="form-label">
+                        Peso (kg) <span class="req">*</span>
+                    </label>
+                    {{ form.peso }}
+                    {% if form.peso.errors %}<p class="form-error">{{ form.peso.errors|join:", " }}</p>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.sellos.id_for_label }}" class="form-label">
+                        Sellos <span class="req">*</span>
+                    </label>
+                    {{ form.sellos }}
+                    {% if form.sellos.errors %}<p class="form-error">{{ form.sellos.errors|join:", " }}</p>{% endif %}
+                </div>
+            </div>
+
+            <!-- Segundo contenedor (solo FULL) -->
+            <div id="seccion-full" style="display:none;">
+                <h3 class="section-title">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    Contenedor 2
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="form-group">
+                        <label for="{{ form.contenedor_2.id_for_label }}" class="form-label">
+                            Número de Contenedor 2 <span class="req">*</span>
+                        </label>
+                        {{ form.contenedor_2 }}
+                        {% if form.contenedor_2.errors %}<p class="form-error">{{ form.contenedor_2.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.peso_2.id_for_label }}" class="form-label">
+                            Peso 2 (kg) <span class="opt">(opcional)</span>
+                        </label>
+                        {{ form.peso_2 }}
+                        {% if form.peso_2.errors %}<p class="form-error">{{ form.peso_2.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.sellos_2.id_for_label }}" class="form-label">
+                            Sellos 2 <span class="opt">(opcional)</span>
+                        </label>
+                        {{ form.sellos_2 }}
+                        {% if form.sellos_2.errors %}<p class="form-error">{{ form.sellos_2.errors|join:", " }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group sm:max-w-xs">
+                    <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-purple-200">
+                        {{ form.reparto }}
+                        <label for="{{ form.reparto.id_for_label }}" class="form-label mb-0 cursor-pointer">
+                            Viaje con Reparto
+                        </label>
+                    </div>
+                    {% if form.reparto.errors %}<p class="form-error">{{ form.reparto.errors|join:", " }}</p>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 4: Destino -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Destino
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="{{ form.cp_origen.id_for_label }}" class="form-label">
+                        CP Origen <span class="opt">(fijo)</span>
+                    </label>
+                    {{ form.cp_origen }}
+                    <p class="form-help">Origen base de operaciones</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_cp_destino" class="form-label">
+                        CP Destino <span class="req">*</span>
+                    </label>
+                    {{ form.cp_destino }}
+                    {% if form.cp_destino.errors %}<p class="form-error">{{ form.cp_destino.errors|join:", " }}</p>{% endif %}
+                    <!-- Preview distancia en tiempo real -->
+                    <div id="distancia-preview"></div>
+                    <span id="distancia-spinner" class="form-help">
+                        <svg class="inline w-3.5 h-3.5 animate-spin mr-1" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                        Calculando distancia…
+                    </span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.destino.id_for_label }}" class="form-label">
+                    Descripción del Destino <span class="req">*</span>
+                </label>
+                {{ form.destino }}
+                {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors|join:", " }}</p>{% endif %}
+            </div>
+        </div>
+
+        <!-- Sección 5: Observaciones -->
+        <div class="form-section">
+            <h2 class="section-title">
+                <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                Observaciones <span class="opt text-sm font-normal">(opcional)</span>
+            </h2>
+            <div class="form-group mb-0">
+                {{ form.observaciones }}
+                {% if form.observaciones.errors %}<p class="form-error">{{ form.observaciones.errors|join:", " }}</p>{% endif %}
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <button type="submit"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg
+                           font-semibold text-base transition shadow-sm min-h-[50px]">
+                {% if object %}Guardar Cambios{% else %}Crear Bitácora{% endif %}
+            </button>
+            <a href="{% if request.GET.next %}{{ request.GET.next }}{% else %}{% url 'bitacoras:list' %}{% endif %}"
+               class="sm:w-auto px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold
+                      text-gray-700 hover:bg-gray-50 transition text-center min-h-[50px]
+                      inline-flex items-center justify-center">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const AJAX_UNIDAD_URL    = "{% url 'bitacoras:unidad_info_ajax' %}";
+const AJAX_DISTANCIA_URL = "{% url 'bitacoras:calcular_distancia_preview' %}";
+
+// ─────────────────────────────────────────────────────────────
+// Utilidades
+// ─────────────────────────────────────────────────────────────
+const modalidadSelect  = document.getElementById('id_modalidad');
+const unidadSelect     = document.getElementById('id_unidad');
+const operadorSelect   = document.getElementById('id_operador');
+const placasInput      = document.getElementById('id_placas_display');
+const seccionFull      = document.getElementById('seccion-full');
+const labelCont1       = document.getElementById('label-contenedor-1');
+const btnReasignar     = document.getElementById('btn-reasignar');
+const operadorHint     = document.getElementById('operador-hint');
+
+// Tipos que corresponden a foráneo
+const TIPOS_FORANEO = ['FORANEA', 'ESPERANZA'];
+// Tipos de operador foráneo
+const TIPOS_OP_FORANEO = ['FORANEO', 'ESPERANZA'];
+
+
+// ─────────────────────────────────────────────────────────────
+// 1. Filtrar unidades y operadores según modalidad
+// ─────────────────────────────────────────────────────────────
+function filtrarPorModalidad() {
+    const modalidad = modalidadSelect.value;
+    const esForaneo = (modalidad === 'FULL' || modalidad === 'SENCILLO');
+
+    // Filtrar opciones de unidad
+    const unidadActual = unidadSelect.value;
+    Array.from(unidadSelect.options).forEach(opt => {
+        if (!opt.value) return; // placeholder
+        const tipo = opt.dataset.tipo;
+        const aplica = esForaneo ? TIPOS_FORANEO.includes(tipo) : (!esForaneo && tipo === 'LOCAL');
+        opt.hidden   = !aplica;
+        opt.disabled = !aplica;
+    });
+    // Si la unidad seleccionada ya no aplica, limpiar
+    const optSeleccionada = unidadSelect.options[unidadSelect.selectedIndex];
+    if (optSeleccionada && optSeleccionada.value && optSeleccionada.hidden) {
+        unidadSelect.value = '';
+        placasInput.value  = '';
+        limpiarOperadorAsignado();
+    }
+
+    // Filtrar opciones de operador
+    const opActual = operadorSelect.value;
+    Array.from(operadorSelect.options).forEach(opt => {
+        if (!opt.value) return;
+        const tipo = opt.dataset.tipo;
+        const aplica = esForaneo ? TIPOS_OP_FORANEO.includes(tipo) : tipo === 'LOCAL';
+        opt.hidden   = !aplica;
+        opt.disabled = !aplica;
+    });
+    const opSeleccionado = operadorSelect.options[operadorSelect.selectedIndex];
+    if (opSeleccionado && opSeleccionado.value && opSeleccionado.hidden) {
+        operadorSelect.value = '';
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// 2. Sección FULL
+// ─────────────────────────────────────────────────────────────
+function toggleFull() {
+    const esFull = modalidadSelect.value === 'FULL';
+    seccionFull.style.display = esFull ? 'block' : 'none';
+    labelCont1.textContent    = esFull ? 'Contenedor 1' : 'Contenedor';
+    if (!esFull) {
+        document.getElementById('{{ form.contenedor_2.id_for_label }}').value = '';
+        document.getElementById('{{ form.peso_2.id_for_label }}').value       = '';
+        document.getElementById('{{ form.sellos_2.id_for_label }}').value     = '';
+        document.getElementById('{{ form.reparto.id_for_label }}').checked    = false;
+    }
+}
+
+modalidadSelect.addEventListener('change', () => {
+    toggleFull();
+    filtrarPorModalidad();
+});
+
+// Estado inicial
+toggleFull();
+filtrarPorModalidad();
+
+{% if form.contenedor_2.errors or form.peso_2.errors or form.sellos_2.errors or form.reparto.errors %}
+seccionFull.style.display = 'block';
+{% endif %}
+
+
+// ─────────────────────────────────────────────────────────────
+// 3. Operador bloqueado / reasignación
+// ─────────────────────────────────────────────────────────────
+function bloquearOperador(operadorId, operadorNombre) {
+    operadorSelect.value    = operadorId;
+    operadorSelect.disabled = true;
+    btnReasignar.style.display  = 'inline';
+    operadorHint.style.display  = 'block';
+}
+
+function limpiarOperadorAsignado() {
+    operadorSelect.disabled     = false;
+    operadorSelect.value        = '';
+    btnReasignar.style.display  = 'none';
+    operadorHint.style.display  = 'none';
+}
+
+btnReasignar.addEventListener('click', () => {
+    operadorSelect.disabled    = false;
+    operadorSelect.value       = '';
+    btnReasignar.style.display = 'none';
+    operadorHint.style.display = 'none';
+    operadorSelect.focus();
+});
+
+
+// ─────────────────────────────────────────────────────────────
+// 4. Al seleccionar unidad → placa, km, operador asignado
+// ─────────────────────────────────────────────────────────────
+unidadSelect.addEventListener('change', function () {
+    const unidadId = this.value;
+    if (!unidadId) {
+        placasInput.value = '';
+        limpiarOperadorAsignado();
+        return;
+    }
+
+    fetch(`${AJAX_UNIDAD_URL}?unidad_id=${unidadId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+
+            // Placa
+            placasInput.value = data.placa || '';
+
+            // Operador asignado
+            if (data.operador_id) {
+                bloquearOperador(data.operador_id, data.operador_nombre);
+            } else {
+                limpiarOperadorAsignado();
+            }
+        })
+        .catch(() => {});
+});
+
+// En edición: si la unidad ya está seleccionada al cargar la página,
+// mostrar la placa pero NO sobreescribir el operador (ya viene del form)
+(function inicializarEdicion() {
+    if (!unidadSelect.value) return;
+    const optSel = unidadSelect.options[unidadSelect.selectedIndex];
+    if (optSel && optSel.dataset.placa) {
+        placasInput.value = optSel.dataset.placa;
+    }
+})();
+
+
+// ─────────────────────────────────────────────────────────────
+// 5. Preview de distancia al escribir CP destino
+// ─────────────────────────────────────────────────────────────
+const cpDestinoInput    = document.getElementById('id_cp_destino');
+const distanciaPreview  = document.getElementById('distancia-preview');
+const distanciaSpinner  = document.getElementById('distancia-spinner');
+let distanciaTimer      = null;
+
+cpDestinoInput.addEventListener('input', function () {
+    const cp = this.value.trim();
+    clearTimeout(distanciaTimer);
+    distanciaPreview.style.display = 'none';
+    distanciaSpinner.style.display = 'none';
+    if (cp.length < 4) return;
+
+    distanciaTimer = setTimeout(() => {
+        const cpOrigen = document.getElementById('{{ form.cp_origen.id_for_label }}').value.trim() || '40812';
+        distanciaSpinner.style.display = 'inline';
+
+        fetch(`${AJAX_DISTANCIA_URL}?cp_origen=${cpOrigen}&cp_destino=${cp}`)
+            .then(r => r.json())
+            .then(data => {
+                distanciaSpinner.style.display = 'none';
+                if (data.success) {
+                    distanciaPreview.textContent       = `≈ ${data.distancia_texto} · ${data.duracion_texto}`;
+                    distanciaPreview.className         = '';
+                    distanciaPreview.style.display     = 'block';
+                } else {
+                    distanciaPreview.textContent       = 'No se pudo calcular la ruta para este CP';
+                    distanciaPreview.className         = 'error';
+                    distanciaPreview.style.display     = 'block';
+                }
+            })
+            .catch(() => { distanciaSpinner.style.display = 'none'; });
+    }, 800);
+});
+</script>
+{% endblock %}

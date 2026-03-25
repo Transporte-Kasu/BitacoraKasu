@@ -12,6 +12,7 @@ class BitacoraViaje(models.Model):
     MODALIDAD_CHOICES = [
         ('SENCILLO', 'Sencillo'),
         ('FULL', 'Full'),
+        ('LOCAL', 'Local'),
     ]
     
     # Relaciones con otras aplicaciones
@@ -34,10 +35,15 @@ class BitacoraViaje(models.Model):
         choices=MODALIDAD_CHOICES,
         verbose_name="Modalidad"
     )
+    salida_a_ruta = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Salida a ruta"
+    )
     contenedor = models.CharField(
         max_length=50,
         blank=True,
-        verbose_name="Número de contenedor"
+        verbose_name="Contenedor 1"
     )
     peso = models.DecimalField(
         max_digits=10,
@@ -45,7 +51,20 @@ class BitacoraViaje(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(Decimal('0'))],
-        verbose_name="Peso (kg)"
+        verbose_name="Peso 1 (kg)"
+    )
+    contenedor_2 = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Contenedor 2"
+    )
+    peso_2 = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name="Peso 2 (kg)"
     )
     
     # Fechas y horas
@@ -61,14 +80,18 @@ class BitacoraViaje(models.Model):
         verbose_name="Fecha/hora de llegada"
     )
     
-    # Combustible y kilometraje
+    # Combustible y kilometraje (gestionados desde módulo combustible)
     diesel_cargado = models.DecimalField(
         max_digits=8,
         decimal_places=2,
+        null=True,
+        blank=True,
         validators=[MinValueValidator(Decimal('0'))],
         verbose_name="Diesel cargado (litros)"
     )
     kilometraje_salida = models.IntegerField(
+        null=True,
+        blank=True,
         validators=[MinValueValidator(0)],
         verbose_name="Kilometraje de salida"
     )
@@ -114,7 +137,12 @@ class BitacoraViaje(models.Model):
     sellos = models.CharField(
         max_length=100,
         blank=True,
-        verbose_name="Números de sellos"
+        verbose_name="Sellos contenedor 1"
+    )
+    sellos_2 = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Sellos contenedor 2"
     )
     
     # Control adicional
@@ -161,11 +189,11 @@ class BitacoraViaje(models.Model):
         if self.kilometraje_llegada and self.kilometraje_salida:
             return self.kilometraje_llegada - self.kilometraje_salida
         return 0
-    
+
     @property
     def rendimiento_combustible(self):
         """Calcula rendimiento real de combustible (km/lt)"""
-        if self.diesel_cargado > 0 and self.kilometros_recorridos > 0:
+        if self.diesel_cargado and self.diesel_cargado > 0 and self.kilometros_recorridos > 0:
             return round(float(self.kilometros_recorridos) / float(self.diesel_cargado), 2)
         return 0
     
@@ -210,15 +238,29 @@ class BitacoraViaje(models.Model):
         return self.rendimiento_combustible > 0 and self.rendimiento_combustible < 2.5
     
     # ========================================================================
+    # VALIDACIONES
+    # ========================================================================
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.modalidad == 'FULL' and not self.contenedor_2:
+            raise ValidationError({'contenedor_2': 'FULL requiere el segundo contenedor.'})
+        if self.modalidad == 'SENCILLO':
+            if self.contenedor_2 or self.peso_2 or self.sellos_2:
+                raise ValidationError('SENCILLO no puede tener datos del segundo contenedor.')
+            if self.reparto:
+                raise ValidationError({'reparto': 'SENCILLO no usa reparto.'})
+
+    # ========================================================================
     # MÉTODOS
     # ========================================================================
-    
+
     def calcular_distancia_google(self, api_key=None):
         """
         Calcula distancia y duración usando Google Distance Matrix API
         Retorna: dict con 'distancia_km', 'duracion_min', 'status'
         """
-        from core.services.google_maps import GoogleMapsService
+        from config.services.google_maps import GoogleMapsService
         
         if not api_key:
             api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
@@ -271,8 +313,9 @@ class BitacoraViaje(models.Model):
             raise ValueError("La fecha de llegada no puede ser anterior a la fecha de salida")
         
         # Validar que el kilometraje de llegada sea mayor al de salida
-        if self.kilometraje_llegada and self.kilometraje_llegada < self.kilometraje_salida:
-            raise ValueError("El kilometraje de llegada no puede ser menor al de salida")
+        if self.kilometraje_llegada and self.kilometraje_salida:
+            if self.kilometraje_llegada < self.kilometraje_salida:
+                raise ValueError("El kilometraje de llegada no puede ser menor al de salida")
         
         # Marcar como completado si tiene fecha de llegada
         if self.fecha_llegada and not self.completado:
