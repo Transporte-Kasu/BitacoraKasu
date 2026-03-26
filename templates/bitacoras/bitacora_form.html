@@ -64,6 +64,15 @@
     }
     #seccion-full .section-title { color: #6d28d9; border-color: #ede9fe; }
 
+    /* Segundo CP destino (reparto) */
+    #seccion-cp-destino-2 {
+        margin-top: 0.75rem;
+        padding: 1rem;
+        background: #fff7ed;
+        border: 1.5px dashed #fb923c;
+        border-radius: 0.5rem;
+    }
+
     /* Operador bloqueado */
     #operador-wrapper { position: relative; }
     #btn-reasignar {
@@ -82,7 +91,7 @@
     select:disabled { background: #f3f4f6; color: #6b7280; cursor: not-allowed; }
 
     /* Preview distancia */
-    #distancia-preview {
+    .distancia-preview {
         display: none;
         margin-top: 0.5rem;
         padding: 0.5rem 0.75rem;
@@ -93,12 +102,12 @@
         color: #065f46;
         font-weight: 600;
     }
-    #distancia-preview.error {
+    .distancia-preview.error {
         background: #fef2f2;
         border-color: #fca5a5;
         color: #991b1b;
     }
-    #distancia-spinner { display: none; }
+    .distancia-spinner { display: none; }
 </style>
 {% endblock %}
 
@@ -244,12 +253,13 @@
                         Número de Contenedor <span class="req">*</span>
                     </label>
                     {{ form.contenedor }}
+                    <p class="form-help">Formato: 3 letras + U + 7 dígitos (ej. ABCU1234567)</p>
                     {% if form.contenedor.errors %}<p class="form-error">{{ form.contenedor.errors|join:", " }}</p>{% endif %}
                 </div>
 
                 <div class="form-group">
                     <label for="{{ form.peso.id_for_label }}" class="form-label">
-                        Peso (kg) <span class="req">*</span>
+                        Peso (t) <span class="req">*</span>
                     </label>
                     {{ form.peso }}
                     {% if form.peso.errors %}<p class="form-error">{{ form.peso.errors|join:", " }}</p>{% endif %}
@@ -264,7 +274,7 @@
                 </div>
             </div>
 
-            <!-- Segundo contenedor (solo FULL) -->
+            <!-- Segundo contenedor (solo FULL / LOCAL FULL) -->
             <div id="seccion-full" style="display:none;">
                 <h3 class="section-title">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -277,12 +287,13 @@
                             Número de Contenedor 2 <span class="req">*</span>
                         </label>
                         {{ form.contenedor_2 }}
+                        <p class="form-help">Formato: 3 letras + U + 7 dígitos (ej. ABCU1234567)</p>
                         {% if form.contenedor_2.errors %}<p class="form-error">{{ form.contenedor_2.errors|join:", " }}</p>{% endif %}
                     </div>
 
                     <div class="form-group">
                         <label for="{{ form.peso_2.id_for_label }}" class="form-label">
-                            Peso 2 (kg) <span class="opt">(opcional)</span>
+                            Peso 2 (t) <span class="opt">(opcional)</span>
                         </label>
                         {{ form.peso_2 }}
                         {% if form.peso_2.errors %}<p class="form-error">{{ form.peso_2.errors|join:", " }}</p>{% endif %}
@@ -297,14 +308,17 @@
                     </div>
                 </div>
 
-                <div class="form-group sm:max-w-xs">
-                    <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-purple-200">
-                        {{ form.reparto }}
-                        <label for="{{ form.reparto.id_for_label }}" class="form-label mb-0 cursor-pointer">
-                            Viaje con Reparto
-                        </label>
+                <!-- Reparto: solo aplica a FULL foráneo, no a LOCAL FULL -->
+                <div id="seccion-reparto" style="display:none;">
+                    <div class="form-group sm:max-w-xs">
+                        <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-purple-200">
+                            {{ form.reparto }}
+                            <label for="{{ form.reparto.id_for_label }}" class="form-label mb-0 cursor-pointer">
+                                Viaje con Reparto
+                            </label>
+                        </div>
+                        {% if form.reparto.errors %}<p class="form-error">{{ form.reparto.errors|join:", " }}</p>{% endif %}
                     </div>
-                    {% if form.reparto.errors %}<p class="form-error">{{ form.reparto.errors|join:", " }}</p>{% endif %}
                 </div>
             </div>
         </div>
@@ -331,15 +345,37 @@
                     </label>
                     {{ form.cp_destino }}
                     {% if form.cp_destino.errors %}<p class="form-error">{{ form.cp_destino.errors|join:", " }}</p>{% endif %}
-                    <!-- Preview distancia en tiempo real -->
-                    <div id="distancia-preview"></div>
-                    <span id="distancia-spinner" class="form-help">
+                    <div id="distancia-preview" class="distancia-preview"></div>
+                    <span id="distancia-spinner" class="distancia-spinner form-help">
                         <svg class="inline w-3.5 h-3.5 animate-spin mr-1" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                         </svg>
                         Calculando distancia…
                     </span>
+                </div>
+            </div>
+
+            <!-- Segundo destino para reparto (solo FULL con reparto activado) -->
+            <div id="seccion-cp-destino-2" style="display:none;">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div></div>
+                    <div class="form-group">
+                        <label for="id_cp_destino_2" class="form-label">
+                            CP Destino 2 <span class="opt">(reparto — opcional si igual al destino 1)</span>
+                        </label>
+                        {{ form.cp_destino_2 }}
+                        {% if form.cp_destino_2.errors %}<p class="form-error">{{ form.cp_destino_2.errors|join:", " }}</p>{% endif %}
+                        <div id="distancia-preview-2" class="distancia-preview"></div>
+                        <span id="distancia-spinner-2" class="distancia-spinner form-help">
+                            <svg class="inline w-3.5 h-3.5 animate-spin mr-1" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            Calculando distancia…
+                        </span>
+                        <p class="form-help mt-1">Se usará el CP más lejano para el cálculo de rendimiento.</p>
+                    </div>
                 </div>
             </div>
 
@@ -388,75 +424,108 @@ const AJAX_UNIDAD_URL    = "{% url 'bitacoras:unidad_info_ajax' %}";
 const AJAX_DISTANCIA_URL = "{% url 'bitacoras:calcular_distancia_preview' %}";
 
 // ─────────────────────────────────────────────────────────────
-// Utilidades
+// Elementos DOM
 // ─────────────────────────────────────────────────────────────
 const modalidadSelect  = document.getElementById('id_modalidad');
 const unidadSelect     = document.getElementById('id_unidad');
 const operadorSelect   = document.getElementById('id_operador');
 const placasInput      = document.getElementById('id_placas_display');
 const seccionFull      = document.getElementById('seccion-full');
+const seccionReparto   = document.getElementById('seccion-reparto');
+const seccionCpDest2   = document.getElementById('seccion-cp-destino-2');
 const labelCont1       = document.getElementById('label-contenedor-1');
 const btnReasignar     = document.getElementById('btn-reasignar');
 const operadorHint     = document.getElementById('operador-hint');
+const repartoCheck     = document.getElementById('{{ form.reparto.id_for_label }}');
 
-// Tipos que corresponden a foráneo
-const TIPOS_FORANEO = ['FORANEA', 'ESPERANZA'];
-// Tipos de operador foráneo
+// Tipos foráneo
+const TIPOS_FORANEO    = ['FORANEA', 'ESPERANZA'];
 const TIPOS_OP_FORANEO = ['FORANEO', 'ESPERANZA'];
 
 
 // ─────────────────────────────────────────────────────────────
-// 1. Filtrar unidades y operadores según modalidad
+// 1. Toggle sección FULL / LOCAL FULL
+// ─────────────────────────────────────────────────────────────
+function toggleFull() {
+    const modalidad = modalidadSelect.value;
+    const esFull        = (modalidad === 'FULL' || modalidad === 'LOCAL_FULL');
+    const esFullForaneo = (modalidad === 'FULL');
+
+    seccionFull.style.display    = esFull ? 'block' : 'none';
+    labelCont1.textContent       = esFull ? 'Contenedor 1' : 'Contenedor';
+    // Reparto solo aplica a FULL foráneo
+    seccionReparto.style.display = esFullForaneo ? 'block' : 'none';
+
+    if (!esFull) {
+        document.getElementById('{{ form.contenedor_2.id_for_label }}').value = '';
+        document.getElementById('{{ form.peso_2.id_for_label }}').value       = '';
+        document.getElementById('{{ form.sellos_2.id_for_label }}').value     = '';
+        repartoCheck.checked = false;
+        toggleCpDestino2();
+    }
+    if (!esFullForaneo) {
+        repartoCheck.checked = false;
+        toggleCpDestino2();
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// 2. Toggle segundo CP destino (reparto)
+// ─────────────────────────────────────────────────────────────
+function toggleCpDestino2() {
+    const esRepartoFull = modalidadSelect.value === 'FULL' && repartoCheck.checked;
+    seccionCpDest2.style.display = esRepartoFull ? 'block' : 'none';
+    if (!esRepartoFull) {
+        document.getElementById('id_cp_destino_2').value = '';
+        document.getElementById('distancia-preview-2').style.display = 'none';
+        document.getElementById('distancia-preview-2').textContent   = '';
+    }
+}
+
+repartoCheck.addEventListener('change', toggleCpDestino2);
+
+
+// ─────────────────────────────────────────────────────────────
+// 3. Filtrar unidades y operadores según modalidad
 // ─────────────────────────────────────────────────────────────
 function filtrarPorModalidad() {
-    const modalidad = modalidadSelect.value;
-    const esForaneo = (modalidad === 'FULL' || modalidad === 'SENCILLO');
+    const modalidad  = modalidadSelect.value;
+    const esForaneo  = (modalidad === 'FULL' || modalidad === 'SENCILLO');
+    const esLocal    = (modalidad === 'LOCAL' || modalidad === 'LOCAL_FULL');
 
     // Filtrar opciones de unidad
-    const unidadActual = unidadSelect.value;
     Array.from(unidadSelect.options).forEach(opt => {
-        if (!opt.value) return; // placeholder
+        if (!opt.value) return;
         const tipo = opt.dataset.tipo;
-        const aplica = esForaneo ? TIPOS_FORANEO.includes(tipo) : (!esForaneo && tipo === 'LOCAL');
+        let aplica;
+        if (esForaneo)     aplica = TIPOS_FORANEO.includes(tipo);
+        else if (esLocal)  aplica = tipo === 'LOCAL';
+        else               aplica = true;
         opt.hidden   = !aplica;
         opt.disabled = !aplica;
     });
-    // Si la unidad seleccionada ya no aplica, limpiar
-    const optSeleccionada = unidadSelect.options[unidadSelect.selectedIndex];
-    if (optSeleccionada && optSeleccionada.value && optSeleccionada.hidden) {
+    const optSelU = unidadSelect.options[unidadSelect.selectedIndex];
+    if (optSelU && optSelU.value && optSelU.hidden) {
         unidadSelect.value = '';
         placasInput.value  = '';
         limpiarOperadorAsignado();
     }
 
     // Filtrar opciones de operador
-    const opActual = operadorSelect.value;
     Array.from(operadorSelect.options).forEach(opt => {
         if (!opt.value) return;
         const tipo = opt.dataset.tipo;
-        const aplica = esForaneo ? TIPOS_OP_FORANEO.includes(tipo) : tipo === 'LOCAL';
+        let aplica;
+        if (esForaneo)     aplica = TIPOS_OP_FORANEO.includes(tipo);
+        else if (esLocal)  aplica = tipo === 'LOCAL';
+        else               aplica = true;
         opt.hidden   = !aplica;
         opt.disabled = !aplica;
     });
-    const opSeleccionado = operadorSelect.options[operadorSelect.selectedIndex];
-    if (opSeleccionado && opSeleccionado.value && opSeleccionado.hidden) {
+    const optSelO = operadorSelect.options[operadorSelect.selectedIndex];
+    if (optSelO && optSelO.value && optSelO.hidden) {
         operadorSelect.value = '';
-    }
-}
-
-
-// ─────────────────────────────────────────────────────────────
-// 2. Sección FULL
-// ─────────────────────────────────────────────────────────────
-function toggleFull() {
-    const esFull = modalidadSelect.value === 'FULL';
-    seccionFull.style.display = esFull ? 'block' : 'none';
-    labelCont1.textContent    = esFull ? 'Contenedor 1' : 'Contenedor';
-    if (!esFull) {
-        document.getElementById('{{ form.contenedor_2.id_for_label }}').value = '';
-        document.getElementById('{{ form.peso_2.id_for_label }}').value       = '';
-        document.getElementById('{{ form.sellos_2.id_for_label }}').value     = '';
-        document.getElementById('{{ form.reparto.id_for_label }}').checked    = false;
     }
 }
 
@@ -469,17 +538,20 @@ modalidadSelect.addEventListener('change', () => {
 toggleFull();
 filtrarPorModalidad();
 
-{% if form.contenedor_2.errors or form.peso_2.errors or form.sellos_2.errors or form.reparto.errors %}
+{% if form.contenedor_2.errors or form.peso_2.errors or form.sellos_2.errors or form.reparto.errors or form.cp_destino_2.errors %}
 seccionFull.style.display = 'block';
+{% endif %}
+{% if form.reparto.value or form.cp_destino_2.errors %}
+seccionCpDest2.style.display = 'block';
 {% endif %}
 
 
 // ─────────────────────────────────────────────────────────────
-// 3. Operador bloqueado / reasignación
+// 4. Operador bloqueado / reasignación
 // ─────────────────────────────────────────────────────────────
-function bloquearOperador(operadorId, operadorNombre) {
-    operadorSelect.value    = operadorId;
-    operadorSelect.disabled = true;
+function bloquearOperador(operadorId) {
+    operadorSelect.value        = operadorId;
+    operadorSelect.disabled     = true;
     btnReasignar.style.display  = 'inline';
     operadorHint.style.display  = 'block';
 }
@@ -501,7 +573,7 @@ btnReasignar.addEventListener('click', () => {
 
 
 // ─────────────────────────────────────────────────────────────
-// 4. Al seleccionar unidad → placa, km, operador asignado
+// 5. Al seleccionar unidad → placa, km, operador asignado
 // ─────────────────────────────────────────────────────────────
 unidadSelect.addEventListener('change', function () {
     const unidadId = this.value;
@@ -515,66 +587,63 @@ unidadSelect.addEventListener('change', function () {
         .then(r => r.json())
         .then(data => {
             if (!data.success) return;
-
-            // Placa
             placasInput.value = data.placa || '';
-
-            // Operador asignado
-            if (data.operador_id) {
-                bloquearOperador(data.operador_id, data.operador_nombre);
-            } else {
-                limpiarOperadorAsignado();
-            }
+            if (data.operador_id) bloquearOperador(data.operador_id);
+            else limpiarOperadorAsignado();
         })
         .catch(() => {});
 });
 
-// En edición: si la unidad ya está seleccionada al cargar la página,
-// mostrar la placa pero NO sobreescribir el operador (ya viene del form)
+// En edición: mostrar placa sin sobreescribir el operador
 (function inicializarEdicion() {
     if (!unidadSelect.value) return;
     const optSel = unidadSelect.options[unidadSelect.selectedIndex];
-    if (optSel && optSel.dataset.placa) {
-        placasInput.value = optSel.dataset.placa;
-    }
+    if (optSel && optSel.dataset.placa) placasInput.value = optSel.dataset.placa;
 })();
 
 
 // ─────────────────────────────────────────────────────────────
-// 5. Preview de distancia al escribir CP destino
+// 6. Preview de distancia (helper reutilizable)
 // ─────────────────────────────────────────────────────────────
-const cpDestinoInput    = document.getElementById('id_cp_destino');
-const distanciaPreview  = document.getElementById('distancia-preview');
-const distanciaSpinner  = document.getElementById('distancia-spinner');
-let distanciaTimer      = null;
+function setupDistanciaPreview(inputId, previewId, spinnerId) {
+    const input   = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const spinner = document.getElementById(spinnerId);
+    if (!input || !preview || !spinner) return;
 
-cpDestinoInput.addEventListener('input', function () {
-    const cp = this.value.trim();
-    clearTimeout(distanciaTimer);
-    distanciaPreview.style.display = 'none';
-    distanciaSpinner.style.display = 'none';
-    if (cp.length < 4) return;
+    let timer = null;
 
-    distanciaTimer = setTimeout(() => {
-        const cpOrigen = document.getElementById('{{ form.cp_origen.id_for_label }}').value.trim() || '40812';
-        distanciaSpinner.style.display = 'inline';
+    input.addEventListener('input', function () {
+        const cp = this.value.trim();
+        clearTimeout(timer);
+        preview.style.display = 'none';
+        spinner.style.display = 'none';
+        if (cp.length < 4) return;
 
-        fetch(`${AJAX_DISTANCIA_URL}?cp_origen=${cpOrigen}&cp_destino=${cp}`)
-            .then(r => r.json())
-            .then(data => {
-                distanciaSpinner.style.display = 'none';
-                if (data.success) {
-                    distanciaPreview.textContent       = `≈ ${data.distancia_texto} · ${data.duracion_texto}`;
-                    distanciaPreview.className         = '';
-                    distanciaPreview.style.display     = 'block';
-                } else {
-                    distanciaPreview.textContent       = 'No se pudo calcular la ruta para este CP';
-                    distanciaPreview.className         = 'error';
-                    distanciaPreview.style.display     = 'block';
-                }
-            })
-            .catch(() => { distanciaSpinner.style.display = 'none'; });
-    }, 800);
-});
+        timer = setTimeout(() => {
+            const cpOrigen = document.getElementById('{{ form.cp_origen.id_for_label }}').value.trim() || '40812';
+            spinner.style.display = 'inline';
+
+            fetch(`${AJAX_DISTANCIA_URL}?cp_origen=${cpOrigen}&cp_destino=${cp}`)
+                .then(r => r.json())
+                .then(data => {
+                    spinner.style.display = 'none';
+                    if (data.success) {
+                        preview.textContent   = `≈ ${data.distancia_texto} · ${data.duracion_texto}`;
+                        preview.className     = 'distancia-preview';
+                        preview.style.display = 'block';
+                    } else {
+                        preview.textContent   = 'No se pudo calcular la ruta para este CP';
+                        preview.className     = 'distancia-preview error';
+                        preview.style.display = 'block';
+                    }
+                })
+                .catch(() => { spinner.style.display = 'none'; });
+        }, 800);
+    });
+}
+
+setupDistanciaPreview('id_cp_destino',   'distancia-preview',   'distancia-spinner');
+setupDistanciaPreview('id_cp_destino_2', 'distancia-preview-2', 'distancia-spinner-2');
 </script>
 {% endblock %}

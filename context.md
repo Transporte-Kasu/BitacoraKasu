@@ -130,16 +130,23 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 |-------|------|-------------|
 | `operador` | FK → Operador | Conductor del viaje |
 | `unidad` | FK → Unidad | Vehículo utilizado |
-| `modalidad` | choices | `SENCILLO` / `FULL` |
-| `contenedor` / `peso` / `sellos` | | Datos de carga |
+| `modalidad` | choices | `SENCILLO` / `FULL` / `LOCAL` |
+| `salida_a_ruta` | CharField(50) | Descripción de la ruta de salida |
+| `contenedor` / `peso` / `sellos` | | Datos de carga del contenedor 1 |
+| `contenedor_2` / `peso_2` / `sellos_2` | | Datos de carga del contenedor 2 (solo FULL) |
 | `fecha_carga` / `fecha_salida` / `fecha_llegada` | DateTimeField | Tiempos del viaje |
 | `diesel_cargado` | DecimalField | Litros cargados antes del viaje |
 | `kilometraje_salida` / `kilometraje_llegada` | IntegerField | Odómetro |
 | `cp_origen` (default: `40812`) / `cp_destino` | CharField | Códigos postales |
 | `destino` | TextField | Descripción del destino |
 | `distancia_calculada` / `duracion_estimada` | | Datos de Google Maps |
-| `reparto` | BooleanField | Viaje con reparto de mercancía |
+| `reparto` | BooleanField | Viaje con reparto de mercancía (no aplica a SENCILLO) |
+| `observaciones` | TextField | Notas adicionales del viaje |
 | `completado` | BooleanField | Auto `True` cuando llega `fecha_llegada` |
+
+**Validaciones `clean()`:**
+- `FULL` requiere `contenedor_2`
+- `SENCILLO` no puede tener `contenedor_2`, `peso_2`, `sellos_2` ni `reparto`
 
 **Propiedades calculadas** (no persistidas):
 - `kilometros_recorridos` = `llegada - salida`
@@ -160,7 +167,32 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 
 **Índices:** `(-fecha_salida)`, `(operador, fecha_salida)`, `(unidad, fecha_salida)`, `(completado)`
 
-**URLs:** 9 patrones
+**URLs:** 10 patrones
+
+| URL | Vista | Nombre |
+|-----|-------|--------|
+| `/bitacoras/` | `bitacora_dashboard` | `bitacoras:dashboard` |
+| `/bitacoras/lista/` | `BitacoraListView` | `bitacoras:list` |
+| `/bitacoras/crear/` | `BitacoraCreateView` | `bitacoras:create` |
+| `/bitacoras/<pk>/` | `BitacoraDetailView` | `bitacoras:detail` |
+| `/bitacoras/<pk>/editar/` | `BitacoraUpdateView` | `bitacoras:update` |
+| `/bitacoras/<pk>/eliminar/` | `BitacoraDeleteView` | `bitacoras:delete` |
+| `/bitacoras/<pk>/completar/` | `completar_viaje` | `bitacoras:completar` |
+| `/bitacoras/<pk>/calcular-distancia/` | `calcular_distancia_ajax` (POST) | `bitacoras:calcular_distancia` |
+| `/bitacoras/ajax/unidad-info/` | `unidad_info_ajax` (GET) | `bitacoras:unidad_info_ajax` |
+| `/bitacoras/ajax/calcular-distancia/` | `calcular_distancia_preview_ajax` (GET) | `bitacoras:calcular_distancia_preview` |
+
+**Dashboard (`bitacora_dashboard`):** Estadísticas globales — total, completados, en curso, por modalidad, diesel total, km totales, rendimiento promedio y alertas de bajo rendimiento.
+
+**Filtros en `BitacoraListView`:** `search` (contenedor/destino/operador/unidad), `modalidad`, `completado` (true/false), `operador` (id), `unidad` (id), `fecha_desde`, `fecha_hasta`.
+
+**Endpoints AJAX:**
+- `unidad_info_ajax` — GET `?unidad_id=X` → placa, kilometraje, tipo, operador asignado
+- `calcular_distancia_preview_ajax` — GET `?cp_origen=&cp_destino=` → distancia/duración sin guardar
+
+**Patrón `next`:** `BitacoraUpdateView` y `BitacoraDeleteView` leen `request.GET.get('next')` para regresar al listado con filtros preservados.
+
+**Templates:** 6 (`bitacora_dashboard.html`, `bitacora_list.html`, `bitacora_form.html`, `bitacora_detail.html`, `completar_viaje.html`, `bitacora_confirm_delete.html`)
 
 ---
 

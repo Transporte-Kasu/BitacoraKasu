@@ -80,8 +80,9 @@ class BitacoraDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         bitacora = self.object
-        context['es_full'] = bitacora.modalidad == 'FULL'
+        context['es_full'] = bitacora.modalidad in ('FULL', 'LOCAL_FULL')
         context['tiene_distancia'] = bool(bitacora.distancia_calculada)
+        context['tiene_distancia_2'] = bool(bitacora.distancia_calculada_2)
         return context
 
 

@@ -1,5 +1,8 @@
+import re
 from django import forms
 from .models import BitacoraViaje
+
+_CONTAINER_RE = re.compile(r'^[A-Z]{3}U\d{7}$')
 
 
 class BitacoraViajeForm(forms.ModelForm):
@@ -18,7 +21,7 @@ class BitacoraViajeForm(forms.ModelForm):
             'contenedor_2', 'peso_2', 'sellos_2',
             'reparto',
             # Destino
-            'cp_origen', 'cp_destino', 'destino',
+            'cp_origen', 'cp_destino', 'cp_destino_2', 'destino',
             # Opcional
             'observaciones',
         ]
@@ -49,12 +52,15 @@ class BitacoraViajeForm(forms.ModelForm):
             # Contenedor 1
             'contenedor': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Número de contenedor',
+                'placeholder': 'ABCU1234567',
+                'maxlength': '11',
+                'oninput': 'this.value=this.value.toUpperCase()',
+                'title': '4 letras (4ª = U) + 7 dígitos, ej. ABCU1234567',
             }),
             'peso': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
-                'placeholder': 'Peso en kg',
+                'placeholder': 'Peso en toneladas',
             }),
             'sellos': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -63,12 +69,15 @@ class BitacoraViajeForm(forms.ModelForm):
             # Contenedor 2
             'contenedor_2': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Número de segundo contenedor',
+                'placeholder': 'ABCU1234567',
+                'maxlength': '11',
+                'oninput': 'this.value=this.value.toUpperCase()',
+                'title': '4 letras (4ª = U) + 7 dígitos, ej. ABCU1234567',
             }),
             'peso_2': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
-                'placeholder': 'Peso en kg',
+                'placeholder': 'Peso en toneladas',
             }),
             'sellos_2': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -88,6 +97,12 @@ class BitacoraViajeForm(forms.ModelForm):
                 'placeholder': 'Código postal de destino',
                 'maxlength': '10',
             }),
+            'cp_destino_2': forms.TextInput(attrs={
+                'class': 'form-control',
+                'id': 'id_cp_destino_2',
+                'placeholder': 'CP destino segundo contenedor',
+                'maxlength': '10',
+            }),
             'destino': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 2,
@@ -100,21 +115,37 @@ class BitacoraViajeForm(forms.ModelForm):
             }),
         }
 
+    def _validar_numero_contenedor(self, valor, field_name):
+        val = (valor or '').strip().upper()
+        if val and not _CONTAINER_RE.match(val):
+            raise forms.ValidationError(
+                'Formato incorrecto. Debe ser 3 letras mayúsculas + U + 7 dígitos (ej. ABCU1234567).'
+            )
+        return val
+
+    def clean_contenedor(self):
+        return self._validar_numero_contenedor(self.cleaned_data.get('contenedor'), 'contenedor')
+
+    def clean_contenedor_2(self):
+        return self._validar_numero_contenedor(self.cleaned_data.get('contenedor_2'), 'contenedor_2')
+
     def clean(self):
         cleaned_data = super().clean()
         modalidad = cleaned_data.get('modalidad')
         contenedor_2 = cleaned_data.get('contenedor_2')
         reparto = cleaned_data.get('reparto')
 
-        # Validaciones por modalidad
-        if modalidad == 'FULL' and not contenedor_2:
-            self.add_error('contenedor_2', 'FULL requiere el segundo contenedor.')
+        if modalidad in ('FULL', 'LOCAL_FULL') and not contenedor_2:
+            self.add_error('contenedor_2', 'Full y Local Full requieren el segundo contenedor.')
 
-        if modalidad == 'SENCILLO':
+        if modalidad in ('SENCILLO', 'LOCAL'):
             if contenedor_2:
-                self.add_error('contenedor_2', 'SENCILLO no puede tener segundo contenedor.')
+                self.add_error('contenedor_2', 'SENCILLO y LOCAL no pueden tener segundo contenedor.')
             if reparto:
-                self.add_error('reparto', 'SENCILLO no usa reparto.')
+                self.add_error('reparto', 'SENCILLO y LOCAL no usan reparto.')
+
+        if modalidad == 'LOCAL_FULL' and reparto:
+            self.add_error('reparto', 'Local Full no usa reparto.')
 
         return cleaned_data
 

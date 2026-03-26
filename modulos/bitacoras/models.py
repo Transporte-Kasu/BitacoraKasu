@@ -13,6 +13,7 @@ class BitacoraViaje(models.Model):
         ('SENCILLO', 'Sencillo'),
         ('FULL', 'Full'),
         ('LOCAL', 'Local'),
+        ('LOCAL_FULL', 'Local Full'),
     ]
     
     # Relaciones con otras aplicaciones
@@ -51,7 +52,7 @@ class BitacoraViaje(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(Decimal('0'))],
-        verbose_name="Peso 1 (kg)"
+        verbose_name="Peso 1 (toneladas)"
     )
     contenedor_2 = models.CharField(
         max_length=50,
@@ -64,9 +65,9 @@ class BitacoraViaje(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(Decimal('0'))],
-        verbose_name="Peso 2 (kg)"
+        verbose_name="Peso 2 (toneladas)"
     )
-    
+
     # Fechas y horas
     fecha_carga = models.DateTimeField(
         verbose_name="Fecha/hora de carga"
@@ -132,7 +133,26 @@ class BitacoraViaje(models.Model):
         help_text="Duración estimada en minutos según Google Maps",
         verbose_name="Duración estimada (min)"
     )
-    
+    cp_destino_2 = models.CharField(
+        max_length=10,
+        blank=True,
+        verbose_name="CP destino 2 (reparto)"
+    )
+    distancia_calculada_2 = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Distancia al segundo destino (reparto) en km según Google Maps",
+        verbose_name="Distancia calculada destino 2 (km)"
+    )
+    duracion_estimada_2 = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Duración estimada al segundo destino en minutos",
+        verbose_name="Duración estimada destino 2 (min)"
+    )
+
     # Seguridad
     sellos = models.CharField(
         max_length=100,
@@ -223,13 +243,21 @@ class BitacoraViaje(models.Model):
         return 0
     
     @property
+    def distancia_efectiva(self):
+        """Retorna la mayor distancia calculada (para rendimiento con reparto)"""
+        if self.distancia_calculada_2 and self.distancia_calculada:
+            return max(self.distancia_calculada, self.distancia_calculada_2)
+        return self.distancia_calculada
+
+    @property
     def diferencia_distancias(self):
         """
         Compara distancia real vs calculada por Google Maps
         Retorna diferencia en kilómetros
         """
-        if self.distancia_calculada and self.kilometros_recorridos > 0:
-            return round(self.kilometros_recorridos - float(self.distancia_calculada), 2)
+        dist_efectiva = self.distancia_efectiva
+        if dist_efectiva and self.kilometros_recorridos > 0:
+            return round(self.kilometros_recorridos - float(dist_efectiva), 2)
         return None
     
     @property
@@ -243,13 +271,19 @@ class BitacoraViaje(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
-        if self.modalidad == 'FULL' and not self.contenedor_2:
-            raise ValidationError({'contenedor_2': 'FULL requiere el segundo contenedor.'})
-        if self.modalidad == 'SENCILLO':
+        modalidad = self.modalidad
+
+        if modalidad in ('FULL', 'LOCAL_FULL') and not self.contenedor_2:
+            raise ValidationError({'contenedor_2': 'Full y Local Full requieren el segundo contenedor.'})
+
+        if modalidad in ('SENCILLO', 'LOCAL'):
             if self.contenedor_2 or self.peso_2 or self.sellos_2:
-                raise ValidationError('SENCILLO no puede tener datos del segundo contenedor.')
+                raise ValidationError('SENCILLO y LOCAL no pueden tener datos del segundo contenedor.')
             if self.reparto:
-                raise ValidationError({'reparto': 'SENCILLO no usa reparto.'})
+                raise ValidationError({'reparto': 'SENCILLO y LOCAL no usan reparto.'})
+
+        if modalidad == 'LOCAL_FULL' and self.reparto:
+            raise ValidationError({'reparto': 'Local Full no usa reparto.'})
 
     # ========================================================================
     # MÉTODOS
@@ -257,54 +291,57 @@ class BitacoraViaje(models.Model):
 
     def calcular_distancia_google(self, api_key=None):
         """
-        Calcula distancia y duración usando Google Distance Matrix API
-        Retorna: dict con 'distancia_km', 'duracion_min', 'status'
+        Calcula distancia y duración usando Google Distance Matrix API.
+        Si hay reparto y cp_destino_2, también calcula la segunda distancia.
+        Retorna: dict con 'distancia_km', 'duracion_min', 'status' (y _2 si aplica)
         """
         from config.services.google_maps import GoogleMapsService
-        
+
         if not api_key:
             api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
-        
+
         if not api_key:
-            return {
-                'status': 'error',
-                'message': 'No se encontró API key de Google Maps'
-            }
-        
+            return {'status': 'error', 'message': 'No se encontró API key de Google Maps'}
+
         if not self.cp_destino:
-            return {
-                'status': 'error',
-                'message': 'No hay código postal de destino'
-            }
-        
+            return {'status': 'error', 'message': 'No hay código postal de destino'}
+
         try:
             maps_service = GoogleMapsService(api_key)
             resultado = maps_service.calcular_distancia(self.cp_origen, self.cp_destino)
-            
+
             if resultado['success']:
-                # Guardar en el modelo
                 self.distancia_calculada = Decimal(str(round(resultado['distancia_km'], 2)))
                 self.duracion_estimada = int(resultado['duracion_min'])
-                self.save(update_fields=['distancia_calculada', 'duracion_estimada'])
-                
-                return {
+                update_fields = ['distancia_calculada', 'duracion_estimada']
+
+                return_data = {
                     'status': 'success',
                     'distancia_km': resultado['distancia_km'],
                     'duracion_min': resultado['duracion_min'],
                     'distancia_texto': resultado['distancia_texto'],
-                    'duracion_texto': resultado['duracion_texto']
+                    'duracion_texto': resultado['duracion_texto'],
                 }
+
+                # Segundo destino (reparto con CP diferente)
+                if self.reparto and self.cp_destino_2:
+                    resultado_2 = maps_service.calcular_distancia(self.cp_origen, self.cp_destino_2)
+                    if resultado_2['success']:
+                        self.distancia_calculada_2 = Decimal(str(round(resultado_2['distancia_km'], 2)))
+                        self.duracion_estimada_2 = int(resultado_2['duracion_min'])
+                        update_fields.extend(['distancia_calculada_2', 'duracion_estimada_2'])
+                        return_data['distancia_km_2'] = resultado_2['distancia_km']
+                        return_data['duracion_min_2'] = resultado_2['duracion_min']
+                        return_data['distancia_texto_2'] = resultado_2['distancia_texto']
+                        return_data['duracion_texto_2'] = resultado_2['duracion_texto']
+
+                self.save(update_fields=update_fields)
+                return return_data
             else:
-                return {
-                    'status': 'error',
-                    'message': resultado['error']
-                }
-                
+                return {'status': 'error', 'message': resultado['error']}
+
         except Exception as e:
-            return {
-                'status': 'error',
-                'message': f"Error inesperado: {str(e)}"
-            }
+            return {'status': 'error', 'message': f"Error inesperado: {str(e)}"}
     
     def save(self, *args, **kwargs):
         """Override del método save para validaciones y cálculos automáticos"""
