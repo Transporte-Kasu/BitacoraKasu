@@ -1,219 +1,552 @@
 {% extends 'base.html' %}
 
-{% block title %}Lista de Unidades{% endblock %}
+{% block title %}Flota de Unidades{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* -------------------------------------------------------
+     Tarjeta de flota
+  ------------------------------------------------------- */
+  .fleet-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border-radius: 0.75rem;
+    padding: 1rem 0.75rem 0.75rem;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    text-decoration: none;
+    min-height: 160px;
+    overflow: visible;
+  }
+
+  .fleet-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: #d1d5db;
+    z-index: 20;
+  }
+
+  .fleet-card:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  /* Franja de color superior por tipo */
+  .fleet-card.tipo-LOCAL     { border-top: 4px solid #3b82f6; }
+  .fleet-card.tipo-FORANEA   { border-top: 4px solid #10b981; }
+  .fleet-card.tipo-ESPERANZA { border-top: 4px solid #8b5cf6; }
+  .fleet-card.inactiva       { border-top: 4px solid #9ca3af; opacity: 0.6; }
+
+  /* Número económico */
+  .fleet-numero {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #111827;
+    text-align: center;
+    margin-top: 0.4rem;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+  }
+
+  .fleet-card.inactiva .fleet-numero { color: #6b7280; }
+
+  /* Ícono SVG del camión */
+  .fleet-truck-icon {
+    width: 68px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  /* Fila de badges de historial */
+  .badge-fila {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .badge-hist {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    font-size: 11px;
+    transition: opacity 0.1s;
+  }
+
+  .badge-hist.activo   { opacity: 1; }
+  .badge-hist.inactivo { opacity: 0.18; }
+
+  .badge-combustible { background: #dbeafe; }
+  .badge-taller      { background: #ffedd5; }
+  .badge-viajes      { background: #dcfce7; }
+  .badge-alerta      { background: #fee2e2; }
+
+  /* -------------------------------------------------------
+     Tooltip
+  ------------------------------------------------------- */
+  .fleet-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 224px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.625rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+    padding: 0.75rem;
+    z-index: 9999;
+    pointer-events: none;
+    text-align: left;
+  }
+
+  .fleet-tooltip.visible { display: block; }
+
+  /* Flecha del tooltip apuntando hacia abajo */
+  .fleet-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: #e5e7eb;
+  }
+
+  .fleet-tooltip::before {
+    content: '';
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: #ffffff;
+    z-index: 1;
+  }
+
+  /* Tooltip mostrado por JS (evita problemas de anidamiento de <a>) */
+
+  /* Tooltip invertido: aparece debajo de la tarjeta */
+  .fleet-card.tooltip-abajo .fleet-tooltip {
+    bottom: auto;
+    top: calc(100% + 10px);
+  }
+
+  .fleet-card.tooltip-abajo .fleet-tooltip::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: #e5e7eb;
+  }
+
+  .fleet-card.tooltip-abajo .fleet-tooltip::before {
+    top: auto;
+    bottom: calc(100% - 1px);
+    border-top-color: transparent;
+    border-bottom-color: #ffffff;
+    z-index: 1;
+  }
+
+  /* Filas de datos dentro del tooltip */
+  .tt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    margin-bottom: 0.2rem;
+    gap: 0.5rem;
+  }
+
+  .tt-label {
+    color: #6b7280;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+
+  .tt-val {
+    color: #111827;
+    font-weight: 700;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .tt-divider {
+    border: none;
+    border-top: 1px solid #f3f4f6;
+    margin: 0.375rem 0;
+  }
+
+  .tt-titulo {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 0.125rem;
+  }
+
+  .tt-tipo-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 9999px;
+    margin-bottom: 0.5rem;
+  }
+
+  /* -------------------------------------------------------
+     Grid de la galería
+  ------------------------------------------------------- */
+  .fleet-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 480px)  { .fleet-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 768px)  { .fleet-grid { grid-template-columns: repeat(4, 1fr); gap: 1rem; } }
+  @media (min-width: 1024px) { .fleet-grid { grid-template-columns: repeat(5, 1fr); } }
+  @media (min-width: 1280px) { .fleet-grid { grid-template-columns: repeat(6, 1fr); } }
+
+  /* Encabezado de grupo de tipo */
+  .grupo-section { margin-bottom: 2.5rem; }
+
+  .grupo-header {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+  }
+
+  .grupo-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  .grupo-titulo {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .grupo-count {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-weight: 500;
+  }
+
+  .grupo-linea {
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+  }
+</style>
+{% endblock %}
+
 
 {% block content %}
+
 <!-- Breadcrumb -->
-<nav class="mb-6">
-    <ol class="flex items-center space-x-2 text-sm text-gray-600">
-        <li><a href="{% url 'admin:index' %}" class="hover:text-blue-600">Inicio</a></li>
-        <li><span class="mx-2">/</span></li>
-        <li><a href="{% url 'unidades:dashboard' %}" class="hover:text-blue-600">Unidades</a></li>
-        <li><span class="mx-2">/</span></li>
-        <li class="text-gray-900 font-medium">Lista</li>
-    </ol>
+<nav class="mb-6" aria-label="Migas de pan">
+  <ol class="flex items-center space-x-2 text-sm text-gray-600">
+    <li>
+      <a href="{% url 'unidades:dashboard' %}" class="hover:text-blue-600 transition-colors">Unidades</a>
+    </li>
+    <li><span class="mx-1 text-gray-400" aria-hidden="true">/</span></li>
+    <li class="text-gray-900 font-medium" aria-current="page">Flota</li>
+  </ol>
 </nav>
 
-<!-- Header con botones -->
-<div class="flex items-center justify-between mb-8">
-    <div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Unidades</h1>
-        <p class="text-gray-600">{{ total_unidades }} unidades registradas, {{ unidades_activas }} activas</p>
-    </div>
-    <a href="{% url 'unidades:create' %}" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium inline-flex items-center">
-        <span class="text-xl mr-2">+</span>
-        Nueva Unidad
-    </a>
+<!-- Encabezado -->
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Flota de Unidades</h1>
+    <p class="text-sm text-gray-500 mt-1">
+      {{ total_unidades }} unidad{% if total_unidades != 1 %}es{% endif %} registrada{% if total_unidades != 1 %}s{% endif %},
+      <span class="text-green-700 font-semibold">{{ unidades_activas }} activa{% if unidades_activas != 1 %}s{% endif %}</span>
+    </p>
+  </div>
+  <a href="{% url 'unidades:create' %}"
+     class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg
+            hover:bg-green-700 transition-colors
+            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600
+            self-start sm:self-auto whitespace-nowrap">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+    </svg>
+    Nueva Unidad
+  </a>
 </div>
 
-<!-- Filtros y Búsqueda -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <!-- Búsqueda -->
-        <div class="md:col-span-2">
-            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
-            <input type="text" name="search" id="search" value="{{ request.GET.search }}" 
-                   placeholder="Número económico, placa, marca..." 
-                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        </div>
+<!-- Filtros -->
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-8">
+  <form method="get" role="search" aria-label="Filtros de flota">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-        <!-- Filtro por Tipo -->
-        <div>
-            <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-            <select name="tipo" id="tipo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">Todos</option>
-                {% for value, label in tipos_choices %}
-                <option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
+      <div class="sm:col-span-2">
+        <label for="search" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          Buscar unidad
+        </label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </span>
+          <input type="text" name="search" id="search"
+                 value="{{ request.GET.search }}"
+                 placeholder="N. económico, placa, marca..."
+                 class="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg
+                        focus:ring-2 focus:ring-blue-500 focus:border-transparent">
         </div>
+      </div>
 
-        <!-- Filtro por Estado -->
-        <div>
-            <label for="activa" class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-            <select name="activa" id="activa" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">Todos</option>
-                <option value="true" {% if request.GET.activa == 'true' %}selected{% endif %}>Activas</option>
-                <option value="false" {% if request.GET.activa == 'false' %}selected{% endif %}>Inactivas</option>
-            </select>
-        </div>
+      <div>
+        <label for="tipo" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          Tipo
+        </label>
+        <select name="tipo" id="tipo"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
+                       focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+          <option value="">Todos los tipos</option>
+          {% for value, label in tipos_choices %}
+          <option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-        <!-- Botones -->
-        <div class="md:col-span-4 flex space-x-3">
-            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
-                🔍 Buscar
-            </button>
-            <a href="{% url 'unidades:list' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
-                Limpiar
-            </a>
-        </div>
-    </form>
+      <div>
+        <label for="activa" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          Estado
+        </label>
+        <select name="activa" id="activa"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
+                       focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+          <option value="">Activas e inactivas</option>
+          <option value="true"  {% if request.GET.activa == 'true'  %}selected{% endif %}>Solo activas</option>
+          <option value="false" {% if request.GET.activa == 'false' %}selected{% endif %}>Solo inactivas</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 mt-4">
+      <button type="submit"
+              class="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg
+                     hover:bg-blue-700 transition-colors
+                     focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+        Filtrar
+      </button>
+      <a href="{% url 'unidades:list' %}"
+         class="px-5 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+        Limpiar
+      </a>
+      {% if request.GET.search or request.GET.tipo or request.GET.activa %}
+      <span class="text-xs text-gray-400">
+        {{ unidades|length }} unidad{% if unidades|length != 1 %}es{% endif %} encontrada{% if unidades|length != 1 %}s{% endif %}
+      </span>
+      {% endif %}
+    </div>
+  </form>
 </div>
 
-<!-- Tabla de Unidades -->
-<div class="bg-white rounded-lg shadow-md overflow-hidden">
-    {% if unidades %}
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Número Econ.
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Placa
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tipo
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Marca/Modelo/Año
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Kilometraje
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Viajes
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Estado
-                    </th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Acciones
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for unidad in unidades %}
-                <tr class="hover:bg-gray-50 transition duration-150">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <a href="{% url 'unidades:detail' unidad.pk %}" class="font-bold text-blue-600 hover:text-blue-800">
-                            {{ unidad.numero_economico }}
-                        </a>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                        {{ unidad.placa }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            {% if unidad.tipo == 'LOCAL' %}bg-blue-100 text-blue-800
-                            {% elif unidad.tipo == 'FORANEA' %}bg-green-100 text-green-800
-                            {% else %}bg-purple-100 text-purple-800{% endif %}">
-                            {{ unidad.get_tipo_display }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                        {{ unidad.marca }} {{ unidad.modelo }}<br>
-                        <span class="text-xs text-gray-500">({{ unidad.año }})</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                        {{ unidad.kilometraje_actual|floatformat:0 }} km
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
-                            {{ unidad.total_viajes }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        {% if unidad.activa %}
-                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                ✓ Activa
-                            </span>
-                        {% else %}
-                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                ✗ Inactiva
-                            </span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div class="flex justify-end space-x-3">
-                            <a href="{% url 'unidades:detail' unidad.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
-                                👁️
-                            </a>
-                            <a href="{% url 'unidades:update' unidad.pk %}?next={{ request.get_full_path|urlencode }}" class="text-yellow-600 hover:text-yellow-900" title="Editar">
-                                ✏️
-                            </a>
-                            <a href="{% url 'unidades:delete' unidad.pk %}?next={{ request.get_full_path|urlencode }}" class="text-red-600 hover:text-red-900" title="Eliminar">
-                                🗑️
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 
-    <!-- Paginación -->
-    {% if is_paginated %}
-    <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-        <div class="flex items-center justify-between">
-            <div class="text-sm text-gray-700">
-                Mostrando 
-                <span class="font-medium">{{ page_obj.start_index }}</span>
-                -
-                <span class="font-medium">{{ page_obj.end_index }}</span>
-                de
-                <span class="font-medium">{{ page_obj.paginator.count }}</span>
-                resultados
-            </div>
-            <div class="flex space-x-2">
-                {% if page_obj.has_previous %}
-                <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Primera
-                </a>
-                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Anterior
-                </a>
-                {% endif %}
+<!-- =====================================================
+     GALERÍA DE FLOTA
+===================================================== -->
 
-                <span class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-blue-50 text-blue-700">
-                    {{ page_obj.number }}
-                </span>
+{% if unidades %}
 
-                {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Siguiente
-                </a>
-                <a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Última
-                </a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    {% else %}
-    <div class="text-center py-16 text-gray-500">
-        <p class="text-6xl mb-4">🔍</p>
-        <p class="text-xl font-medium mb-2">No se encontraron unidades</p>
-        <p>Intenta ajustar los filtros de búsqueda</p>
-    </div>
-    {% endif %}
+<!-- Leyenda de indicadores -->
+<div class="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 text-xs text-gray-500"
+     role="note" aria-label="Leyenda de indicadores de actividad">
+  <span class="text-xs font-semibold text-gray-600">Indicadores:</span>
+
+  <span class="inline-flex items-center gap-1.5">
+    <span class="badge-hist badge-combustible activo" title="Combustible">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M10 2a1 1 0 00-1 1v1.323l-3.954 1.582A1 1 0 004 6.838V16a2 2 0 002 2h8a2 2 0 002-2V6.838a1 1 0 00-1.046-.933L11 4.323V3a1 1 0 00-1-1zm-1 5.5a.5.5 0 011 0v4a.5.5 0 01-1 0v-4z" clip-rule="evenodd"/>
+      </svg>
+    </span>
+    Combustible cargado
+  </span>
+
+  <span class="inline-flex items-center gap-1.5">
+    <span class="badge-hist badge-taller activo" title="Taller">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-orange-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+      </svg>
+    </span>
+    Órdenes de taller
+  </span>
+
+  <span class="inline-flex items-center gap-1.5">
+    <span class="badge-hist badge-viajes activo" title="Viajes">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-green-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+        <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H11a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7h2a1 1 0 011 1v6.05A2.5 2.5 0 0114.95 17H14a1 1 0 01-1-1v-5h1V7z"/>
+      </svg>
+    </span>
+    Bitácoras de viaje
+  </span>
+
+  <span class="inline-flex items-center gap-1.5">
+    <span class="badge-hist badge-alerta activo" title="Mantenimiento vencido">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-red-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+      </svg>
+    </span>
+    Mantenimiento vencido
+  </span>
 </div>
 
+<!-- ---- GRUPO: LOCALES ---- -->
+{% if grupos_flota.LOCAL %}
+<section class="grupo-section" aria-labelledby="grupo-local-titulo">
+  <div class="grupo-header">
+    <span class="grupo-dot" style="background:#3b82f6;" aria-hidden="true"></span>
+    <h2 class="grupo-titulo" id="grupo-local-titulo">Locales</h2>
+    <span class="grupo-count">({{ grupos_flota.LOCAL.unidades|length }})</span>
+    <span class="grupo-linea" aria-hidden="true"></span>
+  </div>
+
+  <div class="fleet-grid">
+    {% for unidad in grupos_flota.LOCAL.unidades %}
+    {% include "unidades/_fleet_card.html" with unidad=unidad tipo_css="LOCAL" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ---- GRUPO: FORANEAS ---- -->
+{% if grupos_flota.FORANEA %}
+<section class="grupo-section" aria-labelledby="grupo-foranea-titulo">
+  <div class="grupo-header">
+    <span class="grupo-dot" style="background:#10b981;" aria-hidden="true"></span>
+    <h2 class="grupo-titulo" id="grupo-foranea-titulo">Foráneas</h2>
+    <span class="grupo-count">({{ grupos_flota.FORANEA.unidades|length }})</span>
+    <span class="grupo-linea" aria-hidden="true"></span>
+  </div>
+
+  <div class="fleet-grid">
+    {% for unidad in grupos_flota.FORANEA.unidades %}
+    {% include "unidades/_fleet_card.html" with unidad=unidad tipo_css="FORANEA" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ---- GRUPO: ESPERANZA ---- -->
+{% if grupos_flota.ESPERANZA %}
+<section class="grupo-section" aria-labelledby="grupo-esperanza-titulo">
+  <div class="grupo-header">
+    <span class="grupo-dot" style="background:#8b5cf6;" aria-hidden="true"></span>
+    <h2 class="grupo-titulo" id="grupo-esperanza-titulo">Esperanza</h2>
+    <span class="grupo-count">({{ grupos_flota.ESPERANZA.unidades|length }})</span>
+    <span class="grupo-linea" aria-hidden="true"></span>
+  </div>
+
+  <div class="fleet-grid">
+    {% for unidad in grupos_flota.ESPERANZA.unidades %}
+    {% include "unidades/_fleet_card.html" with unidad=unidad tipo_css="ESPERANZA" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% else %}
+<!-- Estado vacío -->
+<div class="flex flex-col items-center justify-center py-20 text-center">
+  <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-5" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+  </div>
+  <h2 class="text-lg font-semibold text-gray-700 mb-1">No se encontraron unidades</h2>
+  <p class="text-sm text-gray-500 mb-6 max-w-xs">
+    Ninguna unidad coincide con los filtros actuales.
+    Intenta ajustar la búsqueda o limpiar los filtros.
+  </p>
+  <a href="{% url 'unidades:list' %}"
+     class="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+    Ver todas las unidades
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.fleet-card').forEach(function (card) {
+      var tooltip = card.querySelector('.fleet-tooltip');
+      if (!tooltip) return;
+
+      card.addEventListener('mouseenter', function () {
+        // Mostrar tooltip
+        tooltip.classList.add('visible');
+
+        // Decidir si aparece arriba o abajo según posición en pantalla
+        var rect = card.getBoundingClientRect();
+        if (rect.top < 250) {
+          tooltip.style.bottom = 'auto';
+          tooltip.style.top   = 'calc(100% + 10px)';
+          // Invertir flecha
+          tooltip.classList.add('tooltip-abajo');
+        } else {
+          tooltip.style.bottom = 'calc(100% + 10px)';
+          tooltip.style.top    = 'auto';
+          tooltip.classList.remove('tooltip-abajo');
+        }
+
+        // Evitar que se salga por los bordes laterales
+        var tooltipRect = tooltip.getBoundingClientRect();
+        if (tooltipRect.left < 8) {
+          tooltip.style.left      = 'auto';
+          tooltip.style.right     = 'auto';
+          tooltip.style.transform = 'translateX(' + (8 - tooltipRect.left) + 'px)';
+        } else if (tooltipRect.right > window.innerWidth - 8) {
+          var overflow = tooltipRect.right - (window.innerWidth - 8);
+          tooltip.style.transform = 'translateX(calc(-50% - ' + overflow + 'px))';
+        }
+      });
+
+      card.addEventListener('mouseleave', function () {
+        tooltip.classList.remove('visible');
+        tooltip.style.transform = 'translateX(-50%)';
+      });
+
+      // Click en la tarjeta → navegar al detalle
+      card.addEventListener('click', function (e) {
+        // Si el click fue en un <a> interno del tooltip, dejarlo pasar
+        if (e.target.closest('a')) return;
+        var dest = card.dataset.href;
+        if (dest) window.location.href = dest;
+      });
+    });
+  });
+}());
+</script>
 {% endblock %}

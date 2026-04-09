@@ -4,29 +4,38 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy, reverse
-from django.db.models import Q, Count, Avg, Sum
+from django.db.models import Q, Count, Avg, Sum, Prefetch
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 import json
 from .models import Unidad
+from modulos.operadores.models import Operador
 from .forms import UnidadForm, AsignacionDirectaAlmacenForm
 from modulos.taller.models import OrdenTrabajo
 from modulos.almacen.models import SalidaRapidaConsumible, AsignacionDirectaAlmacen, MovimientoAlmacen
 
 
 class UnidadListView(LoginRequiredMixin, ListView):
-    """Vista para listar todas las unidades"""
+    """Vista para listar todas las unidades en formato galería de flota"""
     model = Unidad
     template_name = 'unidades/unidad_list.html'
     context_object_name = 'unidades'
-    paginate_by = 20
-    
+    # Sin paginación para mostrar la flota completa de un vistazo
+    paginate_by = None
+
     def get_queryset(self):
-        queryset = Unidad.objects.annotate(
-            total_viajes=Count('bitacoras')
+        operadores_activos_prefetch = Prefetch(
+            'operadores',
+            queryset=Operador.objects.filter(activo=True).order_by('nombre'),
+            to_attr='operadores_activos',
         )
-        
+        queryset = Unidad.objects.annotate(
+            total_viajes=Count('bitacoras', distinct=True),
+            total_cargas=Count('cargas_combustible', distinct=True),
+            total_ordenes=Count('ordenes_trabajo', distinct=True),
+        ).prefetch_related(operadores_activos_prefetch).order_by('numero_economico')
+
         # Filtro por búsqueda
         search = self.request.GET.get('search')
         if search:
@@ -36,23 +45,40 @@ class UnidadListView(LoginRequiredMixin, ListView):
                 Q(marca__icontains=search) |
                 Q(modelo__icontains=search)
             )
-        
+
         # Filtro por tipo
         tipo = self.request.GET.get('tipo')
         if tipo:
             queryset = queryset.filter(tipo=tipo)
-        
+
         # Filtro por estado
         activa = self.request.GET.get('activa')
         if activa == 'true':
             queryset = queryset.filter(activa=True)
         elif activa == 'false':
             queryset = queryset.filter(activa=False)
-        
+
         return queryset
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # object_list ya es el queryset evaluado por ListView (con anotaciones y prefetch)
+        unidades_qs = context['unidades']
+
+        # Agrupar por tipo para renderizar las secciones de la galería
+        grupos = {}
+        orden_grupos = [('LOCAL', 'Locales'), ('FORANEA', 'Foráneas'), ('ESPERANZA', 'Esperanza')]
+        for tipo_key, tipo_label in orden_grupos:
+            grupo_unidades = [u for u in unidades_qs if u.tipo == tipo_key]
+            if grupo_unidades:
+                grupos[tipo_key] = {
+                    'label': tipo_label,
+                    'unidades': grupo_unidades,
+                }
+
+        context['grupos_flota'] = grupos
+        context['orden_grupos'] = [k for k, _ in orden_grupos if k in grupos]
         context['total_unidades'] = Unidad.objects.count()
         context['unidades_activas'] = Unidad.objects.filter(activa=True).count()
         context['tipos_choices'] = Unidad.TIPO_CHOICES

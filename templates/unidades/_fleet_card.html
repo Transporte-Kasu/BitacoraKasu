@@ -1,0 +1,198 @@
+{% comment %}
+  Partial: tarjeta individual de flota
+  Variables requeridas:
+    - unidad     : instancia de Unidad (con anotaciones total_viajes, total_cargas, total_ordenes)
+    - tipo_css   : string "LOCAL" | "FORANEA" | "ESPERANZA"
+{% endcomment %}
+
+{% with alerta=unidad.requiere_mantenimiento %}
+{% with operador_asignado=unidad.operadores_activos|first %}
+
+{# Usamos <div> (no <a>) para evitar <a> anidados con los links del tooltip #}
+<div class="fleet-card tipo-{{ tipo_css }}{% if not unidad.activa %} inactiva{% endif %}"
+     role="button"
+     tabindex="0"
+     data-href="{% url 'unidades:detail' unidad.pk %}"
+     aria-label="Unidad {{ unidad.numero_economico }}{% if not unidad.activa %}, inactiva{% endif %}">
+
+  <!-- Ícono SVG de camión -->
+  <span aria-hidden="true">
+    <svg class="fleet-truck-icon"
+         viewBox="0 0 100 60"
+         xmlns="http://www.w3.org/2000/svg"
+         role="img"
+         aria-label="Ícono de camión">
+
+      {% if tipo_css == 'LOCAL' %}
+        {% if unidad.activa %}<g style="color:#3b82f6;">{% else %}<g style="color:#9ca3af;">{% endif %}
+      {% elif tipo_css == 'FORANEA' %}
+        {% if unidad.activa %}<g style="color:#10b981;">{% else %}<g style="color:#9ca3af;">{% endif %}
+      {% else %}
+        {% if unidad.activa %}<g style="color:#8b5cf6;">{% else %}<g style="color:#9ca3af;">{% endif %}
+      {% endif %}
+
+        <!-- Carrocería (caja trasera) -->
+        <rect x="4" y="18" width="54" height="26" rx="3" fill="currentColor" opacity="0.9"/>
+        <!-- Cabina -->
+        <rect x="58" y="22" width="34" height="22" rx="4" fill="currentColor"/>
+        <!-- Ventana de cabina -->
+        <rect x="63" y="26" width="18" height="11" rx="2" fill="white" opacity="0.45"/>
+        <!-- Parabrisas lateral -->
+        <rect x="83" y="26" width="6" height="11" rx="1" fill="white" opacity="0.25"/>
+        <!-- Rejilla frontal -->
+        <rect x="88" y="30" width="4" height="2" rx="1" fill="white" opacity="0.3"/>
+        <rect x="88" y="34" width="4" height="2" rx="1" fill="white" opacity="0.3"/>
+        <!-- Rueda delantera -->
+        <circle cx="76" cy="48" r="8" fill="currentColor"/>
+        <circle cx="76" cy="48" r="4" fill="white" opacity="0.25"/>
+        <!-- Ruedas traseras -->
+        <circle cx="22" cy="48" r="8" fill="currentColor"/>
+        <circle cx="22" cy="48" r="4" fill="white" opacity="0.25"/>
+        <circle cx="35" cy="48" r="8" fill="currentColor"/>
+        <circle cx="35" cy="48" r="4" fill="white" opacity="0.25"/>
+        <!-- Chasis -->
+        <rect x="4" y="44" width="88" height="3" rx="1" fill="currentColor" opacity="0.4"/>
+        <!-- Faro -->
+        <rect x="90" y="36" width="5" height="4" rx="1" fill="#fef08a" opacity="0.85"/>
+
+      </g>
+    </svg>
+  </span>
+
+  <!-- Número económico -->
+  <span class="fleet-numero">{{ unidad.numero_economico }}</span>
+  <!-- Kilometraje -->
+  <span style="font-size:0.68rem;color:#6b7280;font-weight:500;text-align:center;line-height:1.2;">
+    {{ unidad.kilometraje_actual|floatformat:0 }} km
+  </span>
+
+  <!-- Badges de historial -->
+  <span class="badge-fila" aria-hidden="true">
+
+    <!-- Combustible -->
+    <span class="badge-hist badge-combustible {% if unidad.total_cargas > 0 %}activo{% else %}inactivo{% endif %}"
+          title="{% if unidad.total_cargas > 0 %}{{ unidad.total_cargas }} carga{% if unidad.total_cargas != 1 %}s{% endif %} de combustible{% else %}Sin cargas de combustible{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 2a1 1 0 00-1 1v1.323l-3.954 1.582A1 1 0 004 6.838V16a2 2 0 002 2h8a2 2 0 002-2V6.838a1 1 0 00-1.046-.933L11 4.323V3a1 1 0 00-1-1zm-1 5.5a.5.5 0 011 0v4a.5.5 0 01-1 0v-4z" clip-rule="evenodd"/>
+      </svg>
+    </span>
+
+    <!-- Taller -->
+    <span class="badge-hist badge-taller {% if unidad.total_ordenes > 0 %}activo{% else %}inactivo{% endif %}"
+          title="{% if unidad.total_ordenes > 0 %}{{ unidad.total_ordenes }} orden{% if unidad.total_ordenes != 1 %}es{% endif %} de taller{% else %}Sin órdenes de taller{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-orange-500" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+      </svg>
+    </span>
+
+    <!-- Viajes -->
+    <span class="badge-hist badge-viajes {% if unidad.total_viajes > 0 %}activo{% else %}inactivo{% endif %}"
+          title="{% if unidad.total_viajes > 0 %}{{ unidad.total_viajes }} viaje{% if unidad.total_viajes != 1 %}s{% endif %}{% else %}Sin viajes registrados{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+        <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H11a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7h2a1 1 0 011 1v6.05A2.5 2.5 0 0114.95 17H14a1 1 0 01-1-1v-5h1V7z"/>
+      </svg>
+    </span>
+
+    <!-- Alerta de mantenimiento -->
+    {% if alerta %}
+    <span class="badge-hist badge-alerta activo"
+          title="Mantenimiento vencido: {{ unidad.proximo_mantenimiento|date:'d/m/Y' }}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+      </svg>
+    </span>
+    {% endif %}
+
+  </span>
+
+  <!-- TOOLTIP (informativo, sin links anidados) -->
+  <div class="fleet-tooltip" role="tooltip" aria-hidden="true">
+
+    <div style="margin-bottom:0.5rem;">
+      <div style="font-size:0.85rem;font-weight:800;color:#111827;">
+        Unidad {{ unidad.numero_economico }}
+      </div>
+      <div style="margin-top:2px;">
+        {% if tipo_css == 'LOCAL' %}
+        <span class="tt-tipo-badge" style="background:#dbeafe;color:#1d4ed8;">Local</span>
+        {% elif tipo_css == 'FORANEA' %}
+        <span class="tt-tipo-badge" style="background:#d1fae5;color:#065f46;">Foránea</span>
+        {% else %}
+        <span class="tt-tipo-badge" style="background:#ede9fe;color:#6d28d9;">Esperanza</span>
+        {% endif %}
+        {% if not unidad.activa %}
+        <span class="tt-tipo-badge" style="background:#f3f4f6;color:#6b7280;margin-left:4px;">Inactiva</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <hr class="tt-divider">
+
+    <div class="tt-row">
+      <span class="tt-label">Placa</span>
+      <span class="tt-val">{{ unidad.placa|default:"—" }}</span>
+    </div>
+
+    {% if unidad.marca or unidad.modelo %}
+    <div class="tt-row">
+      <span class="tt-label">Vehículo</span>
+      <span class="tt-val">
+        {{ unidad.marca }}{% if unidad.marca and unidad.modelo %} {{ unidad.modelo }}{% elif unidad.modelo %}{{ unidad.modelo }}{% endif %}
+        {% if unidad.año %}<br><span style="font-weight:500;color:#6b7280;">{{ unidad.año }}</span>{% endif %}
+      </span>
+    </div>
+    {% endif %}
+
+    <div class="tt-row">
+      <span class="tt-label">Kilometraje</span>
+      <span class="tt-val">{{ unidad.kilometraje_actual|floatformat:0 }} km</span>
+    </div>
+
+    {% if operador_asignado %}
+    <div class="tt-row">
+      <span class="tt-label">Operador</span>
+      <span class="tt-val">{{ operador_asignado.nombre }}</span>
+    </div>
+    {% endif %}
+
+    <hr class="tt-divider">
+
+    <div class="tt-row">
+      <span class="tt-label">Viajes</span>
+      <span class="tt-val">{{ unidad.total_viajes }}</span>
+    </div>
+    <div class="tt-row">
+      <span class="tt-label">Cargas combustible</span>
+      <span class="tt-val">{{ unidad.total_cargas }}</span>
+    </div>
+    <div class="tt-row">
+      <span class="tt-label">Órdenes taller</span>
+      <span class="tt-val">{{ unidad.total_ordenes }}</span>
+    </div>
+
+    {% if alerta %}
+    <hr class="tt-divider">
+    <div style="font-size:0.7rem;font-weight:700;color:#dc2626;display:flex;align-items:center;gap:4px;">
+      <svg xmlns="http://www.w3.org/2000/svg" style="width:12px;height:12px;flex-shrink:0;" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+      </svg>
+      Mantenimiento vencido: {{ unidad.proximo_mantenimiento|date:"d/m/Y" }}
+    </div>
+    {% elif unidad.proximo_mantenimiento %}
+    <hr class="tt-divider">
+    <div class="tt-row">
+      <span class="tt-label">Próx. mantenimiento</span>
+      <span class="tt-val">{{ unidad.proximo_mantenimiento|date:"d/m/Y" }}</span>
+    </div>
+    {% endif %}
+
+    <hr class="tt-divider">
+    <div style="font-size:0.65rem;color:#9ca3af;text-align:center;">Clic para ver detalle</div>
+
+  </div>
+  <!-- /fleet-tooltip -->
+
+</div>
+{% endwith %}
+{% endwith %}
