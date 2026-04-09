@@ -94,6 +94,17 @@
       </svg>
     </span>
 
+    <!-- Almacén -->
+    {% with total_almacen=unidad.total_consumibles|add:unidad.total_asignaciones %}
+    <span class="badge-hist badge-almacen {% if total_almacen > 0 %}activo{% else %}inactivo{% endif %}"
+          title="{% if total_almacen > 0 %}{{ total_almacen }} movimiento{% if total_almacen != 1 %}s{% endif %} de almacén{% else %}Sin movimientos de almacén{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z"/>
+        <path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/>
+      </svg>
+    </span>
+    {% endwith %}
+
     <!-- Alerta de mantenimiento -->
     {% if alerta %}
     <span class="badge-hist badge-alerta activo"

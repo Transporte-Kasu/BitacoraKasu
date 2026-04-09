@@ -34,6 +34,8 @@ class UnidadListView(LoginRequiredMixin, ListView):
             total_viajes=Count('bitacoras', distinct=True),
             total_cargas=Count('cargas_combustible', distinct=True),
             total_ordenes=Count('ordenes_trabajo', distinct=True),
+            total_consumibles=Count('consumibles_asignados', distinct=True),
+            total_asignaciones=Count('asignaciones_almacen', distinct=True),
         ).prefetch_related(operadores_activos_prefetch).order_by('numero_economico')
 
         # Filtro por búsqueda
