@@ -19,7 +19,7 @@
     <div class="bg-white shadow-sm sticky top-0 z-10">
         <div class="px-4 py-4">
             <div class="flex items-center justify-between mb-2">
-                <h2 class="text-lg font-semibold text-gray-800">Paso {{ paso }} de {{ total_pasos }}</h2>
+                <h2 class="text-lg font-semibold text-gray-800">Paso {{ paso_visible }} de {{ total_pasos }}</h2>
                 <span class="text-sm text-gray-600">{{ progreso }}%</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
@@ -61,6 +61,8 @@
                     {% if form.unidad.errors %}
                         <p class="mt-1 text-sm text-red-600">{{ form.unidad.errors.0 }}</p>
                     {% endif %}
+                    <!-- Badge de tipo de flujo (aparece al seleccionar unidad) -->
+                    <div id="flujo-badge" class="hidden mt-2 px-3 py-2 rounded-lg text-sm font-medium"></div>
                 </div>
 
                 <!-- Botón de captura de foto -->
@@ -127,11 +129,32 @@
     const btnText = document.getElementById('btn-text');
     const submitBtn = document.getElementById('submitBtn');
     const unidadSelect = document.getElementById('id_unidad');
+    const flujoBadge = document.getElementById('flujo-badge');
+
+    // Datos de tipo de unidad inyectados desde la vista
+    const unidadesTipo = {{ unidades_tipo_json|safe }};
 
     function checkFormValid() {
         const hasFile = fileInput.files.length > 0;
         const hasUnidad = unidadSelect.value !== '';
         submitBtn.disabled = !(hasFile && hasUnidad);
+    }
+
+    function actualizarBadgeFlujo() {
+        const val = unidadSelect.value;
+        if (!val) {
+            flujoBadge.classList.add('hidden');
+            return;
+        }
+        const tipo = unidadesTipo[val];
+        if (tipo === 'LOCAL') {
+            flujoBadge.className = 'mt-2 px-3 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-800';
+            flujoBadge.textContent = '✓ Unidad local — proceso simplificado (3 pasos)';
+        } else {
+            flujoBadge.className = 'mt-2 px-3 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-800';
+            flujoBadge.textContent = '→ Unidad foránea/esperanza — proceso completo (6 pasos)';
+        }
+        flujoBadge.classList.remove('hidden');
     }
 
     fileInput.addEventListener('change', function(e) {
@@ -148,7 +171,10 @@
         checkFormValid();
     });
 
-    unidadSelect.addEventListener('change', checkFormValid);
+    unidadSelect.addEventListener('change', function() {
+        actualizarBadgeFlujo();
+        checkFormValid();
+    });
 
     checkFormValid();
 </script>

@@ -51,10 +51,10 @@ class CargaCombustibleAdmin(admin.ModelAdmin):
     inlines = [FotoCandadoNuevoInline]
     list_display = [
         'id', 'unidad_info', 'despachador', 'cantidad_litros',
-        'estado_badge', 'alerta_badge', 'fecha_hora_inicio', 'tiempo_carga'
+        'tipo_flujo', 'estado_badge', 'alerta_badge', 'fecha_hora_inicio', 'tiempo_carga'
     ]
     list_filter = [
-        'estado', 'estado_candado_anterior', 'nivel_combustible_inicial',
+        'tipo_flujo', 'estado', 'estado_candado_anterior', 'nivel_combustible_inicial',
         'fecha_hora_inicio', 'unidad__tipo'
     ]
     search_fields = [
@@ -62,7 +62,7 @@ class CargaCombustibleAdmin(admin.ModelAdmin):
         'despachador__nombre', 'notas'
     ]
     readonly_fields = [
-        'tiempo_carga_minutos', 'created_at', 'updated_at',
+        'tipo_flujo', 'tiempo_carga_minutos', 'created_at', 'updated_at',
         'preview_fotos'
     ]
     date_hierarchy = 'fecha_hora_inicio'
@@ -70,7 +70,7 @@ class CargaCombustibleAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Información Principal', {
-            'fields': ('despachador', 'unidad', 'estado')
+            'fields': ('despachador', 'unidad', 'estado', 'tipo_flujo')
         }),
         ('Datos de Carga', {
             'fields': ('cantidad_litros', 'fecha_hora_inicio', 'fecha_hora_fin', 'tiempo_carga_minutos')

@@ -57,6 +57,11 @@ class CargaCombustible(models.Model):
         ('CANCELADO', 'Cancelado'),
     ]
 
+    TIPO_FLUJO_CHOICES = [
+        ('FORANEO', 'Foráneo / Completo'),
+        ('LOCAL', 'Local / Simplificado'),
+    ]
+
     # Relaciones
     despachador = models.ForeignKey(
         Despachador,
@@ -126,11 +131,15 @@ class CargaCombustible(models.Model):
     foto_tablero = models.ImageField(
         storage=MediaStorage(),
         upload_to='combustible/tablero/%Y/%m/',
+        null=True,
+        blank=True,
         verbose_name="Foto del tablero"
     )
     foto_candado_anterior = models.ImageField(
         storage=MediaStorage(),
         upload_to='combustible/candado_anterior/%Y/%m/',
+        null=True,
+        blank=True,
         verbose_name="Foto candado anterior"
     )
     foto_candado_nuevo = models.ImageField(
@@ -146,6 +155,14 @@ class CargaCombustible(models.Model):
         null=True,
         blank=True,
         verbose_name="Foto del ticket o medidor"
+    )
+
+    # Tipo de flujo de registro
+    tipo_flujo = models.CharField(
+        max_length=10,
+        choices=TIPO_FLUJO_CHOICES,
+        default='FORANEO',
+        verbose_name="Tipo de flujo de registro"
     )
 
     # Estado y control

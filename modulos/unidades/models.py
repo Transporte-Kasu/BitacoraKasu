@@ -101,6 +101,13 @@ class Unidad(models.Model):
         verbose_name="Próximo mantenimiento"
     )
     
+    # Control de combustible
+    control_combustible_total = models.BooleanField(
+        default=False,
+        verbose_name="Control total de combustible",
+        help_text="Si está activo, esta unidad local requerirá el proceso completo de 6 pasos al cargar combustible"
+    )
+
     # Metadatos
     notas = models.TextField(
         blank=True,

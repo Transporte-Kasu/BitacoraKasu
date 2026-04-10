@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Paso 4: Proceso de Carga{% endblock %}
+{% block title %}Paso {{ paso_visible }}: Proceso de Carga{% endblock %}
 
 {% block body_class %}wizard-page{% endblock %}
 
@@ -25,12 +25,8 @@
     .loading-dots span {
         animation: loading 1.4s infinite;
     }
-    .loading-dots span:nth-child(2) {
-        animation-delay: 0.2s;
-    }
-    .loading-dots span:nth-child(3) {
-        animation-delay: 0.4s;
-    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes loading {
         0%, 80%, 100% { opacity: 0; }
         40% { opacity: 1; }
@@ -65,8 +61,8 @@
     <div class="px-4 py-6">
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                 </div>
@@ -74,25 +70,19 @@
                 <p class="text-gray-600">Inicia y monitorea el despacho de combustible</p>
             </div>
 
-            <!-- Resumen de la unidad -->
-            <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 class="font-semibold text-gray-800 mb-3">📋 Resumen</h3>
-                <div class="grid grid-cols-2 gap-3 text-sm">
+            <!-- Resumen mínimo (solo unidad y tipo) -->
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-green-700 font-semibold text-sm">Unidad Local</span>
+                </div>
+                <div class="flex flex-wrap gap-4 text-sm">
                     <div>
-                        <span class="text-gray-600">Unidad:</span>
-                        <span class="font-semibold text-gray-900 ml-2">{{ carga.unidad.numero_economico }}</span>
+                        <span class="text-gray-600">Número económico:</span>
+                        <span class="font-semibold text-gray-900 ml-1">{{ carga.unidad.numero_economico }}</span>
                     </div>
                     <div>
-                        <span class="text-gray-600">Tipo:</span>
-                        <span class="font-semibold text-gray-900 ml-2">{{ carga.unidad.get_tipo_display }}</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-600">Kilometraje:</span>
-                        <span class="font-semibold text-gray-900 ml-2">{{ carga.kilometraje_actual|floatformat:0 }} km</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-600">Nivel inicial:</span>
-                        <span class="font-semibold text-gray-900 ml-2">{{ carga.get_nivel_combustible_inicial_display }}</span>
+                        <span class="text-gray-600">Placa:</span>
+                        <span class="font-semibold text-gray-900 ml-1">{{ carga.unidad.placa }}</span>
                     </div>
                 </div>
             </div>
@@ -100,20 +90,18 @@
             <form method="post" id="paso4Form" data-carga-id="{{ carga.id }}">
                 {% csrf_token %}
 
-                <!-- Sección 1: Cronómetro (Primer paso) -->
+                <!-- Sección 1: Cronómetro -->
                 <div id="section-timer" class="mb-6">
-                    <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-6 border-2 border-purple-200">
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border-2 border-green-200">
                         <h3 class="text-center text-lg font-semibold text-gray-800 mb-4">⏱️ Paso 1: Control de Tiempo</h3>
 
-                        <!-- Display del cronómetro -->
                         <div class="text-center mb-6">
-                            <div id="timer-display" class="timer-display text-purple-600">00:00:00</div>
+                            <div id="timer-display" class="timer-display text-green-600">00:00:00</div>
                             <p class="text-sm text-gray-600 mt-2">
                                 <span id="timer-status">Presiona "Iniciar" cuando comience el despacho</span>
                             </p>
                         </div>
 
-                        <!-- Botones de control -->
                         <div id="timer-controls">
                             <button type="button" id="startBtn"
                                     class="w-full px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-lg shadow-lg">
@@ -136,23 +124,21 @@
                             </button>
                         </div>
 
-                        <!-- Estado de carga -->
                         <div id="loading-indicator" style="display: none;" class="text-center mt-4">
-                            <div class="inline-flex items-center px-4 py-2 bg-purple-100 rounded-full">
+                            <div class="inline-flex items-center px-4 py-2 bg-green-100 rounded-full">
                                 <div class="loading-dots flex space-x-1 mr-3">
-                                    <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
-                                    <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
-                                    <span class="w-2 h-2 bg-purple-600 rounded-full"></span>
+                                    <span class="w-2 h-2 bg-green-600 rounded-full"></span>
+                                    <span class="w-2 h-2 bg-green-600 rounded-full"></span>
+                                    <span class="w-2 h-2 bg-green-600 rounded-full"></span>
                                 </div>
-                                <span class="text-sm font-medium text-purple-800">Despacho en proceso</span>
+                                <span class="text-sm font-medium text-green-800">Despacho en proceso</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Información del paso 1 -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                        <h4 class="font-semibold text-blue-900 mb-2">ℹ️ Instrucciones</h4>
-                        <ul class="text-sm text-blue-800 space-y-1">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+                        <h4 class="font-semibold text-green-900 mb-2">ℹ️ Instrucciones</h4>
+                        <ul class="text-sm text-green-800 space-y-1">
                             <li>• Presiona "Iniciar Despacho" cuando el combustible comience a fluir</li>
                             <li>• El cronómetro registrará el tiempo automáticamente</li>
                             <li>• Cuando termine la carga, presiona "Finalizar Despacho"</li>
@@ -161,23 +147,20 @@
                     </div>
                 </div>
 
-                <!-- Sección 2: Cantidad de litros (Aparece después de finalizar) -->
+                <!-- Sección 2: Cantidad de litros (aparece tras finalizar cronómetro) -->
                 <div id="section-litros" style="display: none;" class="mb-6 fade-in">
                     <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border-2 border-green-200">
                         <h3 class="text-center text-lg font-semibold text-gray-800 mb-4">⛽ Paso 2: Cantidad Despachada</h3>
 
-                        <!-- Resumen del tiempo -->
                         <div class="bg-white rounded-lg p-4 mb-4 text-center">
                             <p class="text-sm text-gray-600 mb-1">Tiempo de despacho registrado:</p>
                             <p class="text-2xl font-bold text-green-600" id="tiempo-registrado">--:--:--</p>
                         </div>
 
-                        <!-- Campo de litros -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 <span class="flex items-center justify-center">
                                     <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
                                     </svg>
                                     Ingresa los litros mostrados en la bomba
@@ -193,11 +176,10 @@
                         </div>
                     </div>
 
-                    <!-- Información del paso 2 -->
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
-                        <h4 class="font-semibold text-green-900 mb-2">✓ Último paso</h4>
+                        <h4 class="font-semibold text-green-900 mb-2">✓ Último paso antes del ticket</h4>
                         <p class="text-sm text-green-800">
-                            Ingresa la cantidad exacta de litros que muestra la bomba dispensadora y presiona "Continuar" para avanzar al siguiente paso.
+                            Ingresa la cantidad exacta de litros que muestra la bomba dispensadora y presiona "Continuar".
                         </p>
                     </div>
                 </div>
@@ -209,7 +191,7 @@
                         ← Atrás
                     </a>
                     <button type="submit" id="submitBtn" disabled
-                            class="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium disabled:bg-gray-300 disabled:cursor-not-allowed">
+                            class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:bg-gray-300 disabled:cursor-not-allowed">
                         Continuar →
                     </button>
                 </div>
@@ -251,11 +233,9 @@
         timerDisplay.textContent = formatTime(elapsed);
     }
 
-    // Botón Iniciar Despacho
     startBtn.addEventListener('click', function() {
         startTime = Date.now();
         isRunning = true;
-
         timerInterval = setInterval(updateTimer, 1000);
 
         startBtn.style.display = 'none';
@@ -264,23 +244,15 @@
         timerStatus.textContent = 'Despacho en proceso...';
         timerDisplay.classList.add('pulse-animation');
 
-        // Llamada AJAX para registrar inicio
         fetch(`/combustible/${cargaId}/iniciar/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
                 'Content-Type': 'application/json'
             }
-        }).then(response => response.json())
-          .then(data => {
-              console.log('Inicio registrado:', data);
-          })
-          .catch(error => {
-              console.error('Error al registrar inicio:', error);
-          });
+        }).catch(error => console.error('Error al registrar inicio:', error));
     });
 
-    // Botón Finalizar Despacho
     stopBtn.addEventListener('click', function() {
         isRunning = false;
         clearInterval(timerInterval);
@@ -294,7 +266,6 @@
         timerDisplay.classList.remove('pulse-animation');
         timerDisplay.classList.add('text-green-600');
 
-        // Llamada AJAX para registrar fin
         fetch(`/combustible/${cargaId}/finalizar/`, {
             method: 'POST',
             headers: {
@@ -304,11 +275,8 @@
         }).then(response => response.json())
           .then(data => {
               if (data.status === 'success') {
-                  // Mostrar sección de litros
                   sectionLitros.style.display = 'block';
                   tiempoRegistrado.textContent = tiempoFinal + ` (${data.tiempo_total} min)`;
-
-                  // Scroll suave a la sección de litros
                   setTimeout(() => {
                       sectionLitros.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       cantidadInput.focus();
@@ -321,7 +289,6 @@
           });
     });
 
-    // Validar campo de litros antes de habilitar botón continuar
     cantidadInput.addEventListener('input', function() {
         if (timerFinished && this.value && parseFloat(this.value) > 0) {
             submitBtn.disabled = false;
@@ -330,14 +297,12 @@
         }
     });
 
-    // Prevenir envío del formulario si no se han completado los pasos
     document.getElementById('paso4Form').addEventListener('submit', function(e) {
         if (!timerFinished) {
             e.preventDefault();
             alert('Debes completar el proceso de despacho primero');
             return false;
         }
-
         if (!cantidadInput.value || parseFloat(cantidadInput.value) <= 0) {
             e.preventDefault();
             alert('Debes ingresar la cantidad de litros despachados');

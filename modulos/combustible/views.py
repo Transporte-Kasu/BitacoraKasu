@@ -1,3 +1,5 @@
+import json
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, View
 from django.contrib import messages
@@ -7,40 +9,105 @@ from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.db.models import Sum
 from django.http import JsonResponse, Http404
+
+from modulos.unidades.models import Unidad
 from .models import CargaCombustible, Despachador, FotoCandadoNuevo, AlertaCombustible
 from .forms import (
     Paso1Form, Paso2Form, Paso3Form, Paso4Form, Paso5Form, Paso6Form
 )
 
+# Secuencia de pasos por flujo
+PASOS_LOCALES = [1, 4, 6]
+PASOS_FORANEOS = [1, 2, 3, 4, 5, 6]
+PASOS_OMITIDOS_LOCAL = [2, 3, 5]
+
 
 class CargaCombustibleWizardView(LoginRequiredMixin, View):
-    """Vista principal para el proceso de carga paso a paso"""
+    """Vista principal para el proceso de carga paso a paso."""
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _tipo_flujo(self, request):
+        return request.session.get('carga_tipo_flujo', 'FORANEO')
+
+    def _es_local(self, request):
+        return self._tipo_flujo(request) == 'LOCAL'
+
+    def _paso_anterior(self, paso, es_local):
+        """Devuelve el paso anterior según el flujo activo."""
+        if es_local:
+            mapa = {4: 1, 6: 4}
+        else:
+            mapa = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5}
+        return mapa.get(paso, 1)
+
+    def _contexto_progreso(self, paso, es_local):
+        """Contexto de barra de progreso dinámico según flujo."""
+        pasos = PASOS_LOCALES if es_local else PASOS_FORANEOS
+        total = len(pasos)
+        paso_visible = (pasos.index(paso) + 1) if paso in pasos else paso
+        progreso = int((paso_visible / total) * 100)
+        return {
+            'paso': paso,
+            'paso_visible': paso_visible,
+            'total_pasos': total,
+            'progreso': progreso,
+            'es_flujo_local': es_local,
+            'paso_anterior': self._paso_anterior(paso, es_local),
+        }
+
+    def _template(self, paso, es_local):
+        """Selecciona el template correcto según flujo y paso."""
+        if es_local and paso == 4:
+            return 'combustible/wizard_local_paso4.html'
+        return f'combustible/wizard_paso{paso}.html'
+
+    # ------------------------------------------------------------------
+    # GET
+    # ------------------------------------------------------------------
 
     def get(self, request, paso=1):
-        # Obtener o iniciar sesión de carga
         carga_id = request.session.get('carga_combustible_id')
+        es_local = self._es_local(request)
 
         if paso == 1:
-            # Limpiar sesión anterior si es paso 1
-            if 'carga_combustible_id' in request.session:
-                del request.session['carga_combustible_id']
+            # Limpiar sesión anterior
+            request.session.pop('carga_combustible_id', None)
+            request.session.pop('carga_tipo_flujo', None)
+            es_local = False  # reset para que el progreso sea neutral
             form = Paso1Form()
-        elif paso == 2:
+            # JSON con el tipo de cada unidad activa para el badge del frontend
+            unidades_tipo = {
+                str(u.pk): u.tipo
+                for u in Unidad.objects.filter(activa=True).only('pk', 'tipo')
+            }
+            context = {
+                'form': form,
+                'unidades_tipo_json': json.dumps(unidades_tipo),
+                **self._contexto_progreso(paso, es_local),
+            }
+            return render(request, self._template(paso, es_local), context)
+
+        # Proteger pasos omitidos en flujo LOCAL
+        if es_local and paso in PASOS_OMITIDOS_LOCAL:
+            return redirect('combustible:wizard', paso=4)
+
+        if paso == 2:
             form = Paso2Form()
         elif paso == 3:
             form = Paso3Form()
         elif paso == 4:
             form = Paso4Form()
-            # Obtener datos para mostrar resumen
             if carga_id:
                 carga = get_object_or_404(CargaCombustible, id=carga_id)
                 context = {
                     'form': form,
-                    'paso': paso,
                     'carga': carga,
-                    'total_pasos': 6
+                    **self._contexto_progreso(paso, es_local),
                 }
-                return render(request, 'combustible/wizard_paso4.html', context)
+                return render(request, self._template(paso, es_local), context)
         elif paso == 5:
             form = Paso5Form()
         elif paso == 6:
@@ -50,44 +117,53 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
 
         context = {
             'form': form,
-            'paso': paso,
-            'total_pasos': 6,
-            'progreso': int((paso / 6) * 100)
+            **self._contexto_progreso(paso, es_local),
         }
+        return render(request, self._template(paso, es_local), context)
 
-        return render(request, f'combustible/wizard_paso{paso}.html', context)
+    # ------------------------------------------------------------------
+    # POST
+    # ------------------------------------------------------------------
 
     def post(self, request, paso=1):
         carga_id = request.session.get('carga_combustible_id')
+        es_local = self._es_local(request)
 
         if paso == 1:
             form = Paso1Form(request.POST, request.FILES)
             if form.is_valid():
-                # Obtener o crear despachador para el usuario logueado
-                despachador, created = Despachador.objects.get_or_create(
+                despachador, _ = Despachador.objects.get_or_create(
                     user=request.user,
                     defaults={
                         'nombre': request.user.get_full_name() or request.user.username,
-                        'activo': True
+                        'activo': True,
                     }
                 )
-                
-                # Crear nueva carga
+
+                unidad = form.cleaned_data['unidad']
+                tipo_flujo = 'LOCAL' if unidad.tipo == 'LOCAL' else 'FORANEO'
+
                 carga = CargaCombustible(
                     despachador=despachador,
-                    unidad=form.cleaned_data['unidad'],
+                    unidad=unidad,
                     foto_numero_economico=form.cleaned_data['foto_numero_economico'],
                     fecha_hora_inicio=timezone.now(),
                     estado='INICIADO',
-                    # Valores temporales que se actualizarán después
+                    tipo_flujo=tipo_flujo,
+                    # Valores temporales que se actualizarán en pasos posteriores
                     cantidad_litros=0,
                     kilometraje_actual=0,
                     nivel_combustible_inicial='VACIO',
-                    estado_candado_anterior='NORMAL'
+                    estado_candado_anterior='NORMAL',
                 )
                 carga.save()
                 request.session['carga_combustible_id'] = carga.id
+                request.session['carga_tipo_flujo'] = tipo_flujo
+
                 messages.success(request, '✓ Paso 1 completado: Unidad confirmada')
+
+                if tipo_flujo == 'LOCAL':
+                    return redirect('combustible:wizard', paso=4)
                 return redirect('combustible:wizard', paso=2)
 
         elif paso == 2:
@@ -110,7 +186,6 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
                 carga.observaciones_candado = form.cleaned_data['observaciones_candado']
                 carga.save()
 
-                # Alerta si hay problema con el candado
                 if carga.tiene_alertas():
                     messages.warning(
                         request,
@@ -126,7 +201,10 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
                 carga = get_object_or_404(CargaCombustible, id=carga_id)
                 carga.cantidad_litros = form.cleaned_data['cantidad_litros']
                 carga.save()
-                messages.success(request, '✓ Paso 4 completado: Cantidad registrada')
+                messages.success(request, '✓ Cantidad de litros registrada')
+
+                if es_local:
+                    return redirect('combustible:wizard', paso=6)
                 return redirect('combustible:wizard', paso=5)
 
         elif paso == 5:
@@ -140,11 +218,13 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
                         foto=archivo,
                         descripcion=f"Candado {i + 1}"
                     )
-                    # Guardar la primera foto en el campo legacy para compatibilidad
                     if i == 0:
                         carga.foto_candado_nuevo = archivo
                         carga.save()
-                messages.success(request, f'✓ Paso 5 completado: {len(archivos)} foto(s) de candado nuevo registrada(s)')
+                messages.success(
+                    request,
+                    f'✓ Paso 5 completado: {len(archivos)} foto(s) de candado nuevo registrada(s)'
+                )
                 return redirect('combustible:wizard', paso=6)
             elif not archivos:
                 form.add_error('fotos_candado_nuevo', 'Debes tomar al menos una foto del candado nuevo.')
@@ -157,8 +237,8 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
                 carga.notas = form.cleaned_data['notas']
                 carga.finalizar_carga()
 
-                # Limpiar sesión
-                del request.session['carga_combustible_id']
+                request.session.pop('carga_combustible_id', None)
+                request.session.pop('carga_tipo_flujo', None)
 
                 messages.success(
                     request,
@@ -166,18 +246,16 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
                 )
                 return redirect('combustible:detalle', pk=carga.id)
 
-        # Si hay errores, mostrar el formulario con errores
+        # Si hay errores, volver a mostrar el formulario con errores
         context = {
             'form': form,
-            'paso': paso,
-            'total_pasos': 6,
-            'progreso': int((paso / 6) * 100)
+            **self._contexto_progreso(paso, es_local),
         }
-        return render(request, f'combustible/wizard_paso{paso}.html', context)
+        return render(request, self._template(paso, es_local), context)
 
 
 class IniciarCargaView(LoginRequiredMixin, View):
-    """Vista AJAX para iniciar el cronómetro de carga"""
+    """Vista AJAX para iniciar el cronómetro de carga."""
 
     def post(self, request, pk):
         carga = get_object_or_404(CargaCombustible, id=pk)
@@ -190,7 +268,7 @@ class IniciarCargaView(LoginRequiredMixin, View):
 
 
 class FinalizarCargaView(LoginRequiredMixin, View):
-    """Vista AJAX para finalizar el cronómetro de carga"""
+    """Vista AJAX para finalizar el cronómetro de carga."""
 
     def post(self, request, pk):
         carga = get_object_or_404(CargaCombustible, id=pk)
@@ -204,7 +282,7 @@ class FinalizarCargaView(LoginRequiredMixin, View):
 
 
 class CargaCombustibleListView(LoginRequiredMixin, ListView):
-    """Lista de todas las cargas de combustible"""
+    """Lista de todas las cargas de combustible."""
     model = CargaCombustible
     template_name = 'combustible/carga_list.html'
     context_object_name = 'cargas'
@@ -215,7 +293,6 @@ class CargaCombustibleListView(LoginRequiredMixin, ListView):
             'despachador', 'unidad'
         ).order_by('-fecha_hora_inicio')
 
-        # Filtros
         unidad = self.request.GET.get('unidad')
         if unidad:
             queryset = queryset.filter(unidad__numero_economico__icontains=unidad)
@@ -223,41 +300,36 @@ class CargaCombustibleListView(LoginRequiredMixin, ListView):
         estado = self.request.GET.get('estado')
         if estado:
             queryset = queryset.filter(estado=estado)
-        
+
         despachador = self.request.GET.get('despachador')
         if despachador:
             queryset = queryset.filter(despachador__nombre__icontains=despachador)
-        
+
         candado = self.request.GET.get('candado')
         if candado:
             queryset = queryset.filter(estado_candado_anterior=candado)
 
         return queryset
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Estadísticas generales
         context['total_cargas'] = CargaCombustible.objects.count()
         context['cargas_completadas'] = CargaCombustible.objects.filter(estado='COMPLETADO').count()
         context['cargas_en_proceso'] = CargaCombustible.objects.filter(estado='EN_PROCESO').count()
-        
-        # Choices para filtros
         context['estado_choices'] = CargaCombustible.ESTADO_CHOICES
         context['candado_choices'] = CargaCombustible.ESTADO_CANDADO_CHOICES
-        
         return context
 
 
 class CargaCombustibleDetailView(LoginRequiredMixin, DetailView):
-    """Detalle de una carga de combustible"""
+    """Detalle de una carga de combustible."""
     model = CargaCombustible
     template_name = 'combustible/carga_detail.html'
     context_object_name = 'carga'
 
 
 class AlertaCombustibleListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
-    """Lista de alertas de combustible - solo superusuarios"""
+    """Lista de alertas de combustible — solo superusuarios."""
     model = AlertaCombustible
     template_name = 'combustible/alerta_list.html'
     context_object_name = 'alertas'
@@ -283,7 +355,7 @@ class AlertaCombustibleListView(LoginRequiredMixin, UserPassesTestMixin, ListVie
 
 @login_required
 def resolver_alerta_combustible(request, pk):
-    """Marca una alerta de combustible como resuelta - solo superusuarios"""
+    """Marca una alerta de combustible como resuelta — solo superusuarios."""
     if not request.user.is_superuser:
         raise Http404
     alerta = get_object_or_404(AlertaCombustible, pk=pk)
@@ -295,7 +367,7 @@ def resolver_alerta_combustible(request, pk):
 
 @login_required
 def dashboard_combustible(request):
-    """Dashboard principal de combustible"""
+    """Dashboard principal de combustible."""
     hoy = timezone.localdate()
     inicio_mes = hoy.replace(day=1)
 
@@ -307,7 +379,6 @@ def dashboard_combustible(request):
     context = {
         'total_cargas_mes': cargas_mes.count(),
         'cargas_completadas_mes': cargas_completadas_mes.count(),
-        # Cargas iniciadas en el wizard pero aún no finalizadas
         'cargas_en_proceso': CargaCombustible.objects.filter(
             estado__in=['INICIADO', 'EN_PROCESO']
         ).count(),

@@ -19,8 +19,8 @@
     <div class="bg-white shadow-sm sticky top-0 z-10">
         <div class="px-4 py-4">
             <div class="flex items-center justify-between mb-2">
-                <h2 class="text-lg font-semibold text-gray-800">Paso {{ paso }} de {{ total_pasos }}</h2>
-                <span class="text-sm text-gray-600">100%</span>
+                <h2 class="text-lg font-semibold text-gray-800">Paso {{ paso_visible }} de {{ total_pasos }}</h2>
+                <span class="text-sm text-gray-600">{{ progreso }}%</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
                 <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 100%"></div>
@@ -72,7 +72,7 @@
                 </div>
 
                 <div class="flex gap-3">
-                    <a href="{% url 'combustible:wizard' paso=5 %}"
+                    <a href="{% url 'combustible:wizard' paso=paso_anterior %}"
                        class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-center font-medium">
                         ← Atrás
                     </a>

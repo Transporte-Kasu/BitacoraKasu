@@ -41,6 +41,10 @@ class UnidadAdmin(admin.ModelAdmin):
         ('Estado', {
             'fields': ('activa', 'fecha_alta', 'fecha_baja')
         }),
+        ('Control de Combustible', {
+            'fields': ('control_combustible_total',),
+            'description': 'Configuración futura: forzar proceso completo en unidades locales.'
+        }),
         ('Notas', {
             'fields': ('notas',)
         }),
