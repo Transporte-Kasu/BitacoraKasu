@@ -112,6 +112,7 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 | `kilometraje_actual` | IntegerField | Odómetro actualizado automáticamente |
 | `activa` | BooleanField | Estado operativo |
 | `ultimo_mantenimiento` / `proximo_mantenimiento` | DateField | Control de servicio |
+| `control_combustible_total` | BooleanField (default=False) | Si `True`, fuerza el proceso completo de 6 pasos al cargar combustible, incluso en unidades LOCAL |
 
 **Métodos de negocio:**
 - `rendimiento_promedio_real()` — km/lt real basado en bitácoras completadas
@@ -218,17 +219,30 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 - Campos: `nombre`, `telefono`, `activo`
 
 #### `CargaCombustible` — Registro principal
-Proceso en 5 pasos con evidencia fotográfica:
 
-| Campo | Tipo | Paso |
-|-------|------|------|
+**Wizard diferenciado por tipo de unidad:**
+
+| Flujo | Pasos | Condición |
+|-------|-------|-----------|
+| **LOCAL simplificado** | Paso 1 → Paso 4 → Paso 6 (3 pasos) | `unidad.tipo == 'LOCAL'` y `control_combustible_total == False` |
+| **Completo (FORÁNEO/ESPERANZA)** | Pasos 1 → 2 → 3 → 4 → 5 → 6 (6 pasos) | `unidad.tipo != 'LOCAL'` o `control_combustible_total == True` |
+
+La detección ocurre en el POST del Paso 1. El `tipo_flujo` se persiste en la carga y en `request.session['carga_tipo_flujo']`. Los pasos 2, 3 y 5 están protegidos en `GET`: si se accede directamente durante flujo LOCAL, redirigen al paso 4.
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
 | `despachador` | FK → Despachador | — |
 | `unidad` | FK → Unidad | — |
-| `cantidad_litros` | DecimalField | Paso 1 |
-| `kilometraje_actual` / `nivel_combustible_inicial` | | Paso 2 |
-| `estado_candado_anterior` | choices | Paso 3 |
-| `foto_numero_economico` / `foto_tablero` / `foto_candado_anterior` / `foto_candado_nuevo` / `foto_ticket` | ImageField | Pasos 1-4 |
+| `cantidad_litros` | DecimalField | Paso 4 |
+| `kilometraje_actual` / `nivel_combustible_inicial` | | Paso 2 — solo flujo completo |
+| `estado_candado_anterior` | choices | Paso 3 — solo flujo completo |
+| `foto_numero_economico` | ImageField | Paso 1 |
+| `foto_tablero` | ImageField (`null=True`) | Paso 2 — solo flujo completo |
+| `foto_candado_anterior` | ImageField (`null=True`) | Paso 3 — solo flujo completo |
+| `foto_candado_nuevo` | ImageField (`null=True`) | Paso 5 — solo flujo completo |
+| `foto_ticket` | ImageField (`null=True`) | Paso 6 |
 | `fecha_hora_inicio` / `fecha_hora_fin` / `tiempo_carga_minutos` | | Paso 4 |
+| `tipo_flujo` | choices | `LOCAL` / `FORANEO` — trazabilidad del flujo usado |
 | `estado` | choices | `INICIADO → EN_PROCESO → COMPLETADO / CANCELADO` |
 
 **Estado del candado:** `NORMAL` / `ALTERADO` / `VIOLADO` / `SIN_CANDADO`
@@ -241,12 +255,15 @@ Proceso en 5 pasos con evidencia fotográfica:
 
 **`save()` override:**
 - Calcula `tiempo_carga_minutos` automáticamente
-- Actualiza `unidad.kilometraje_actual` al completarse
+- Actualiza `unidad.kilometraje_actual` al completarse (solo si `kilometraje_actual > 0`)
 
-**Signal en `combustible/signals.py`:**
-- Al guardar `CargaCombustible` con `estado=COMPLETADO` → genera `AlertaCombustible` por candado anómalo, exceso de litros o `KILOMETRAJE_MENOR` (odómetro retrocede)
-- Al completarse → llama OCR sobre `foto_candado_anterior` → guarda `numero_candado_anterior` → llama `verificar_ciclo_candados()`
-- Al guardar `FotoCandadoNuevo` → llama OCR sobre `foto` → guarda `numero_candado`
+**Signal en `combustible/signals.py` — refactorizado en funciones privadas:**
+- `_verificar_estado_candado(carga)` — alerta por candado anómalo (solo flujo completo)
+- `_verificar_exceso_litros(carga)` — alerta si litros > capacidad (ambos flujos)
+- `_verificar_kilometraje_menor(carga)` — alerta si odómetro retrocede; omite si `kilometraje_actual == 0` (flujo LOCAL)
+- `_procesar_ocr_candado_anterior(carga)` — OCR + `verificar_ciclo_candados()` (solo flujo completo)
+- Flujo **LOCAL**: ejecuta solo `_verificar_exceso_litros` y `_verificar_kilometraje_menor`
+- Al guardar `FotoCandadoNuevo` → `_procesar_ocr_foto_nueva()` → guarda `numero_candado`
 
 **Servicio OCR (`config/services/ocr_service.py`):**
 - `leer_numero_candado(imagen_field) → str` — extrae número de serie de un candado
@@ -282,7 +299,15 @@ Proceso en 5 pasos con evidencia fotográfica:
 **Reporte Excel combustible:** columnas `candado_anterior` + `candado_nuevo_1`, `candado_nuevo_2`… (dinámicas según número de tanques).
 
 **URLs:** 10 patrones
-**Templates:** 10 (wizard 5 pasos + listado + detalle + alertas)
+**Templates:** 11
+- `wizard_paso1.html` — `wizard_paso6.html` (flujo completo, 6 archivos)
+- `wizard_local_paso4.html` — paso 4 exclusivo para flujo LOCAL: sin resumen de tablero/candado, cromómetro y litros con colores verdes
+- `carga_list.html`, `carga_detail.html`, `dashboard.html`, `alerta_list.html`
+
+**Badge en Paso 1 (`wizard_paso1.html`):**
+- Verde: "proceso simplificado (3 pasos)" — LOCAL sin `control_combustible_total`
+- Naranja: "control total — proceso completo (6 pasos)" — LOCAL con `control_combustible_total = True`
+- Azul: "proceso completo (6 pasos)" — FORÁNEO / ESPERANZA
 
 ---
 
@@ -755,8 +780,8 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 
 | Signal | Módulo | Disparador | Efecto |
 |--------|--------|-----------|--------|
-| `post_save CargaCombustible` | combustible | Candado ALTERADO/VIOLADO/SIN_CANDADO, exceso litros o kilometraje_actual menor al anterior | Crea `AlertaCombustible` (incl. `KILOMETRAJE_MENOR`) |
-| `post_save CargaCombustible` | combustible | `estado=COMPLETADO` + foto candado anterior | OCR (Vision/pytesseract) → `numero_candado_anterior` → `verificar_ciclo_candados()` → alerta `CANDADO_NO_COINCIDE` si no coincide |
+| `post_save CargaCombustible` | combustible | `estado=COMPLETADO`, flujo LOCAL | Verifica exceso litros y `KILOMETRAJE_MENOR` (omite candado y OCR) |
+| `post_save CargaCombustible` | combustible | `estado=COMPLETADO`, flujo FORANEO | Verifica candado, exceso litros, `KILOMETRAJE_MENOR`; OCR → `numero_candado_anterior` → `verificar_ciclo_candados()` → alerta `CANDADO_NO_COINCIDE` |
 | `post_save FotoCandadoNuevo` | combustible | Creación | OCR → guarda `numero_candado` en la foto |
 | `post_save OrdenTrabajo` | taller | Creación | Email a grupo "Supervisores Taller" |
 | `post_save OrdenTrabajo` | taller | >7 días en taller | Email de alerta a supervisores/gerentes |
