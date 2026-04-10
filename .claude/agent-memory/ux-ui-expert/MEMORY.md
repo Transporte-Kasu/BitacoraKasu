@@ -81,3 +81,18 @@ Implementado en: `taller/detalle_orden.html`, `taller/detalle_reporte.html`.
 | `/taller/detalle/<folio>/` | Mecanico/supervisor | Desktop o tablet | Taller |
 
 Ver `patterns.md` para ejemplos de codigo completos.
+
+## Entorno virtual correcto
+`.venvBitacoraKasu/` (no `.venvKasu` como dice CLAUDE.md — ese nombre esta desactualizado).
+Comando: `source .venvBitacoraKasu/bin/activate && python manage.py ...`
+
+## Patron galeria de tarjetas (fleet-card) — modulos que lo usan
+El patron `.fleet-card` con grupos por tipo, tooltip hover y JS de navegacion esta implementado en:
+- `unidades/unidad_list.html` + `unidades/_fleet_card.html` (referencia original)
+- `operadores/operador_list.html` + `operadores/_operador_card.html` (implementado)
+
+Diferencias operadores vs unidades:
+- Tipo `FORANEO` (no `FORANEA` como en unidades) — respetar el valor exacto del modelo
+- Solo 2 badges: `badge-unidad` (verde palido) y `badge-viajes` (verde oscuro)
+- Sin paginacion (`paginate_by = None`): grupos_operadores se construye en Python filtrando el QS ya anotado
+- SVG de persona con casco y volante (viewBox 100x80) en lugar de camion (viewBox 100x60)

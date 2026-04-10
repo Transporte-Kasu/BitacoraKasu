@@ -1,0 +1,145 @@
+{% comment %}
+  Partial: tarjeta individual de operador
+  Variables requeridas:
+    - operador  : instancia de Operador (con anotaciones total_viajes y select_related unidad_asignada)
+    - tipo_css  : string "LOCAL" | "FORANEO" | "ESPERANZA"
+{% endcomment %}
+
+{# Usamos <div> (no <a>) para evitar <a> anidados con los links del tooltip #}
+<div class="fleet-card tipo-{{ tipo_css }}{% if not operador.activo %} inactiva{% endif %}"
+     role="button"
+     tabindex="0"
+     data-href="{% url 'operadores:detail' operador.pk %}"
+     aria-label="Operador {{ operador.nombre }}{% if not operador.activo %}, inactivo{% endif %}">
+
+  <!-- Icono SVG de persona/conductor -->
+  <span aria-hidden="true">
+    <svg class="fleet-truck-icon"
+         viewBox="0 0 100 80"
+         xmlns="http://www.w3.org/2000/svg"
+         role="img"
+         aria-label="Icono de operador">
+
+      {% if tipo_css == 'LOCAL' %}
+        {% if operador.activo %}<g style="color:#3b82f6;">{% else %}<g style="color:#9ca3af;">{% endif %}
+      {% elif tipo_css == 'FORANEO' %}
+        {% if operador.activo %}<g style="color:#10b981;">{% else %}<g style="color:#9ca3af;">{% endif %}
+      {% else %}
+        {% if operador.activo %}<g style="color:#8b5cf6;">{% else %}<g style="color:#9ca3af;">{% endif %}
+      {% endif %}
+
+        <!-- Cabeza -->
+        <circle cx="50" cy="18" r="13" fill="currentColor" opacity="0.9"/>
+        <!-- Casco/visera -->
+        <path d="M37 18 Q37 6 50 6 Q63 6 63 18 Z" fill="currentColor"/>
+        <rect x="35" y="17" width="30" height="4" rx="2" fill="currentColor" opacity="0.5"/>
+        <!-- Cuello -->
+        <rect x="46" y="30" width="8" height="5" rx="2" fill="currentColor" opacity="0.7"/>
+        <!-- Cuerpo/torso (silueta sentada) -->
+        <path d="M28 60 Q28 35 50 35 Q72 35 72 60 Z" fill="currentColor" opacity="0.85"/>
+        <!-- Hombros y brazos -->
+        <rect x="24" y="38" width="12" height="20" rx="5" fill="currentColor" opacity="0.75"/>
+        <rect x="64" y="38" width="12" height="20" rx="5" fill="currentColor" opacity="0.75"/>
+        <!-- Manos en volante -->
+        <circle cx="32" cy="60" r="4" fill="currentColor"/>
+        <circle cx="68" cy="60" r="4" fill="currentColor"/>
+        <!-- Volante -->
+        <circle cx="50" cy="63" r="12" fill="none" stroke="currentColor" stroke-width="3.5" opacity="0.6"/>
+        <circle cx="50" cy="63" r="3" fill="currentColor" opacity="0.5"/>
+
+      </g>
+    </svg>
+  </span>
+
+  <!-- Nombre del operador (truncado) -->
+  <span class="fleet-numero" style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px;">
+    {{ operador.nombre|truncatechars:20 }}
+  </span>
+
+  <!-- Badges de actividad -->
+  <span class="badge-fila" aria-hidden="true">
+
+    <!-- Unidad asignada -->
+    <span class="badge-hist badge-unidad {% if operador.unidad_asignada %}activo{% else %}inactivo{% endif %}"
+          title="{% if operador.unidad_asignada %}Unidad: {{ operador.unidad_asignada.numero_economico }}{% else %}Sin unidad asignada{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+        <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H11a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7h2a1 1 0 011 1v6.05A2.5 2.5 0 0114.95 17H14a1 1 0 01-1-1v-5h1V7z"/>
+      </svg>
+    </span>
+
+    <!-- Viajes realizados -->
+    <span class="badge-hist badge-viajes {% if operador.total_viajes > 0 %}activo{% else %}inactivo{% endif %}"
+          title="{% if operador.total_viajes > 0 %}{{ operador.total_viajes }} viaje{% if operador.total_viajes != 1 %}s{% endif %} realizados{% else %}Sin viajes registrados{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-green-700" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M12 1.586l-4 4V13a1 1 0 102 0V7.414l3-3V1.586zM3.707 3.293A1 1 0 002.293 4.707l1.414 1.414 1.414-1.414L3.707 3.293zM9.414 14H10a1 1 0 000-2H9a3 3 0 00-2.83 2H5a1 1 0 000 2h1.17A3 3 0 009.414 14zM13 17a1 1 0 102 0v-1.17A3 3 0 0117.83 14H19a1 1 0 000-2h-1.17A3.001 3.001 0 0013 14.17V17z" clip-rule="evenodd"/>
+      </svg>
+    </span>
+
+  </span>
+
+  <!-- TOOLTIP (informativo, sin links anidados) -->
+  <div class="fleet-tooltip" role="tooltip" aria-hidden="true">
+
+    <div style="margin-bottom:0.5rem;">
+      <div style="font-size:0.85rem;font-weight:800;color:#111827;">
+        {{ operador.nombre }}
+      </div>
+      <div style="margin-top:2px;">
+        {% if tipo_css == 'LOCAL' %}
+        <span class="tt-tipo-badge" style="background:#dbeafe;color:#1d4ed8;">Local</span>
+        {% elif tipo_css == 'FORANEO' %}
+        <span class="tt-tipo-badge" style="background:#d1fae5;color:#065f46;">Foraneo</span>
+        {% else %}
+        <span class="tt-tipo-badge" style="background:#ede9fe;color:#6d28d9;">Esperanza</span>
+        {% endif %}
+        {% if not operador.activo %}
+        <span class="tt-tipo-badge" style="background:#f3f4f6;color:#6b7280;margin-left:4px;">Inactivo</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <hr class="tt-divider">
+
+    {% if operador.licencia %}
+    <div class="tt-row">
+      <span class="tt-label">Licencia</span>
+      <span class="tt-val">{{ operador.licencia }}</span>
+    </div>
+    {% endif %}
+
+    {% if operador.telefono %}
+    <div class="tt-row">
+      <span class="tt-label">Telefono</span>
+      <span class="tt-val">{{ operador.telefono }}</span>
+    </div>
+    {% endif %}
+
+    {% if operador.email %}
+    <div class="tt-row">
+      <span class="tt-label">Email</span>
+      <span class="tt-val" style="word-break:break-all;">{{ operador.email }}</span>
+    </div>
+    {% endif %}
+
+    <div class="tt-row">
+      <span class="tt-label">Unidad</span>
+      <span class="tt-val">
+        {% if operador.unidad_asignada %}{{ operador.unidad_asignada.numero_economico }}{% else %}&mdash;{% endif %}
+      </span>
+    </div>
+
+    <hr class="tt-divider">
+
+    <div class="tt-row">
+      <span class="tt-label">Viajes</span>
+      <span class="tt-val">{{ operador.total_viajes }}</span>
+    </div>
+
+    <hr class="tt-divider">
+    <div style="font-size:0.65rem;color:#9ca3af;text-align:center;">Clic para ver detalle</div>
+
+  </div>
+  <!-- /fleet-tooltip -->
+
+</div>

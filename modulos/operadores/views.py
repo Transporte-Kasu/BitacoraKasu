@@ -9,17 +9,18 @@ from .forms import OperadorForm
 
 
 class OperadorListView(LoginRequiredMixin, ListView):
-    """Vista para listar todos los operadores"""
+    """Vista para listar todos los operadores en galería de tarjetas agrupadas por tipo"""
     model = Operador
     template_name = 'operadores/operador_list.html'
     context_object_name = 'operadores'
-    paginate_by = 20
-    
+    # Sin paginación: la galería muestra todos agrupados, igual que unidades
+    paginate_by = None
+
     def get_queryset(self):
         queryset = Operador.objects.select_related('unidad_asignada').annotate(
             total_viajes=Count('bitacoras')
         )
-        
+
         # Filtro por búsqueda
         search = self.request.GET.get('search')
         if search:
@@ -28,26 +29,46 @@ class OperadorListView(LoginRequiredMixin, ListView):
                 Q(licencia__icontains=search) |
                 Q(telefono__icontains=search)
             )
-        
+
         # Filtro por tipo
         tipo = self.request.GET.get('tipo')
         if tipo:
             queryset = queryset.filter(tipo=tipo)
-        
+
         # Filtro por estado
         activo = self.request.GET.get('activo')
         if activo == 'true':
             queryset = queryset.filter(activo=True)
         elif activo == 'false':
             queryset = queryset.filter(activo=False)
-        
+
         return queryset
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_operadores'] = Operador.objects.count()
         context['operadores_activos'] = Operador.objects.filter(activo=True).count()
         context['tipos_choices'] = Operador.TIPO_CHOICES
+
+        # Queryset ya filtrado (el que pasó por búsqueda/tipo/activo)
+        qs = self.get_queryset()
+
+        # Agrupar por tipo, análogo a grupos_flota en UnidadListView
+        grupos_operadores = {}
+        tipo_config = {
+            'LOCAL':     {'color': '#3b82f6'},
+            'FORANEO':   {'color': '#10b981'},
+            'ESPERANZA': {'color': '#8b5cf6'},
+        }
+        for tipo_key, cfg in tipo_config.items():
+            operadores_tipo = [op for op in qs if op.tipo == tipo_key]
+            if operadores_tipo:
+                grupos_operadores[tipo_key] = {
+                    'operadores': operadores_tipo,
+                    'color': cfg['color'],
+                }
+
+        context['grupos_operadores'] = grupos_operadores
         return context
 
 
