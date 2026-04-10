@@ -16,7 +16,7 @@ def generar_kilometraje_unidades(periodo_inicio: date, periodo_fin: date) -> dic
         Unidad.objects
         .filter(activa=True)
         .order_by('-kilometraje_actual')
-        .values('numero_economico', 'placa', 'kilometraje_actual', 'tipo')
+        .values('numero_economico', 'placa', 'marca', 'modelo', 'kilometraje_actual', 'tipo')
     )
 
     filas = []
@@ -26,6 +26,8 @@ def generar_kilometraje_unidades(periodo_inicio: date, periodo_fin: date) -> dic
         filas.append({
             'numero_economico': u['numero_economico'],
             'placa': u['placa'] or '—',
+            'marca': u['marca'] or '—',
+            'modelo': u['modelo'] or '—',
             'kilometraje_km': u['kilometraje_actual'] or 0,
             'tipo': u['tipo'],
         })
