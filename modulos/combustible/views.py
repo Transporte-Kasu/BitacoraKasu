@@ -78,10 +78,16 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
             request.session.pop('carga_tipo_flujo', None)
             es_local = False  # reset para que el progreso sea neutral
             form = Paso1Form()
-            # JSON con el tipo de cada unidad activa para el badge del frontend
+            # JSON con el tipo de cada unidad activa para el badge del frontend.
+            # Incluye control_combustible_total para que el badge refleje el flujo real.
             unidades_tipo = {
-                str(u.pk): u.tipo
-                for u in Unidad.objects.filter(activa=True).only('pk', 'tipo')
+                str(u.pk): {
+                    'tipo': u.tipo,
+                    'control_total': u.control_combustible_total,
+                }
+                for u in Unidad.objects.filter(activa=True).only(
+                    'pk', 'tipo', 'control_combustible_total'
+                )
             }
             context = {
                 'form': form,
@@ -141,7 +147,10 @@ class CargaCombustibleWizardView(LoginRequiredMixin, View):
                 )
 
                 unidad = form.cleaned_data['unidad']
-                tipo_flujo = 'LOCAL' if unidad.tipo == 'LOCAL' else 'FORANEO'
+                es_local_simplificado = (
+                    unidad.tipo == 'LOCAL' and not unidad.control_combustible_total
+                )
+                tipo_flujo = 'LOCAL' if es_local_simplificado else 'FORANEO'
 
                 carga = CargaCombustible(
                     despachador=despachador,

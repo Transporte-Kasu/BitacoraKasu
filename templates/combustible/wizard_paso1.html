@@ -146,10 +146,14 @@
             flujoBadge.classList.add('hidden');
             return;
         }
-        const tipo = unidadesTipo[val];
-        if (tipo === 'LOCAL') {
+        const info = unidadesTipo[val];
+        const esLocalSimplificado = info && info.tipo === 'LOCAL' && !info.control_total;
+        if (esLocalSimplificado) {
             flujoBadge.className = 'mt-2 px-3 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-800';
             flujoBadge.textContent = '✓ Unidad local — proceso simplificado (3 pasos)';
+        } else if (info && info.tipo === 'LOCAL' && info.control_total) {
+            flujoBadge.className = 'mt-2 px-3 py-2 rounded-lg text-sm font-medium bg-orange-100 text-orange-800';
+            flujoBadge.textContent = '⚠ Unidad local con control total — proceso completo (6 pasos)';
         } else {
             flujoBadge.className = 'mt-2 px-3 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-800';
             flujoBadge.textContent = '→ Unidad foránea/esperanza — proceso completo (6 pasos)';
