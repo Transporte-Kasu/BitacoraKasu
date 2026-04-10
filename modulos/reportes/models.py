@@ -10,6 +10,7 @@ class ConfiguracionReporte(models.Model):
         ('ALMACEN', 'Almacén'),
         ('COMBUSTIBLE', 'Combustible'),
         ('TALLER', 'Taller'),
+        ('UNIDADES', 'Unidades'),
     ]
 
     TIPO_CHOICES = [
@@ -22,6 +23,8 @@ class ConfiguracionReporte(models.Model):
         ('COMBUSTIBLE_CARGAS',   'Combustible — Cargas del período'),
         ('COMBUSTIBLE_CONSUMO',  'Combustible — Consumo por unidad'),
         ('COMBUSTIBLE_ALERTAS',  'Combustible — Alertas de candado'),
+        # Unidades
+        ('UNIDADES_KILOMETRAJE', 'Unidades — Kilometraje de flota'),
     ]
 
     FRECUENCIA_CHOICES = [

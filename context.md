@@ -83,6 +83,16 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 
 **URLs:** 7 patrones (lista, crear, detalle, actualizar, eliminar, búsqueda)
 
+**Vista de lista — Galería de tarjetas:**
+- Diseño de galería tipo card grid igual que `unidades` (mismo CSS: `.fleet-card`, `.fleet-grid`, `.fleet-tooltip`)
+- Tarjetas agrupadas por tipo: Locales (azul) / Foráneos (verde) / Esperanza (púrpura)
+- Sin paginación (`paginate_by = None`); `get_context_data()` construye `grupos_operadores` dict
+- Partial `_operador_card.html`: SVG inline de conductor con casco/volante, nombre truncado, 2 badges:
+  1. Camión verde (unidad asignada) — activo si `operador.unidad_asignada`
+  2. Ruta verde oscuro (viajes realizados) — activo si `operador.total_viajes > 0`
+- Tooltip on hover: nombre, tipo, licencia, teléfono, email, unidad asignada, total viajes
+- Patrón `next` preservado en links de editar/eliminar (desde vista de detalle)
+
 ---
 
 ### 2. `unidades` — Gestión de Vehículos
@@ -609,7 +619,7 @@ Método `resolver(usuario)` para cierre de alerta.
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | `nombre` | CharField | Nombre descriptivo |
-| `modulo` | choices | `ALMACEN / COMBUSTIBLE / TALLER` |
+| `modulo` | choices | `ALMACEN / COMBUSTIBLE / TALLER / UNIDADES` |
 | `tipo_reporte` | choices | Tipo específico según módulo |
 | `frecuencia` | choices | `DIARIO / SEMANAL / MENSUAL` |
 | `dia_semana` | choices | Lunes–Domingo (para frecuencia SEMANAL) |
@@ -645,6 +655,9 @@ Método `resolver(usuario)` para cierre de alerta.
 - `COMBUSTIBLE_CARGAS` — todas las cargas del período
 - `COMBUSTIBLE_CONSUMO` — consumo agregado por unidad
 - `COMBUSTIBLE_ALERTAS` — alertas de candado generadas
+
+`unidades.py` — dict `GENERADORES` con:
+- `UNIDADES_KILOMETRAJE` — snapshot de kilometraje actual de todas las unidades activas (número económico, placa, kilometraje); KPIs: total unidades, km promedio, km máximo, unidad con mayor km
 
 **Management command:** `python manage.py generar_reportes [--forzar-id N] [--dry-run]`
 - Itera `ConfiguracionReporte` activas que `es_debido() == True`

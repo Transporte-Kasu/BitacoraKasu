@@ -28,12 +28,14 @@ from django.conf import settings
 from modulos.reportes.models import ConfiguracionReporte, ReporteGenerado
 from modulos.reportes.generadores import almacen as gen_almacen
 from modulos.reportes.generadores import combustible as gen_combustible
+from modulos.reportes.generadores import unidades as gen_unidades
 
 logger = logging.getLogger(__name__)
 
 GENERADORES = {
     **gen_almacen.GENERADORES,
     **gen_combustible.GENERADORES,
+    **gen_unidades.GENERADORES,
 }
 
 
