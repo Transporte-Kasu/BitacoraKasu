@@ -73,13 +73,16 @@
                 </svg>
             </div>
         </div>
-        <a href="{% url 'combustible:alertas' %}?fuente=ia" class="text-xs text-violet-600 hover:text-violet-800 mt-2 inline-block">Ver todas →</a>
+        <div class="flex gap-3 mt-2">
+            <a href="{% url 'combustible:alertas' %}?fuente=ia" class="text-xs text-violet-600 hover:text-violet-800">Ver alertas →</a>
+            <a href="{% url 'combustible:ia_dashboard' %}" class="text-xs text-violet-600 hover:text-violet-800 font-semibold">Dashboard IA →</a>
+        </div>
     </div>
     {% endif %}
 </div>
 
-<!-- Botón principal -->
-<div class="mb-8">
+<!-- Botones de acción principales -->
+<div class="flex flex-wrap items-center gap-3 mb-8">
     <a href="{% url 'combustible:wizard' %}"
        class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition font-bold text-lg shadow-lg">
         <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,6 +90,15 @@
         </svg>
         Nueva Carga de Combustible
     </a>
+    {% if request.user.is_superuser %}
+    <a href="{% url 'combustible:ia_dashboard' %}"
+       class="inline-flex items-center gap-2 px-5 py-4 bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg transition font-semibold">
+        <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M9 4a1 1 0 012 0v.382a5.003 5.003 0 013.536 7.754l.707.707a1 1 0 11-1.414 1.414l-.707-.707A5.003 5.003 0 0110 15a5 5 0 01-3.122-8.854l-.707-.707a1 1 0 111.414-1.414l.707.707A5.003 5.003 0 019 4.382V4z"/>
+        </svg>
+        Dashboard IAKasu
+    </a>
+    {% endif %}
 </div>
 
 <!-- Widget IAKasu — alertas ALTO/CRITICO recientes -->

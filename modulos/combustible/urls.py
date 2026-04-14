@@ -22,4 +22,7 @@ urlpatterns = [
     # Alertas (solo superusuarios)
     path('alertas/', views.AlertaCombustibleListView.as_view(), name='alertas'),
     path('alertas/<int:pk>/resolver/', views.resolver_alerta_combustible, name='resolver_alerta'),
+
+    # IAKasu — Dashboard de análisis estadístico
+    path('ia/', views.ia_dashboard_combustible, name='ia_dashboard'),
 ]

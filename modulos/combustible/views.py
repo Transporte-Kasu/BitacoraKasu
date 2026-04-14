@@ -1,4 +1,6 @@
 import json
+from collections import defaultdict
+from datetime import timedelta
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, View
@@ -7,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, Count, Avg, Q
 from django.http import JsonResponse, Http404
 
 from modulos.unidades.models import Unidad
@@ -446,3 +448,200 @@ def dashboard_combustible(request):
         ).filter(score_riesgo__in=['ALTO', 'CRITICO']).order_by('-fecha_generacion')[:5],
     }
     return render(request, 'combustible/dashboard.html', context)
+
+
+@login_required
+def ia_dashboard_combustible(request):
+    """Dashboard analítico IAKasu — tendencias y estadísticas de anomalías."""
+    if not request.user.is_superuser:
+        raise Http404
+
+    hoy = timezone.localdate()
+    hace_30 = hoy - timedelta(days=29)
+    hace_90 = hoy - timedelta(days=89)
+
+    alertas_ia = AlertaCombustible.objects.filter(generada_por_ia=True)
+
+    # ------------------------------------------------------------------
+    # KPIs globales
+    # ------------------------------------------------------------------
+    total_alertas_ia = alertas_ia.count()
+    alertas_pendientes = alertas_ia.filter(resuelta=False).count()
+    alertas_criticas   = alertas_ia.filter(resuelta=False, score_riesgo='CRITICO').count()
+    alertas_altas      = alertas_ia.filter(resuelta=False, score_riesgo='ALTO').count()
+
+    cargas_90d = CargaCombustible.objects.filter(
+        estado='COMPLETADO',
+        fecha_hora_inicio__date__gte=hace_90,
+    ).count()
+    cargas_con_anomalia_90d = (
+        CargaCombustible.objects
+        .filter(estado='COMPLETADO', fecha_hora_inicio__date__gte=hace_90,
+                alertas__generada_por_ia=True)
+        .distinct().count()
+    )
+    pct_cargas_con_anomalia = (
+        round(cargas_con_anomalia_90d / cargas_90d * 100, 1) if cargas_90d else 0
+    )
+
+    # ------------------------------------------------------------------
+    # Gráfica 1 — Alertas IA por día (últimos 30 días)
+    # ------------------------------------------------------------------
+    alertas_30d = (
+        alertas_ia
+        .filter(fecha_generacion__date__gte=hace_30)
+        .values('fecha_generacion__date', 'score_riesgo')
+        .annotate(total=Count('id'))
+        .order_by('fecha_generacion__date')
+    )
+
+    dias_labels = [(hace_30 + timedelta(days=i)).strftime('%d/%m') for i in range(30)]
+    dias_fechas = [(hace_30 + timedelta(days=i)) for i in range(30)]
+
+    scores_series = {
+        'CRITICO': defaultdict(int),
+        'ALTO':    defaultdict(int),
+        'MEDIO':   defaultdict(int),
+        'BAJO':    defaultdict(int),
+    }
+    for row in alertas_30d:
+        fecha_str = row['fecha_generacion__date'].strftime('%d/%m')
+        score = row['score_riesgo'] or 'BAJO'
+        if score in scores_series:
+            scores_series[score][fecha_str] += row['total']
+
+    chart_alertas_dias = {
+        'labels': dias_labels,
+        'critico': [scores_series['CRITICO'].get(d, 0) for d in dias_labels],
+        'alto':    [scores_series['ALTO'].get(d, 0) for d in dias_labels],
+        'medio':   [scores_series['MEDIO'].get(d, 0) for d in dias_labels],
+        'bajo':    [scores_series['BAJO'].get(d, 0) for d in dias_labels],
+    }
+
+    # ------------------------------------------------------------------
+    # Gráfica 2 — Distribución por tipo de anomalía (dona)
+    # ------------------------------------------------------------------
+    tipos_dist = (
+        alertas_ia
+        .filter(fecha_generacion__date__gte=hace_90)
+        .values('tipo_alerta')
+        .annotate(total=Count('id'))
+        .order_by('-total')
+    )
+    tipo_labels_map = dict(AlertaCombustible.TIPO_CHOICES)
+    chart_tipos = {
+        'labels': [tipo_labels_map.get(r['tipo_alerta'], r['tipo_alerta']) for r in tipos_dist],
+        'data':   [r['total'] for r in tipos_dist],
+    }
+
+    # ------------------------------------------------------------------
+    # Gráfica 3 — Top 8 unidades con más alertas IA (barras)
+    # ------------------------------------------------------------------
+    top_unidades_qs = (
+        alertas_ia
+        .filter(fecha_generacion__date__gte=hace_90)
+        .values('carga__unidad__numero_economico')
+        .annotate(total=Count('id'))
+        .order_by('-total')[:8]
+    )
+    chart_top_unidades = {
+        'labels': [r['carga__unidad__numero_economico'] for r in top_unidades_qs],
+        'data':   [r['total'] for r in top_unidades_qs],
+    }
+
+    # ------------------------------------------------------------------
+    # Gráfica 4 — Tendencia de consumo semanal (litros promedio, 12 semanas)
+    # ------------------------------------------------------------------
+    semanas_labels = []
+    semanas_litros = []
+    for i in range(11, -1, -1):
+        inicio_sem = hoy - timedelta(days=hoy.weekday()) - timedelta(weeks=i)
+        fin_sem    = inicio_sem + timedelta(days=6)
+        avg = CargaCombustible.objects.filter(
+            estado='COMPLETADO',
+            fecha_hora_inicio__date__gte=inicio_sem,
+            fecha_hora_inicio__date__lte=fin_sem,
+        ).aggregate(avg=Avg('cantidad_litros'))['avg']
+        semanas_labels.append(inicio_sem.strftime('%d/%m'))
+        semanas_litros.append(round(float(avg), 1) if avg else 0)
+
+    chart_consumo_semanal = {
+        'labels': semanas_labels,
+        'data':   semanas_litros,
+    }
+
+    # ------------------------------------------------------------------
+    # Tabla — Unidades con anomalías recientes (90 días)
+    # ------------------------------------------------------------------
+    unidades_riesgo = (
+        alertas_ia
+        .filter(fecha_generacion__date__gte=hace_90, resuelta=False)
+        .values(
+            'carga__unidad__pk',
+            'carga__unidad__numero_economico',
+            'carga__unidad__tipo',
+        )
+        .annotate(
+            total_alertas=Count('id'),
+            criticas=Count('id', filter=Q(score_riesgo='CRITICO')),
+            altas=Count('id', filter=Q(score_riesgo='ALTO')),
+        )
+        .order_by('-criticas', '-altas', '-total_alertas')[:15]
+    )
+
+    # Tipo más frecuente por unidad
+    tipo_frecuente = {}
+    for row in unidades_riesgo:
+        pk = row['carga__unidad__pk']
+        tipo_top = (
+            alertas_ia
+            .filter(carga__unidad__pk=pk, fecha_generacion__date__gte=hace_90, resuelta=False)
+            .values('tipo_alerta')
+            .annotate(n=Count('id'))
+            .order_by('-n')
+            .first()
+        )
+        if tipo_top:
+            tipo_frecuente[pk] = tipo_labels_map.get(tipo_top['tipo_alerta'], tipo_top['tipo_alerta'])
+
+    for row in unidades_riesgo:
+        row['tipo_frecuente'] = tipo_frecuente.get(row['carga__unidad__pk'], '—')
+        row['score_display'] = (
+            'CRITICO' if row['criticas'] else
+            'ALTO'    if row['altas']    else
+            'MEDIO'
+        )
+
+    # ------------------------------------------------------------------
+    # Panel — Despachadores con mayor concentración de alertas IA
+    # ------------------------------------------------------------------
+    despachadores_alerta = (
+        alertas_ia
+        .filter(fecha_generacion__date__gte=hace_90)
+        .values('carga__despachador__nombre')
+        .annotate(total=Count('id'), criticas=Count('id', filter=Q(score_riesgo='CRITICO')))
+        .filter(total__gte=2)
+        .order_by('-criticas', '-total')[:5]
+    )
+
+    context = {
+        # KPIs
+        'total_alertas_ia': total_alertas_ia,
+        'alertas_pendientes': alertas_pendientes,
+        'alertas_criticas': alertas_criticas,
+        'alertas_altas': alertas_altas,
+        'pct_cargas_con_anomalia': pct_cargas_con_anomalia,
+        'cargas_90d': cargas_90d,
+        # Gráficas (JSON para Chart.js)
+        'chart_alertas_dias': json.dumps(chart_alertas_dias),
+        'chart_tipos': json.dumps(chart_tipos),
+        'chart_top_unidades': json.dumps(chart_top_unidades),
+        'chart_consumo_semanal': json.dumps(chart_consumo_semanal),
+        # Flags para condicionales en el template
+        'hay_datos_tipos': bool(chart_tipos['data']),
+        'hay_datos_top_unidades': bool(chart_top_unidades['data']),
+        # Tablas
+        'unidades_riesgo': list(unidades_riesgo),
+        'despachadores_alerta': list(despachadores_alerta),
+    }
+    return render(request, 'combustible/ia_dashboard.html', context)

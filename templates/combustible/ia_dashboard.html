@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard IAKasu — Combustible{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <div class="flex items-center gap-2 mb-1">
+            <a href="{% url 'combustible:dashboard' %}" class="text-sm text-gray-400 hover:text-gray-600">Combustible</a>
+            <span class="text-gray-300">/</span>
+            <span class="text-sm text-gray-600 font-medium">Dashboard IAKasu</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <svg class="w-6 h-6 text-violet-600" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 4a1 1 0 012 0v.382a5.003 5.003 0 013.536 7.754l.707.707a1 1 0 11-1.414 1.414l-.707-.707A5.003 5.003 0 0110 15a5 5 0 01-3.122-8.854l-.707-.707a1 1 0 111.414-1.414l.707.707A5.003 5.003 0 019 4.382V4z"/>
+            </svg>
+            Análisis de Anomalías — IAKasu
+        </h1>
+        <p class="text-sm text-gray-500 mt-0.5">Detección estadística de patrones atípicos en cargas de combustible</p>
+    </div>
+    <a href="{% url 'combustible:alertas' %}?fuente=ia"
+       class="text-sm text-violet-600 hover:text-violet-800 border border-violet-200 rounded px-3 py-1.5 bg-violet-50">
+        Ver alertas IA →
+    </a>
+</div>
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+    <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Total alertas IA</p>
+        <p class="text-3xl font-bold text-violet-700">{{ total_alertas_ia }}</p>
+        <p class="text-xs text-gray-400 mt-1">históricas</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Pendientes</p>
+        <p class="text-3xl font-bold text-gray-800">{{ alertas_pendientes }}</p>
+        <p class="text-xs text-gray-400 mt-1">sin resolver</p>
+    </div>
+    <div class="bg-white rounded-lg border {% if alertas_criticas %}border-red-200 bg-red-50{% else %}border-gray-200{% endif %} p-4">
+        <p class="text-xs {% if alertas_criticas %}text-red-500{% else %}text-gray-500{% endif %} uppercase tracking-wide mb-1">Críticas</p>
+        <p class="text-3xl font-bold {% if alertas_criticas %}text-red-600{% else %}text-gray-400{% endif %}">{{ alertas_criticas }}</p>
+        <p class="text-xs text-gray-400 mt-1">pendientes</p>
+    </div>
+    <div class="bg-white rounded-lg border {% if alertas_altas %}border-orange-200 bg-orange-50{% else %}border-gray-200{% endif %} p-4">
+        <p class="text-xs {% if alertas_altas %}text-orange-500{% else %}text-gray-500{% endif %} uppercase tracking-wide mb-1">Altas</p>
+        <p class="text-3xl font-bold {% if alertas_altas %}text-orange-600{% else %}text-gray-400{% endif %}">{{ alertas_altas }}</p>
+        <p class="text-xs text-gray-400 mt-1">pendientes</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Cargas c/ anomalía</p>
+        <p class="text-3xl font-bold {% if pct_cargas_con_anomalia > 20 %}text-orange-600{% elif pct_cargas_con_anomalia > 10 %}text-yellow-600{% else %}text-green-600{% endif %}">
+            {{ pct_cargas_con_anomalia }}%
+        </p>
+        <p class="text-xs text-gray-400 mt-1">últimos 90 días ({{ cargas_90d }} cargas)</p>
+    </div>
+</div>
+
+<!-- Gráficas fila 1 -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+    <!-- Tendencia diaria (ocupa 2/3) -->
+    <div class="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-5">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Alertas IA por día — últimos 30 días</h2>
+        <div class="relative h-56">
+            <canvas id="chartAlertasDias"></canvas>
+        </div>
+    </div>
+
+    <!-- Dona de tipos (1/3) -->
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Tipos de anomalía — 90 días</h2>
+        {% if hay_datos_tipos %}
+        <div class="relative h-56">
+            <canvas id="chartTipos"></canvas>
+        </div>
+        {% else %}
+        <div class="h-56 flex items-center justify-center text-gray-400 text-sm">Sin datos aún</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Gráficas fila 2 -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+    <!-- Top unidades -->
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Top unidades con más anomalías — 90 días</h2>
+        {% if hay_datos_top_unidades %}
+        <div class="relative h-56">
+            <canvas id="chartTopUnidades"></canvas>
+        </div>
+        {% else %}
+        <div class="h-56 flex items-center justify-center text-gray-400 text-sm">Sin datos aún</div>
+        {% endif %}
+    </div>
+
+    <!-- Consumo semanal -->
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Promedio de litros por carga — últimas 12 semanas</h2>
+        <div class="relative h-56">
+            <canvas id="chartConsumoSemanal"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla unidades en riesgo -->
+{% if unidades_riesgo %}
+<div class="bg-white rounded-lg border border-gray-200 mb-6 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-gray-700">Unidades con anomalías pendientes — últimos 90 días</h2>
+        <span class="text-xs text-gray-400">{{ unidades_riesgo|length }} unidad{{ unidades_riesgo|length|pluralize:"es" }}</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Unidad</th>
+                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Tipo</th>
+                    <th class="px-5 py-2.5 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Alertas</th>
+                    <th class="px-5 py-2.5 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Críticas</th>
+                    <th class="px-5 py-2.5 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Altas</th>
+                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Anomalía más frecuente</th>
+                    <th class="px-5 py-2.5 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Riesgo</th>
+                    <th class="px-5 py-2.5"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for u in unidades_riesgo %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-5 py-3 font-semibold text-gray-900">{{ u.carga__unidad__numero_economico }}</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">{{ u.carga__unidad__tipo }}</td>
+                    <td class="px-5 py-3 text-center font-medium text-gray-700">{{ u.total_alertas }}</td>
+                    <td class="px-5 py-3 text-center">
+                        {% if u.criticas %}
+                        <span class="font-bold text-red-600">{{ u.criticas }}</span>
+                        {% else %}
+                        <span class="text-gray-300">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-3 text-center">
+                        {% if u.altas %}
+                        <span class="font-bold text-orange-500">{{ u.altas }}</span>
+                        {% else %}
+                        <span class="text-gray-300">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-3 text-gray-600 text-xs max-w-xs truncate">{{ u.tipo_frecuente }}</td>
+                    <td class="px-5 py-3 text-center">
+                        <span class="inline-flex px-2 py-0.5 text-xs font-bold rounded
+                            {% if u.score_display == 'CRITICO' %}bg-red-100 text-red-700
+                            {% elif u.score_display == 'ALTO' %}bg-orange-100 text-orange-700
+                            {% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ u.score_display }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3 text-right">
+                        <a href="{% url 'combustible:alertas' %}?fuente=ia"
+                           class="text-xs text-violet-600 hover:text-violet-800">Ver →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Panel despachadores -->
+{% if despachadores_alerta %}
+<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-700">Despachadores con mayor concentración de alertas IA — 90 días</h2>
+        <p class="text-xs text-gray-400 mt-0.5">Requieren revisión de proceso de despacho</p>
+    </div>
+    <div class="divide-y divide-gray-100">
+        {% for d in despachadores_alerta %}
+        <div class="px-5 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-violet-100 rounded-full flex items-center justify-center text-violet-700 font-bold text-sm">
+                    {{ d.carga__despachador__nombre|first|upper }}
+                </div>
+                <span class="text-sm font-medium text-gray-800">{{ d.carga__despachador__nombre }}</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <p class="text-sm font-bold text-gray-700">{{ d.total }} alertas</p>
+                    {% if d.criticas %}
+                    <p class="text-xs text-red-500">{{ d.criticas }} crítica{{ d.criticas|pluralize:"s" }}</p>
+                    {% endif %}
+                </div>
+                <div class="w-24 bg-gray-100 rounded-full h-1.5">
+                    {% with pct=d.total|add:"0" %}
+                    <div class="bg-violet-500 h-1.5 rounded-full" style="width: min({{ d.total }}0%, 100%)"></div>
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const CHART_DATOS = {
+    alertasDias:    {{ chart_alertas_dias|safe }},
+    tipos:          {{ chart_tipos|safe }},
+    topUnidades:    {{ chart_top_unidades|safe }},
+    consumoSemanal: {{ chart_consumo_semanal|safe }},
+};
+
+Chart.defaults.font.family = 'system-ui, sans-serif';
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#6b7280';
+
+// 1 — Alertas por día (barras apiladas)
+new Chart(document.getElementById('chartAlertasDias'), {
+    type: 'bar',
+    data: {
+        labels: CHART_DATOS.alertasDias.labels,
+        datasets: [
+            { label: 'Crítico', data: CHART_DATOS.alertasDias.critico, backgroundColor: '#ef4444', stack: 'a' },
+            { label: 'Alto',    data: CHART_DATOS.alertasDias.alto,    backgroundColor: '#f97316', stack: 'a' },
+            { label: 'Medio',   data: CHART_DATOS.alertasDias.medio,   backgroundColor: '#3b82f6', stack: 'a' },
+            { label: 'Bajo',    data: CHART_DATOS.alertasDias.bajo,    backgroundColor: '#a78bfa', stack: 'a' },
+        ],
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } },
+        scales: {
+            x: { grid: { display: false }, ticks: { maxTicksLimit: 10, maxRotation: 0 } },
+            y: { beginAtZero: true, ticks: { stepSize: 1 } },
+        },
+    },
+});
+
+// 2 — Tipos de anomalía (dona)
+if (CHART_DATOS.tipos.data.length) {
+    new Chart(document.getElementById('chartTipos'), {
+        type: 'doughnut',
+        data: {
+            labels: CHART_DATOS.tipos.labels,
+            datasets: [{
+                data: CHART_DATOS.tipos.data,
+                backgroundColor: ['#7c3aed','#db2777','#d97706','#0891b2','#16a34a','#dc2626'],
+                borderWidth: 2, borderColor: '#fff',
+            }],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } },
+            },
+            cutout: '60%',
+        },
+    });
+}
+
+// 3 — Top unidades (barras horizontales)
+if (CHART_DATOS.topUnidades.data.length) {
+    new Chart(document.getElementById('chartTopUnidades'), {
+        type: 'bar',
+        data: {
+            labels: CHART_DATOS.topUnidades.labels,
+            datasets: [{
+                label: 'Alertas IA',
+                data: CHART_DATOS.topUnidades.data,
+                backgroundColor: '#7c3aed',
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { stepSize: 1 } },
+                y: { grid: { display: false } },
+            },
+        },
+    });
+}
+
+// 4 — Consumo semanal (línea)
+new Chart(document.getElementById('chartConsumoSemanal'), {
+    type: 'line',
+    data: {
+        labels: CHART_DATOS.consumoSemanal.labels,
+        datasets: [{
+            label: 'Litros promedio/carga',
+            data: CHART_DATOS.consumoSemanal.data,
+            borderColor: '#7c3aed',
+            backgroundColor: 'rgba(124,58,237,0.08)',
+            borderWidth: 2,
+            pointRadius: 3,
+            fill: true,
+            tension: 0.3,
+        }],
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: false },
+        },
+    },
+});
+</script>
+{% endblock %}
