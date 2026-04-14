@@ -139,6 +139,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.venvBitacoraKasu
 
 # Spyder project settings
 .spyderproject
@@ -291,5 +292,11 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
+
+IAKasu.md
+mejora_carga_combustible.md
+VIEWS_URLS_README.md
+WARP.md
+
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,python,django

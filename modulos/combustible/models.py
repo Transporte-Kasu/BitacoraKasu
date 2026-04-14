@@ -250,6 +250,19 @@ class AlertaCombustible(models.Model):
         ('EXCESO_COMBUSTIBLE', 'Exceso de Combustible'),
         ('CANDADO_NO_COINCIDE', 'Candado no coincide con carga anterior'),
         ('KILOMETRAJE_MENOR', 'Kilometraje menor al anterior'),
+        # Alertas generadas por análisis estadístico IA
+        ('CONSUMO_ATIPICO', 'Consumo atípico vs. historial'),
+        ('RENDIMIENTO_ANOMALO', 'Rendimiento fuera del rango histórico'),
+        ('TIEMPO_CARGA_ATIPICO', 'Tiempo de carga inusual'),
+        ('NIVEL_INCONSISTENTE', 'Nivel inicial inconsistente con litros cargados'),
+        ('PATRON_DESPACHADOR', 'Patrón anómalo en despachador'),
+    ]
+
+    SCORE_RIESGO_CHOICES = [
+        ('BAJO', 'Bajo'),
+        ('MEDIO', 'Medio'),
+        ('ALTO', 'Alto'),
+        ('CRITICO', 'Crítico'),
     ]
 
     carga = models.ForeignKey(
@@ -275,6 +288,28 @@ class AlertaCombustible(models.Model):
         verbose_name="Resuelta por"
     )
     fecha_resolucion = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de resolución")
+    # Campos de análisis IA
+    score_riesgo = models.CharField(
+        max_length=10,
+        choices=SCORE_RIESGO_CHOICES,
+        blank=True,
+        verbose_name="Score de riesgo IA"
+    )
+    analisis_ia = models.TextField(
+        blank=True,
+        verbose_name="Análisis IA",
+        help_text="Interpretación generada automáticamente por el analizador estadístico"
+    )
+    datos_estadisticos = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Datos estadísticos",
+        help_text="μ, σ, z-score y valores de referencia usados para detectar la anomalía"
+    )
+    generada_por_ia = models.BooleanField(
+        default=False,
+        verbose_name="Generada por IA"
+    )
 
     class Meta:
         verbose_name = "Alerta de Combustible"

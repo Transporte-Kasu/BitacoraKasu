@@ -336,6 +336,22 @@ class CargaCombustibleDetailView(LoginRequiredMixin, DetailView):
     template_name = 'combustible/carga_detail.html'
     context_object_name = 'carga'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        alertas_qs = self.object.alertas.select_related('resuelta_por').order_by(
+            '-generada_por_ia', 'resuelta', '-fecha_generacion'
+        )
+        context['alertas_ia'] = alertas_qs.filter(generada_por_ia=True)
+        context['alertas_reglas'] = alertas_qs.filter(generada_por_ia=False)
+        # Tomar la interpretación de Claude de la primera alerta IA que la tenga
+        context['analisis_ia'] = next(
+            (a.analisis_ia for a in context['alertas_ia'] if a.analisis_ia), ''
+        )
+        context['score_riesgo_ia'] = next(
+            (a.score_riesgo for a in context['alertas_ia'] if a.score_riesgo), ''
+        )
+        return context
+
 
 class AlertaCombustibleListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """Lista de alertas de combustible — solo superusuarios."""
@@ -353,12 +369,29 @@ class AlertaCombustibleListView(LoginRequiredMixin, UserPassesTestMixin, ListVie
         )
         if not self.request.GET.get('ver_resueltas'):
             queryset = queryset.filter(resuelta=False)
-        return queryset
+
+        fuente = self.request.GET.get('fuente')
+        if fuente == 'ia':
+            queryset = queryset.filter(generada_por_ia=True)
+        elif fuente == 'reglas':
+            queryset = queryset.filter(generada_por_ia=False)
+
+        score = self.request.GET.get('score')
+        if score:
+            queryset = queryset.filter(score_riesgo=score)
+
+        return queryset.order_by('-generada_por_ia', '-fecha_generacion')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_pendientes'] = AlertaCombustible.objects.filter(resuelta=False).count()
+        pendientes_base = AlertaCombustible.objects.filter(resuelta=False)
+        context['total_pendientes'] = pendientes_base.count()
+        context['total_ia_pendientes'] = pendientes_base.filter(generada_por_ia=True).count()
+        context['total_criticas'] = pendientes_base.filter(score_riesgo='CRITICO').count()
+        context['total_altas'] = pendientes_base.filter(score_riesgo='ALTO').count()
         context['ver_resueltas'] = bool(self.request.GET.get('ver_resueltas'))
+        context['fuente_activa'] = self.request.GET.get('fuente', '')
+        context['score_activo'] = self.request.GET.get('score', '')
         return context
 
 
@@ -385,6 +418,10 @@ def dashboard_combustible(request):
     )
     cargas_completadas_mes = cargas_mes.filter(estado='COMPLETADO')
 
+    alertas_ia_pendientes = AlertaCombustible.objects.filter(
+        generada_por_ia=True, resuelta=False
+    )
+
     context = {
         'total_cargas_mes': cargas_mes.count(),
         'cargas_completadas_mes': cargas_completadas_mes.count(),
@@ -401,5 +438,11 @@ def dashboard_combustible(request):
         'ultimas_cargas': CargaCombustible.objects.select_related(
             'despachador', 'unidad'
         ).order_by('-fecha_hora_inicio')[:10],
+        # IAKasu — alertas estadísticas
+        'alertas_ia_criticas': alertas_ia_pendientes.filter(score_riesgo='CRITICO').count(),
+        'alertas_ia_altas': alertas_ia_pendientes.filter(score_riesgo='ALTO').count(),
+        'alertas_ia_recientes': alertas_ia_pendientes.select_related(
+            'carga', 'carga__unidad', 'carga__despachador'
+        ).filter(score_riesgo__in=['ALTO', 'CRITICO']).order_by('-fecha_generacion')[:5],
     }
     return render(request, 'combustible/dashboard.html', context)

@@ -184,6 +184,27 @@ EMAIL_HOST_USER = 'apikey'  # Cambiar
 EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD')  # Usar App Password de Gmail
 DEFAULT_FROM_EMAIL = 'bitacora@transporteskasu.com.mx'
 
+# ---------------------------------------------------------------------------
+# IAKasu — Configuración de Inteligencia Artificial
+# ---------------------------------------------------------------------------
+ANTHROPIC_API_KEY = env.str('ANTHROPIC_API_KEY', default='')
+
+# Toggle global: False desactiva todas las llamadas a Claude API
+IA_HABILITADA = env.bool('IA_HABILITADA', default=True)
+
+# Score mínimo para invocar Claude API en análisis de combustible
+# Solo se llama cuando la anomalía es ALTO o CRITICO (evita costos en BAJO/MEDIO)
+IA_SCORE_MINIMO_CLAUDE = env.str('IA_SCORE_MINIMO_CLAUDE', default='ALTO')
+
+# Destinatarios de alertas IA de combustible (score ALTO / CRITICO)
+IA_ALERTAS_COMBUSTIBLE_EMAILS = env.list(
+    'IA_ALERTAS_COMBUSTIBLE_EMAILS',
+    default=[
+        'gerencia.general@transporteskasu.com.mx',
+        'f.suarez@loginco.com.mx',
+    ]
+)
+
 # Destinatarios de notificaciones de autorización de salidas de almacén.
 # Se puede sobreescribir vía .env: ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com
 ALMACEN_AUTORIZACION_EMAILS = env.list(

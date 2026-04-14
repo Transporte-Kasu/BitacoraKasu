@@ -18,6 +18,7 @@ def generar_alertas_combustible(sender, instance, created, **kwargs):
         # Flujo simplificado: no hay datos de candado, solo alertas por litros y km
         _verificar_exceso_litros(instance)
         _verificar_kilometraje_menor(instance)
+        _analizar_anomalias_ia(instance)
         return
 
     # Flujo completo (FORANEO / ESPERANZA)
@@ -28,6 +29,8 @@ def generar_alertas_combustible(sender, instance, created, **kwargs):
     # OCR del candado anterior al completar la carga
     if not instance.ocr_candado_anterior_ok and instance.foto_candado_anterior:
         _procesar_ocr_candado_anterior(instance)
+
+    _analizar_anomalias_ia(instance)
 
 
 @receiver(post_save, sender=FotoCandadoNuevo)
@@ -153,3 +156,71 @@ def _procesar_ocr_foto_nueva(foto):
         "OCR candado nuevo — carga #%s '%s': '%s'",
         foto.carga_id, foto.descripcion or foto.pk, numero or '(no detectado)',
     )
+
+
+# ---------------------------------------------------------------------------
+# Análisis estadístico IA (Sprint 1 — IAKasu)
+# ---------------------------------------------------------------------------
+
+def _analizar_anomalias_ia(carga):
+    """
+    Ejecuta el analizador estadístico de IAKasu sobre la carga recién completada
+    y crea AlertaCombustible por cada anomalía detectada.
+
+    Las alertas IA se distinguen de las reglas-base por el flag generada_por_ia=True
+    y el campo score_riesgo.
+    """
+    try:
+        from modulos.combustible.ia_service import AnalizadorCombustible
+        from modulos.combustible.notificaciones import (
+            enviar_alerta_ia_combustible,
+            SCORES_QUE_NOTIFICAN,
+        )
+
+        analizador = AnalizadorCombustible()
+        resultado = analizador.analizar_carga(carga)
+
+        if not resultado['anomalias']:
+            return
+
+        score_riesgo = resultado['score_riesgo']
+        interpretacion = resultado.get('interpretacion', '')
+
+        alertas_creadas = []
+        for anomalia in resultado['anomalias']:
+            alerta, _ = AlertaCombustible.objects.get_or_create(
+                carga=carga,
+                tipo_alerta=anomalia['tipo_alerta'],
+                generada_por_ia=True,
+                defaults={
+                    'mensaje': anomalia['mensaje'],
+                    'score_riesgo': score_riesgo,
+                    'analisis_ia': interpretacion,
+                    'datos_estadisticos': anomalia.get('datos_estadisticos', {}),
+                },
+            )
+            alertas_creadas.append(alerta)
+
+        logger.info(
+            "IAKasu — carga #%s unidad %s: %d alerta(s) IA generada(s) [score=%s]",
+            carga.pk,
+            carga.unidad.numero_economico,
+            len(alertas_creadas),
+            score_riesgo,
+        )
+
+        # Enviar email de notificación para scores ALTO y CRITICO
+        if score_riesgo in SCORES_QUE_NOTIFICAN:
+            enviar_alerta_ia_combustible(
+                carga=carga,
+                anomalias_qs=alertas_creadas,
+                score_riesgo=score_riesgo,
+                analisis_ia=interpretacion,
+            )
+
+    except Exception as exc:
+        # El análisis IA nunca debe romper el flujo principal de guardado
+        logger.exception(
+            "IAKasu — error en análisis de carga #%s: %s",
+            carga.pk, exc,
+        )

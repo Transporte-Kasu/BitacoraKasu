@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alerta IA Combustible — {{ alerta.carga.unidad.numero_economico }}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; background: #f3f4f6; margin: 0; padding: 20px; color: #111827; }
+  .container { max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  /* Header — color según score */
+  .header-critico { background: #991b1b; color: white; padding: 24px 28px; }
+  .header-alto     { background: #b45309; color: white; padding: 24px 28px; }
+  .header-medio    { background: #1d4ed8; color: white; padding: 24px 28px; }
+  .header-bajo     { background: #166534; color: white; padding: 24px 28px; }
+
+  .header h1 { margin: 0 0 4px; font-size: 17px; font-weight: 700; }
+  .header p  { margin: 0; font-size: 13px; opacity: 0.88; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 99px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+    background: rgba(255,255,255,0.25); color: white; margin-top: 10px;
+  }
+
+  .body { padding: 24px 28px; }
+
+  /* Grid de datos */
+  .datos-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-bottom: 20px;
+  }
+  .dato {
+    background: #f8fafc; border-radius: 6px; padding: 10px 14px;
+    border-left: 3px solid #e5e7eb;
+  }
+  .dato .label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .dato .value { font-size: 15px; font-weight: 700; color: #111827; }
+
+  /* Análisis IA */
+  .analisis-ia {
+    background: #eff6ff; border-left: 4px solid #3b82f6;
+    padding: 14px 18px; border-radius: 0 8px 8px 0;
+    margin-bottom: 20px; font-size: 14px; line-height: 1.6; color: #1e3a5f;
+  }
+  .analisis-ia .titulo { font-size: 11px; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+
+  /* Anomalías */
+  .anomalias-titulo { font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; }
+  .anomalia {
+    border: 1px solid #fecaca; background: #fef2f2;
+    border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;
+    font-size: 13px; line-height: 1.5; color: #7f1d1d;
+  }
+  .anomalia.medio { border-color: #fde68a; background: #fffbeb; color: #78350f; }
+  .anomalia .tipo { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 4px; opacity: 0.7; }
+
+  /* Stats técnicos */
+  .stats { font-size: 11px; color: #9ca3af; margin-top: 4px; font-family: monospace; }
+
+  .footer {
+    background: #f8fafc; padding: 14px 28px; text-align: center;
+    font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb;
+  }
+  .footer a { color: #3b82f6; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header dinámico según score_riesgo -->
+  <div class="header-{% if alerta.score_riesgo == 'CRITICO' %}critico{% elif alerta.score_riesgo == 'ALTO' %}alto{% elif alerta.score_riesgo == 'MEDIO' %}medio{% else %}bajo{% endif %}">
+    <h1>Alerta de Combustible — Unidad {{ alerta.carga.unidad.numero_economico }}</h1>
+    <p>Anomalía detectada por análisis estadístico IAKasu</p>
+    <span class="badge">RIESGO {{ alerta.score_riesgo }}</span>
+  </div>
+
+  <div class="body">
+
+    <!-- Datos de la carga -->
+    <div class="datos-grid">
+      <div class="dato">
+        <div class="label">Unidad</div>
+        <div class="value">{{ alerta.carga.unidad.numero_economico }}</div>
+      </div>
+      <div class="dato">
+        <div class="label">Despachador</div>
+        <div class="value">{{ alerta.carga.despachador.nombre }}</div>
+      </div>
+      <div class="dato">
+        <div class="label">Litros cargados</div>
+        <div class="value">{{ alerta.carga.cantidad_litros }} L</div>
+      </div>
+      <div class="dato">
+        <div class="label">Fecha y hora</div>
+        <div class="value">{{ alerta.carga.fecha_hora_inicio|date:"d/m/Y H:i" }}</div>
+      </div>
+      <div class="dato">
+        <div class="label">Kilometraje</div>
+        <div class="value">{{ alerta.carga.kilometraje_actual|default:"—" }} km</div>
+      </div>
+      <div class="dato">
+        <div class="label">Tipo de unidad</div>
+        <div class="value">{{ alerta.carga.unidad.get_tipo_display }}</div>
+      </div>
+    </div>
+
+    <!-- Análisis IA (Claude) -->
+    {% if analisis_ia %}
+    <div class="analisis-ia">
+      <div class="titulo">Análisis IAKasu</div>
+      {{ analisis_ia }}
+    </div>
+    {% endif %}
+
+    <!-- Lista de anomalías detectadas -->
+    <div class="anomalias-titulo">{{ total_anomalias }} anomalía{{ total_anomalias|pluralize:"s" }} detectada{{ total_anomalias|pluralize:"s" }}</div>
+    {% for anomalia in anomalias %}
+    <div class="anomalia {% if anomalia.score_riesgo == 'MEDIO' or anomalia.score_riesgo == 'BAJO' %}medio{% endif %}">
+      <div class="tipo">{{ anomalia.get_tipo_alerta_display }}</div>
+      {{ anomalia.mensaje }}
+      {% if anomalia.datos_estadisticos %}
+      <div class="stats">
+        {% if anomalia.datos_estadisticos.z_score %}z={{ anomalia.datos_estadisticos.z_score }} | {% endif %}
+        {% if anomalia.datos_estadisticos.media %}μ={{ anomalia.datos_estadisticos.media }} | {% endif %}
+        {% if anomalia.datos_estadisticos.n_historico %}n={{ anomalia.datos_estadisticos.n_historico }} cargas{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+  </div>
+
+  <div class="footer">
+    Generado por <strong>IAKasu</strong> · BitacoraKasu<br>
+    <a href="{{ url_detalle }}">Ver detalle de la carga en el sistema</a>
+  </div>
+
+</div>
+</body>
+</html>

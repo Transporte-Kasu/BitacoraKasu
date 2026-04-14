@@ -44,12 +44,38 @@
     <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-600 mb-1">Alertas Mes</p>
+                <p class="text-sm text-gray-600 mb-1">Alertas Candado Mes</p>
                 <p class="text-3xl font-bold text-red-600">{{ alertas_candado }}</p>
             </div>
             <div class="text-4xl">⚠️</div>
         </div>
     </div>
+
+    <!-- Tarjeta IA -->
+    {% if alertas_ia_criticas or alertas_ia_altas %}
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-violet-500 col-span-1">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Alertas IAKasu</p>
+                <p class="text-3xl font-bold text-violet-700">{{ alertas_ia_criticas|add:alertas_ia_altas }}</p>
+                <div class="flex gap-2 mt-1">
+                    {% if alertas_ia_criticas %}
+                    <span class="text-xs font-semibold text-red-600 bg-red-50 rounded px-1.5 py-0.5">{{ alertas_ia_criticas }} crítica{{ alertas_ia_criticas|pluralize:"s" }}</span>
+                    {% endif %}
+                    {% if alertas_ia_altas %}
+                    <span class="text-xs font-semibold text-orange-600 bg-orange-50 rounded px-1.5 py-0.5">{{ alertas_ia_altas }} alta{{ alertas_ia_altas|pluralize:"s" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <svg class="w-10 h-10 text-violet-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 4a1 1 0 012 0v.382a5.003 5.003 0 013.536 7.754l.707.707a1 1 0 11-1.414 1.414l-.707-.707A5.003 5.003 0 0110 15a5 5 0 01-3.122-8.854l-.707-.707a1 1 0 111.414-1.414l.707.707A5.003 5.003 0 019 4.382V4z"/>
+                </svg>
+            </div>
+        </div>
+        <a href="{% url 'combustible:alertas' %}?fuente=ia" class="text-xs text-violet-600 hover:text-violet-800 mt-2 inline-block">Ver todas →</a>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Botón principal -->
@@ -62,6 +88,55 @@
         Nueva Carga de Combustible
     </a>
 </div>
+
+<!-- Widget IAKasu — alertas ALTO/CRITICO recientes -->
+{% if alertas_ia_recientes %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-8 border border-violet-100">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-violet-600" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 4a1 1 0 012 0v.382a5.003 5.003 0 013.536 7.754l.707.707a1 1 0 11-1.414 1.414l-.707-.707A5.003 5.003 0 0110 15a5 5 0 01-3.122-8.854l-.707-.707a1 1 0 111.414-1.414l.707.707A5.003 5.003 0 019 4.382V4z"/>
+            </svg>
+            <h2 class="text-base font-bold text-gray-900">Alertas IAKasu — Pendientes de atención</h2>
+        </div>
+        <a href="{% url 'combustible:alertas' %}?fuente=ia" class="text-sm text-violet-600 hover:text-violet-800 font-medium">
+            Ver todas →
+        </a>
+    </div>
+
+    <div class="space-y-2">
+        {% for alerta in alertas_ia_recientes %}
+        <div class="flex items-start gap-3 p-3 rounded border
+            {% if alerta.score_riesgo == 'CRITICO' %}border-red-200 bg-red-50
+            {% else %}border-orange-200 bg-orange-50{% endif %}">
+
+            <!-- Score badge -->
+            <span class="text-xs font-bold px-2 py-1 rounded shrink-0
+                {% if alerta.score_riesgo == 'CRITICO' %}bg-red-100 text-red-700
+                {% else %}bg-orange-100 text-orange-700{% endif %}">
+                {{ alerta.score_riesgo }}
+            </span>
+
+            <!-- Contenido -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-sm font-semibold text-gray-800">{{ alerta.carga.unidad.numero_economico }}</span>
+                    <span class="text-xs text-gray-500">{{ alerta.get_tipo_alerta_display }}</span>
+                    <span class="text-xs text-gray-400">· {{ alerta.fecha_generacion|date:"d/m H:i" }}</span>
+                </div>
+                <p class="text-xs text-gray-600 truncate">{{ alerta.mensaje }}</p>
+            </div>
+
+            <!-- Acción -->
+            <a href="{% url 'combustible:detalle' alerta.carga.pk %}"
+               class="text-xs text-gray-400 hover:text-gray-700 shrink-0">
+                Ver →
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Últimas cargas -->
 <div class="bg-white rounded-lg shadow-md p-6">

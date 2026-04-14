@@ -705,6 +705,115 @@ Método `resolver(usuario)` para cierre de alerta.
 
 ---
 
+## IAKasu — Sistema de Inteligencia Artificial
+
+> Plan completo en `IAKasu.md`. Esta sección documenta lo ya implementado.
+
+### Arquitectura IA
+
+```
+config/services/
+└── claude_service.py        # Cliente centralizado Claude API (reutilizable por todos los módulos)
+
+modulos/combustible/
+├── ia_service.py            # AnalizadorCombustible — análisis estadístico puro
+└── notificaciones.py        # enviar_alerta_ia_combustible() — email ALTO/CRITICO
+
+templates/combustible/email/
+└── alerta_ia.html           # Template HTML del email de alerta IA
+```
+
+### `config/services/claude_service.py` — ClaudeService
+
+Cliente centralizado para llamadas a la API de Anthropic. Reutilizable por todos los módulos IA.
+
+- `ClaudeService.completar(prompt, sistema, modelo, max_tokens)` → `str`
+- `ClaudeService.disponible()` → `bool`
+- Usa **prompt caching** (`cache_control: ephemeral`) para reducir costos en el `sistema` repetido
+- Modelos: `Modelo.HAIKU` (`claude-haiku-4-5-20251001`) y `Modelo.SONNET` (`claude-sonnet-4-6`)
+- Retorna `''` si `IA_HABILITADA=False` o si la llamada falla (nunca rompe el flujo)
+
+### `modulos/combustible/ia_service.py` — AnalizadorCombustible
+
+Detecta anomalías estadísticas en cargas completadas comparando contra el historial de la unidad (últimos 90 días). **No requiere API externa.**
+
+**Anomalías detectadas:**
+
+| Tipo | Lógica | Umbral |
+|------|--------|--------|
+| `CONSUMO_ATIPICO` | Litros cargados vs μ±σ histórico de la unidad | z-score > 2.0 |
+| `RENDIMIENTO_ANOMALO` | km/lt del tramo vs percentil 10 histórico | p10 de la unidad |
+| `TIEMPO_CARGA_ATIPICO` | `tiempo_carga_minutos` vs μ±σ histórico | z-score > 2.0 |
+| `NIVEL_INCONSISTENTE` | Litros > espacio disponible estimado × 1.25 | Nivel inicial vs capacidad |
+| `PATRON_DESPACHADOR` | % cargas con alertas del despachador en 30 días | ≥ 40% con mín. 3 cargas |
+
+**Constantes clave:** `VENTANA_HISTORICA_DIAS=90`, `MIN_CARGAS_PARA_ANALISIS=5`, `UMBRAL_SIGMA=2.0`, `RENDIMIENTO_MIN_KM_LT=0.5`, `RENDIMIENTO_MAX_KM_LT=12.0`
+
+**Score de riesgo:** `BAJO` / `MEDIO` / `ALTO` / `CRITICO` — calculado sumando puntos por anomalía.
+
+**Claude API:** `generar_interpretacion()` se invoca solo cuando `score_riesgo >= IA_SCORE_MINIMO_CLAUDE` (default `ALTO`). Usa `Modelo.SONNET`. Guarda resultado en `AlertaCombustible.analisis_ia`.
+
+### `modulos/combustible/notificaciones.py` — enviar_alerta_ia_combustible()
+
+Envía email HTML (`alerta_ia.html`) cuando `score_riesgo` es `ALTO` o `CRITICO`.
+
+- **Destinatarios** configurados en `settings.IA_ALERTAS_COMBUSTIBLE_EMAILS`:
+  - `gerencia.general@transporteskasu.com.mx`
+  - `f.suarez@loginco.com.mx`
+- Asunto dinámico: `[CRITICO]` o `[ALTO]` + unidad
+- Incluye interpretación de Claude si está disponible
+- Nunca interrumpe el flujo principal (captura excepciones)
+
+### Campos IA agregados a `AlertaCombustible` (migración 0010)
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `score_riesgo` | CharField choices | `BAJO` / `MEDIO` / `ALTO` / `CRITICO` |
+| `analisis_ia` | TextField | Interpretación generada por Claude Sonnet |
+| `datos_estadisticos` | JSONField | μ, σ, z-score, n para trazabilidad |
+| `generada_por_ia` | BooleanField | `True` = generada por IAKasu, `False` = reglas hardcoded |
+
+**Nuevos `tipo_alerta` choices:** `CONSUMO_ATIPICO`, `RENDIMIENTO_ANOMALO`, `TIEMPO_CARGA_ATIPICO`, `NIVEL_INCONSISTENTE`, `PATRON_DESPACHADOR`
+
+### Pipeline completo al completar una carga
+
+```
+post_save CargaCombustible (estado=COMPLETADO)
+  ├── verificaciones de reglas existentes (candado, exceso litros, km menor, OCR)
+  └── _analizar_anomalias_ia()
+        ├── AnalizadorCombustible.analizar_carga()   → estadísticas sin API
+        ├── Si score ALTO/CRITICO → generar_interpretacion() → Claude Sonnet
+        ├── Crea AlertaCombustible (generada_por_ia=True, score_riesgo, analisis_ia)
+        └── Si score ALTO/CRITICO → enviar_alerta_ia_combustible() → email gerencia
+```
+
+### UI — cambios en módulo combustible
+
+**`alerta_list.html`:**
+- Filtros: Todas / Solo IA / Solo Reglas + score CRITICO/ALTO/MEDIO
+- Badge violeta "IAKasu" + badge de score con color
+- Datos estadísticos (z-score, μ, σ, n) en fuente monospace
+- Botón "Ver análisis IA" toggle que muestra `analisis_ia` de Claude
+
+**`carga_detail.html`:**
+- Sección **Análisis IAKasu** con score, interpretación Claude, lista de anomalías con datos estadísticos
+- Sección **Alertas de control** separada (candado, exceso litros, km menor)
+
+**`dashboard.html`:**
+- Tarjeta de conteo alertas IA (críticas + altas)
+- Widget "Alertas IAKasu — Pendientes" con las 5 más recientes ALTO/CRITICO
+
+### Variables de entorno IA
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...          # Requerida para interpretaciones Claude
+IA_HABILITADA=True                    # Toggle global (False = solo análisis estadístico)
+IA_SCORE_MINIMO_CLAUDE=ALTO           # Score mínimo para invocar Claude API
+IA_ALERTAS_COMBUSTIBLE_EMAILS=a@b.com,c@d.com  # Override de destinatarios
+```
+
+---
+
 ## Servicios Externos
 
 ### `config/services/google_maps.py` — GoogleMapsService
@@ -780,8 +889,8 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 
 | Signal | Módulo | Disparador | Efecto |
 |--------|--------|-----------|--------|
-| `post_save CargaCombustible` | combustible | `estado=COMPLETADO`, flujo LOCAL | Verifica exceso litros y `KILOMETRAJE_MENOR` (omite candado y OCR) |
-| `post_save CargaCombustible` | combustible | `estado=COMPLETADO`, flujo FORANEO | Verifica candado, exceso litros, `KILOMETRAJE_MENOR`; OCR → `numero_candado_anterior` → `verificar_ciclo_candados()` → alerta `CANDADO_NO_COINCIDE` |
+| `post_save CargaCombustible` | combustible | `estado=COMPLETADO`, flujo LOCAL | Verifica exceso litros y `KILOMETRAJE_MENOR` (omite candado y OCR) → `_analizar_anomalias_ia()` |
+| `post_save CargaCombustible` | combustible | `estado=COMPLETADO`, flujo FORANEO | Verifica candado, exceso litros, `KILOMETRAJE_MENOR`; OCR → `verificar_ciclo_candados()` → `_analizar_anomalias_ia()` → email si ALTO/CRITICO |
 | `post_save FotoCandadoNuevo` | combustible | Creación | OCR → guarda `numero_candado` en la foto |
 | `post_save OrdenTrabajo` | taller | Creación | Email a grupo "Supervisores Taller" |
 | `post_save OrdenTrabajo` | taller | >7 días en taller | Email de alerta a supervisores/gerentes |
@@ -964,6 +1073,11 @@ SPACES_SECRET_KEY=...
 SPACES_BUCKET_NAME=...
 SPACES_REGION=sfo3
 SPACES_CDN_ENDPOINT=...
+# IAKasu — Inteligencia Artificial
+ANTHROPIC_API_KEY=...                      # Anthropic API para Claude (análisis de anomalías)
+IA_HABILITADA=True
+IA_SCORE_MINIMO_CLAUDE=ALTO
+IA_ALERTAS_COMBUSTIBLE_EMAILS=gerencia.general@transporteskasu.com.mx,f.suarez@loginco.com.mx
 ```
 
 ---
@@ -997,6 +1111,7 @@ django-template-maths==0.2.0      # Operaciones matemáticas en templates
 pytesseract==0.3.13               # OCR para lectura de números de candado (requiere tesseract-ocr binario vía apt.txt)
 apscheduler==3.11.2               # Scheduler de tareas
 django-apscheduler==0.7.0         # Integración Django + APScheduler
+anthropic==0.94.1                 # SDK oficial Anthropic — IAKasu (Claude API)
 sendgrid==6.12.5                  # Email transaccional
 whitenoise                        # Static files (producción)
 gunicorn                          # WSGI server
