@@ -296,6 +296,7 @@ pyrightconfig.json
 mejora_carga_combustible.md
 VIEWS_URLS_README.md
 WARP.md
+.claude
 IAKasu.md
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,python,django

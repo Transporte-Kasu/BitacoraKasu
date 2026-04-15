@@ -4,495 +4,402 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sistema de Gestión de Transporte{% endblock %} - ProyectoKasu</title>
+    <title>{% block title %}Sistema de Gestión de Transporte{% endblock %} - BitacoraKasu</title>
 
-    <!-- Favicon -->
     <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
-
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- CSS Base -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
-    <!-- Estilos para menú móvil -->
     <style>
-        /* Overlay para menú móvil */
-        .navbar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 998;
-            opacity: 0;
+        /* Reset layout conflict con base.css */
+        body {
+            display: block !important;
+            flex-direction: unset !important;
+            background-color: #f1f5f9;
+        }
+
+        /* Sidebar: oculto por defecto en móvil */
+        #sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #sidebar.sidebar-open {
+            transform: translateX(0);
+        }
+        @media (min-width: 1024px) {
+            #sidebar {
+                transform: translateX(0) !important;
+            }
+        }
+
+        /* Scrollbar del sidebar */
+        #sidebar-nav::-webkit-scrollbar { width: 3px; }
+        #sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+        #sidebar-nav::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
+        /* Estado activo del nav */
+        .nav-active {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: #93c5fd !important;
+            font-weight: 500;
+        }
+        .nav-active svg {
+            color: #60a5fa;
+        }
+
+        /* Hover overlay */
+        #sidebarOverlay {
             transition: opacity 0.3s ease;
         }
 
-        .navbar-overlay.active {
-            display: block;
-            opacity: 1;
-        }
-
-        /* Navbar container */
-        .navbar {
-            background-color: #1f2937;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 999;
-        }
-
-        .navbar-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Brand */
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .logo {
-            height: 40px;
-            width: auto;
-        }
-
-        .brand-text {
-            color: white;
-            font-weight: 600;
-            font-size: 1.125rem;
-        }
-
-        /* Botón hamburguesa */
-        .navbar-toggle {
-            display: none;
-            flex-direction: column;
-            gap: 4px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            z-index: 1000;
-        }
-
-        .hamburger-line {
-            width: 25px;
-            height: 3px;
-            background-color: white;
-            transition: all 0.3s ease;
-            border-radius: 2px;
-        }
-
-        .navbar-toggle.active .hamburger-line:nth-child(1) {
-            transform: rotate(45deg) translate(5px, 5px);
-        }
-
-        .navbar-toggle.active .hamburger-line:nth-child(2) {
-            opacity: 0;
-        }
-
-        .navbar-toggle.active .hamburger-line:nth-child(3) {
-            transform: rotate(-45deg) translate(7px, -6px);
-        }
-
-        /* Menú de navegación */
-        .navbar-menu {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-        }
-
-        .nav-list {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            gap: 0.5rem;
-        }
-
-        .nav-item {
-            margin: 0;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            color: #d1d5db;
-            text-decoration: none;
-            border-radius: 0.375rem;
-            transition: all 0.2s;
-        }
-
-        .nav-link:hover {
-            background-color: #374151;
-            color: white;
-        }
-
-        .nav-icon {
-            font-size: 1.25rem;
-        }
-
-        /* Usuario */
-        .navbar-user {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: white;
-        }
-
-        .user-icon {
-            font-size: 1.5rem;
-        }
-
-        /* Botones */
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: inline-block;
-        }
-
-        .btn-logout {
-            background-color: #ef4444;
-            color: white;
-        }
-
-        .btn-logout:hover {
-            background-color: #dc2626;
-        }
-
-        .btn-primary {
-            background-color: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #2563eb;
-        }
-
-        /* Responsive - Móvil */
-        @media (max-width: 768px) {
-            .navbar-toggle {
-                display: flex;
-            }
-
-            .brand-text {
-                font-size: 0.875rem;
-                max-width: 150px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            .navbar-menu {
-                position: fixed;
-                top: 0;
-                right: -100%;
-                width: 280px;
-                height: 100vh;
-                background-color: #1f2937;
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 5rem 1.5rem 2rem;
-                gap: 1.5rem;
-                transition: right 0.3s ease;
-                overflow-y: auto;
-                z-index: 999;
-                box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
-            }
-
-            .navbar-menu.active {
-                right: 0;
-            }
-
-            .nav-list {
-                flex-direction: column;
-                width: 100%;
-                gap: 0.25rem;
-            }
-
-            .nav-link {
-                width: 100%;
-                padding: 0.75rem 1rem;
-            }
-
-            .navbar-user {
-                flex-direction: column;
-                width: 100%;
-                gap: 0.75rem;
-                padding-top: 1rem;
-                border-top: 1px solid #374151;
-            }
-
-            .user-info {
-                width: 100%;
-                padding: 0.5rem;
-            }
-
-            .btn {
-                width: 100%;
-                text-align: center;
-            }
-        }
-
-        /* Ocultar logo en móvil si es muy grande */
-        @media (max-width: 480px) {
-            .logo {
-                height: 32px;
-            }
+        /* Override main-content padding para sidebar layout */
+        .main-content {
+            padding: 0 !important;
+            min-height: unset !important;
         }
     </style>
 
-    <!-- CSS Adicional -->
     {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
-    <!-- Overlay para menú móvil -->
-    <div class="navbar-overlay" id="navbarOverlay"></div>
 
-    <!-- Barra de navegación superior -->
-    <header class="navbar">
-        <div class="navbar-container">
-            <div class="navbar-brand">
-                <a href="{% url 'inicio' %}" class="flex items-center">
-                    <img src="{% static 'img/logo.png' %}" alt="Logo Kasu" class="logo">
+    <!-- Overlay móvil -->
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/60 z-30 lg:hidden opacity-0 pointer-events-none"></div>
+
+    <div class="flex min-h-screen">
+
+        <!-- ================================================================
+             SIDEBAR
+             ================================================================ -->
+        <aside id="sidebar"
+               class="fixed top-0 left-0 h-full w-64 bg-slate-900 flex flex-col z-40 shadow-2xl">
+
+            <!-- Header del sidebar -->
+            <div class="flex items-center gap-3 px-4 py-4 border-b border-slate-700/60 flex-shrink-0">
+                <a href="{% url 'inicio' %}" class="flex items-center gap-3 flex-1 min-w-0">
+                    <img src="{% static 'img/logo.png' %}" alt="Logo Kasu"
+                         class="h-8 w-auto flex-shrink-0">
+                    <div class="min-w-0">
+                        <div class="text-white font-semibold text-sm leading-tight">BitacoraKasu</div>
+                        <div class="text-slate-400 text-xs mt-0.5">Gestión de Flota</div>
+                    </div>
                 </a>
+                <!-- Botón cerrar (solo móvil) -->
+                <button id="closeSidebar"
+                        class="lg:hidden text-slate-400 hover:text-white p-1.5 rounded-lg cursor-pointer transition-colors flex-shrink-0"
+                        aria-label="Cerrar menú">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
 
-            <!-- Botón hamburguesa para móvil -->
-            <button class="navbar-toggle" id="navbarToggle" aria-label="Abrir menú">
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-            </button>
+            <!-- Navegación -->
+            <nav id="sidebar-nav" class="flex-1 overflow-y-auto py-3 px-3">
+                {% with ns=request.resolver_match.namespace %}
+                <ul class="space-y-0.5">
 
-            <nav class="navbar-menu" id="navbarMenu">
-                <ul class="nav-list">
-                    <li class="nav-item">
-                        <a href="{% url 'inicio' %}" class="nav-link">
-                            <span class="nav-icon">🏠</span>
+                    <!-- Inicio -->
+                    <li>
+                        <a href="{% url 'inicio' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if request.path == '/' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>
+                            </svg>
                             <span>Inicio</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{% url 'operadores:dashboard' %}" class="nav-link">
-                            <span class="nav-icon">👤</span>
+
+                    <!-- Separador: Operaciones -->
+                    <li class="px-3 pt-5 pb-1">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Operaciones</span>
+                    </li>
+
+                    <!-- Operadores -->
+                    <li>
+                        <a href="{% url 'operadores:dashboard' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'operadores' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/>
+                            </svg>
                             <span>Operadores</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{% url 'unidades:dashboard' %}" class="nav-link">
-                            <span class="nav-icon">🚛</span>
+
+                    <!-- Unidades -->
+                    <li>
+                        <a href="{% url 'unidades:dashboard' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'unidades' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+                            </svg>
                             <span>Unidades</span>
                         </a>
                     </li>
-                    <li class="nav-item" style="position:relative;">
-                        <a href="{% url 'combustible:dashboard' %}" class="nav-link">
-                            <span class="nav-icon">⛽</span>
-                            <span>Combustible</span>
-                        </a>
-                        {% if user.is_superuser and alertas_combustible_pendientes > 0 %}
-                        <a href="{% url 'combustible:alertas' %}"
-                           title="{{ alertas_combustible_pendientes }} alerta{{ alertas_combustible_pendientes|pluralize:'s' }} pendiente{{ alertas_combustible_pendientes|pluralize:'s' }}"
-                           style="position:absolute;top:4px;right:4px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:#ef4444;color:#fff;border-radius:9999px;font-size:9px;font-weight:700;padding:0 3px;line-height:1;text-decoration:none;">
-                            {{ alertas_combustible_pendientes }}
-                        </a>
-                        {% endif %}
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'bitacoras:dashboard' %}" class="nav-link">
-                            <span class="nav-icon">📋</span>
+
+                    <!-- Bitácoras -->
+                    <li>
+                        <a href="{% url 'bitacoras:dashboard' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'bitacoras' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"/>
+                            </svg>
                             <span>Bitácoras</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{% url 'taller:dashboard' %}" class="nav-link">
-                            <span class="nav-icon">🔧</span>
+
+                    <!-- Combustible (con badge de alertas) -->
+                    <li>
+                        <a href="{% url 'combustible:dashboard' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'combustible' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z"/>
+                            </svg>
+                            <span class="flex-1">Combustible</span>
+                            {% if user.is_superuser and alertas_combustible_pendientes > 0 %}
+                            <a href="{% url 'combustible:alertas' %}"
+                               title="{{ alertas_combustible_pendientes }} alerta{{ alertas_combustible_pendientes|pluralize:'s' }} pendiente{{ alertas_combustible_pendientes|pluralize:'s' }}"
+                               class="inline-flex items-center justify-center min-w-[1.25rem] h-5 bg-red-500 hover:bg-red-400 text-white rounded-full text-xs font-bold px-1 flex-shrink-0 transition-colors">
+                                {{ alertas_combustible_pendientes }}
+                            </a>
+                            {% endif %}
+                        </a>
+                    </li>
+
+                    <!-- Separador: Soporte -->
+                    <li class="px-3 pt-5 pb-1">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Soporte</span>
+                    </li>
+
+                    <!-- Taller -->
+                    <li>
+                        <a href="{% url 'taller:dashboard' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'taller' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"/>
+                            </svg>
                             <span>Taller</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{% url 'compras:dashboard' %}" class="nav-link">
-                            <span class="nav-icon">🛒</span>
+
+                    <!-- Compras -->
+                    <li>
+                        <a href="{% url 'compras:dashboard' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'compras' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
+                            </svg>
                             <span>Compras</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{% url 'almacen:dashboard' %}" class="nav-link">
-                            <span class="nav-icon">📦</span>
+
+                    <!-- Almacén -->
+                    <li>
+                        <a href="{% url 'almacen:dashboard' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'almacen' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
+                            </svg>
                             <span>Almacén</span>
                         </a>
                     </li>
+
                     {% if user.is_superuser %}
-                    <li class="nav-item">
-                        <a href="{% url 'reportes:configuracion_list' %}" class="nav-link">
-                            <span class="nav-icon">📊</span>
+                    <!-- Reportes -->
+                    <li>
+                        <a href="{% url 'reportes:configuracion_list' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'reportes' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+                            </svg>
                             <span>Reportes</span>
                         </a>
                     </li>
                     {% endif %}
-                </ul>
 
-                <div class="navbar-user">
-                    {% if user.is_authenticated %}
-                        <div class="user-info">
-                            <span class="user-icon">👨‍💼</span>
-                            <span class="user-name">{{ user.username }}</span>
+                    <!-- Separador: Sistema -->
+                    <li class="px-3 pt-5 pb-1">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Sistema</span>
+                    </li>
+
+                    <!-- Admin -->
+                    <li>
+                        <a href="{% url 'admin:index' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors duration-200 cursor-pointer">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                            </svg>
+                            <span>Administración</span>
+                        </a>
+                    </li>
+
+                </ul>
+                {% endwith %}
+            </nav>
+
+            <!-- Usuario + Logout -->
+            <div class="p-3 border-t border-slate-700/60 flex-shrink-0">
+                {% if user.is_authenticated %}
+                <div class="flex items-center gap-3 px-3 py-2 mb-1">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm text-white font-medium truncate leading-tight">
+                            {{ user.get_full_name|default:user.username }}
                         </div>
-                        <form method="post" action="{% url 'logout' %}" style="display: inline; margin: 0;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-logout">Salir</button>
-                        </form>
-                    {% else %}
-                        <a href="{% url 'login' %}" class="btn btn-primary">Iniciar sesión</a>
+                        <div class="text-xs text-slate-400 truncate">{{ user.username }}</div>
+                    </div>
+                </div>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors duration-200 cursor-pointer">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15"/>
+                        </svg>
+                        <span>Cerrar sesión</span>
+                    </button>
+                </form>
+                {% else %}
+                <a href="{% url 'login' %}"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-500 transition-colors duration-200 cursor-pointer">
+                    Iniciar sesión
+                </a>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- ================================================================
+             ÁREA PRINCIPAL
+             ================================================================ -->
+        <div class="flex-1 flex flex-col min-h-screen lg:ml-64">
+
+            <!-- Top bar (solo visible en móvil) -->
+            <header class="sticky top-0 z-20 bg-slate-900 shadow-lg lg:hidden flex-shrink-0">
+                <div class="flex items-center h-14 px-4 gap-3">
+                    <button id="openSidebar"
+                            class="text-slate-300 hover:text-white p-2 rounded-lg cursor-pointer transition-colors"
+                            aria-label="Abrir menú">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                        </svg>
+                    </button>
+                    <a href="{% url 'inicio' %}" class="flex items-center gap-2 flex-1 min-w-0">
+                        <img src="{% static 'img/logo.png' %}" alt="Logo" class="h-7 w-auto flex-shrink-0">
+                        <span class="text-white font-semibold text-sm truncate">BitacoraKasu</span>
+                    </a>
+                    {% if user.is_authenticated %}
+                    <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
+                        </svg>
+                    </div>
                     {% endif %}
                 </div>
-            </nav>
-        </div>
-    </header>
+            </header>
 
-    <!-- Mensajes del sistema -->
-    {% if messages %}
-    <div class="messages-container">
-        <div class="container">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    <span class="alert-icon">
-                        {% if message.tags == 'success' %}✔{% elif message.tags == 'error' %}✗{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %}
-                    </span>
-                    <span class="alert-message">{{ message }}</span>
+            <!-- Mensajes del sistema -->
+            {% if messages %}
+            <div class="messages-container">
+                <div class="container">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        <span class="alert-icon">
+                            {% if message.tags == 'success' %}
+                            <svg style="display:inline;width:1.1em;height:1.1em;vertical-align:-0.15em;" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/>
+                            </svg>
+                            {% elif message.tags == 'error' %}
+                            <svg style="display:inline;width:1.1em;height:1.1em;vertical-align:-0.15em;" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                            </svg>
+                            {% elif message.tags == 'warning' %}
+                            <svg style="display:inline;width:1.1em;height:1.1em;vertical-align:-0.15em;" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                            </svg>
+                            {% else %}
+                            <svg style="display:inline;width:1.1em;height:1.1em;vertical-align:-0.15em;" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/>
+                            </svg>
+                            {% endif %}
+                        </span>
+                        <span class="alert-message">{{ message }}</span>
+                    </div>
+                    {% endfor %}
                 </div>
-            {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Contenido principal -->
+            <main class="main-content flex-1">
+                <div class="container" style="padding-top: 1.5rem; padding-bottom: 2rem;">
+                    {% block breadcrumb %}{% endblock %}
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+
+            <!-- Footer mínimo -->
+            <footer class="py-3 px-6 border-t border-slate-200 flex-shrink-0">
+                <p class="text-center text-xs text-slate-400">
+                    &copy; {% now "Y" %} ProyectoKasu &mdash; Sistema de Gestión de Transporte
+                </p>
+            </footer>
         </div>
     </div>
-    {% endif %}
 
-    <!-- Contenido principal -->
-    <main class="main-content">
-        <div class="container">
-            {% block breadcrumb %}{% endblock %}
-
-            {% block content %}
-            <!-- El contenido de las páginas se insertará aquí -->
-            {% endblock %}
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4>ProyectoKasu</h4>
-                    <p>Sistema de Gestión de Transporte</p>
-                </div>
-                <div class="footer-section">
-                    <h4>Enlaces</h4>
-                    <ul class="footer-links">
-                        <li><a href="{% url 'admin:index' %}">Panel de Administración</a></li>
-                        <li><a href="#">Documentación</a></li>
-                        <li><a href="#">Soporte</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>Contacto</h4>
-                    <p>Para soporte técnico, contacte al administrador del sistema.</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; {% now "Y" %} ProyectoKasu. Todos los derechos reservados.</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- JavaScript para menú móvil -->
+    <!-- JavaScript del sidebar -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const navbarToggle = document.getElementById('navbarToggle');
-            const navbarMenu = document.getElementById('navbarMenu');
-            const navbarOverlay = document.getElementById('navbarOverlay');
-            const navLinks = document.querySelectorAll('.nav-link');
+        (function () {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const openBtn = document.getElementById('openSidebar');
+            const closeBtn = document.getElementById('closeSidebar');
 
-            // Función para abrir/cerrar el menú
-            function toggleMenu() {
-                navbarToggle.classList.toggle('active');
-                navbarMenu.classList.toggle('active');
-                navbarOverlay.classList.toggle('active');
-
-                // Prevenir scroll del body cuando el menú está abierto
-                if (navbarMenu.classList.contains('active')) {
-                    document.body.style.overflow = 'hidden';
-                } else {
-                    document.body.style.overflow = '';
-                }
+            function openSidebar() {
+                sidebar.classList.add('sidebar-open');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100');
+                document.body.style.overflow = 'hidden';
             }
 
-            // Función para cerrar el menú
-            function closeMenu() {
-                navbarToggle.classList.remove('active');
-                navbarMenu.classList.remove('active');
-                navbarOverlay.classList.remove('active');
+            function closeSidebar() {
+                sidebar.classList.remove('sidebar-open');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                overlay.classList.remove('opacity-100');
                 document.body.style.overflow = '';
             }
 
-            // Event listener para el botón hamburguesa
-            if (navbarToggle) {
-                navbarToggle.addEventListener('click', toggleMenu);
-            }
+            if (openBtn) openBtn.addEventListener('click', openSidebar);
+            if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+            if (overlay) overlay.addEventListener('click', closeSidebar);
 
-            // Event listener para el overlay
-            if (navbarOverlay) {
-                navbarOverlay.addEventListener('click', closeMenu);
-            }
-
-            // Cerrar menú al hacer click en un enlace (en móvil)
-            navLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    if (window.innerWidth <= 768) {
-                        closeMenu();
-                    }
-                });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeSidebar();
             });
 
-            // Cerrar menú al redimensionar la ventana a desktop
-            window.addEventListener('resize', function() {
-                if (window.innerWidth > 768) {
-                    closeMenu();
-                }
+            // Cerrar al redimensionar a desktop
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 1024) closeSidebar();
             });
-
-            // Cerrar menú con tecla ESC
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && navbarMenu.classList.contains('active')) {
-                    closeMenu();
-                }
-            });
-        });
+        })();
     </script>
 
-    <!-- JavaScript Base -->
     <script src="{% static 'js/base.js' %}"></script>
-
-    <!-- JavaScript Adicional -->
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -5,18 +5,6 @@
 
 {% block extra_css %}
 <style>
-    /* ── Stat cards ───────────────────────────────────── */
-    .stat-card {
-        background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        padding: 1.25rem;
-        transition: box-shadow 0.2s;
-    }
-    .stat-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
-    }
-
     /* ── Badges ──────────────────────────────────────── */
     .priority-badge {
         display: inline-block;
@@ -50,8 +38,8 @@
     .estado-cancelada        { background-color: #fee2e2; color: #991b1b; }
 
     /* ── Tabla últimas órdenes: cards en móvil ────────── */
-    .ultimas-cards  { display: block; }
-    .ultimas-tabla  { display: none; }
+    .ultimas-cards { display: block; }
+    .ultimas-tabla { display: none; }
 
     @media (min-width: 768px) {
         .ultimas-cards { display: none; }
@@ -63,40 +51,25 @@
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-
-    /* ── Barra de estado por etapas ─────────────────────
-       Representa visualmente el pipeline de trabajo.     */
-    .pipeline-bar {
-        display: flex;
-        border-radius: 0.5rem;
-        overflow: hidden;
-        height: 2rem;
-    }
-    .pipeline-step {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.65rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        padding: 0 0.5rem;
-        min-width: 1rem;
-        transition: flex 0.3s;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
 
-    <!-- Encabezado ───────────────────────────────────────── -->
-    <div class="mb-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard de Taller</h1>
-        <div class="flex flex-wrap gap-2">
+    <!-- Encabezado -->
+    <div class="dash-page-header">
+        <div>
+            <h1 class="dash-page-title">Taller</h1>
+            <p class="dash-page-subtitle">Órdenes de trabajo, mantenimiento y reparaciones</p>
+        </div>
+        <div class="dash-page-actions">
             <a href="{% url 'taller:bandeja_reportes' %}"
                class="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white
                       px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[44px]">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125V18.75"/>
+                </svg>
                 Bandeja de Reportes
                 {% with pendientes=reportes_nuevos_count %}
                 {% if pendientes %}
@@ -108,99 +81,186 @@
             <a href="{% url 'taller:qr_todas_unidades' %}"
                class="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white
                       px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[44px]">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z"/>
+                </svg>
                 QR Unidades
             </a>
             <a href="{% url 'taller:crear_orden' %}"
-               class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+               class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white
                       px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[44px]">
-                + Nueva Orden
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                Nueva Orden
             </a>
         </div>
     </div>
 
-    <!-- KPIs principales ─────────────────────────────────── -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <div class="stat-card">
-            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Total Órdenes</p>
-            <p class="text-3xl font-bold text-gray-900">{{ total_ordenes }}</p>
+    <!-- KPIs principales -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div class="dash-stat-card mod-taller">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Total Órdenes</p>
+                    <p class="dash-stat-value">{{ total_ordenes }}</p>
+                    <p class="dash-stat-sub">registradas</p>
+                </div>
+                <div class="dash-stat-icon icon-red">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125V18.75"/>
+                    </svg>
+                </div>
+            </div>
         </div>
 
-        <div class="stat-card">
-            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Activas</p>
-            <p class="text-3xl font-bold text-blue-600">{{ total_ordenes_activas }}</p>
-            <p class="text-xs text-gray-500 mt-1">En proceso</p>
+        <div class="dash-stat-card mod-taller">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Activas</p>
+                    <p class="dash-stat-value" style="color:#ef4444;">{{ total_ordenes_activas }}</p>
+                    <p class="dash-stat-sub">en proceso</p>
+                </div>
+                <div class="dash-stat-icon icon-orange">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"/>
+                    </svg>
+                </div>
+            </div>
         </div>
 
-        <div class="stat-card">
-            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Completadas (mes)</p>
-            <p class="text-3xl font-bold text-green-600">{{ ordenes_completadas_mes }}</p>
-            <p class="text-xs text-gray-500 mt-1">Últimos 30 días</p>
+        <div class="dash-stat-card mod-success">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Completadas (mes)</p>
+                    <p class="dash-stat-value">{{ ordenes_completadas_mes }}</p>
+                    <p class="dash-stat-sub">últimos 30 días</p>
+                </div>
+                <div class="dash-stat-icon icon-green">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                </div>
+            </div>
         </div>
 
-        <div class="stat-card border-l-4 {% if ordenes_criticas_count > 0 %}border-red-500{% else %}border-gray-200{% endif %}">
-            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">
-                <span aria-hidden="true">&#9888;&#65039; </span>Críticas
-            </p>
-            <p class="text-3xl font-bold {% if ordenes_criticas_count > 0 %}text-red-600{% else %}text-gray-400{% endif %}">
-                {{ ordenes_criticas_count }}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">Más de 7 días</p>
+        <div class="dash-stat-card {% if ordenes_criticas_count > 0 %}mod-danger{% else %}mod-taller{% endif %}">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Críticas</p>
+                    <p class="dash-stat-value {% if ordenes_criticas_count > 0 %}text-red-600{% else %}text-gray-400{% endif %}">{{ ordenes_criticas_count }}</p>
+                    <p class="dash-stat-sub">más de 7 días</p>
+                </div>
+                <div class="dash-stat-icon {% if ordenes_criticas_count > 0 %}icon-red{% else %}icon-gray{% endif %}">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                    </svg>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Pipeline de estados ───────────────────────────────── -->
-    <section aria-label="Órdenes por estado" class="mb-5">
-        <h2 class="text-sm font-semibold text-gray-500 uppercase mb-3">Estado del flujo</h2>
+    <!-- Pipeline de estados -->
+    <section aria-label="Órdenes por estado" class="dash-section">
+        <div class="dash-section-header">
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"/>
+            </svg>
+            <h2 class="dash-section-title">Estado del flujo</h2>
+        </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div class="stat-card bg-gray-50 text-center">
+            <div class="dash-stat-card text-center" style="padding:1rem;">
                 <p class="text-xs text-gray-500 mb-1">Pendientes</p>
                 <p class="text-2xl font-bold text-gray-700">{{ ordenes_pendientes }}</p>
             </div>
-            <div class="stat-card bg-blue-50 text-center">
+            <div class="dash-stat-card text-center" style="padding:1rem;background:#eff6ff;">
                 <p class="text-xs text-gray-500 mb-1">Diagnóstico</p>
                 <p class="text-2xl font-bold text-blue-700">{{ ordenes_en_diagnostico }}</p>
             </div>
-            <div class="stat-card bg-yellow-50 text-center">
+            <div class="dash-stat-card text-center" style="padding:1rem;background:#fffbeb;">
                 <p class="text-xs text-gray-500 mb-1">Esp. Piezas</p>
                 <p class="text-2xl font-bold text-yellow-700">{{ ordenes_esperando_piezas }}</p>
             </div>
-            <div class="stat-card bg-purple-50 text-center">
+            <div class="dash-stat-card text-center" style="padding:1rem;background:#f5f3ff;">
                 <p class="text-xs text-gray-500 mb-1">Reparación</p>
                 <p class="text-2xl font-bold text-purple-700">{{ ordenes_en_reparacion }}</p>
             </div>
-            <div class="stat-card bg-indigo-50 text-center col-span-2 sm:col-span-1">
+            <div class="dash-stat-card text-center col-span-2 sm:col-span-1" style="padding:1rem;background:#eef2ff;">
                 <p class="text-xs text-gray-500 mb-1">En Pruebas</p>
                 <p class="text-2xl font-bold text-indigo-700">{{ ordenes_en_pruebas }}</p>
             </div>
         </div>
     </section>
 
-    <!-- KPIs secundarios ─────────────────────────────────── -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <div class="stat-card">
-            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Unidades en taller</p>
-            <p class="text-2xl font-bold text-orange-600">{{ unidades_en_taller_count }}</p>
+    <!-- KPIs secundarios -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="dash-stat-card mod-taller">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">En taller</p>
+                    <p class="dash-stat-value" style="color:#ea580c;">{{ unidades_en_taller_count }}</p>
+                    <p class="dash-stat-sub">unidades</p>
+                </div>
+                <div class="dash-stat-icon icon-orange">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+                    </svg>
+                </div>
+            </div>
         </div>
-        <div class="stat-card">
-            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Piezas pendientes</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ piezas_pendientes_count }}</p>
+        <div class="dash-stat-card mod-warning">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Piezas pend.</p>
+                    <p class="dash-stat-value" style="color:#ca8a04;">{{ piezas_pendientes_count }}</p>
+                    <p class="dash-stat-sub">por solicitar</p>
+                </div>
+                <div class="dash-stat-icon icon-yellow">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
+                    </svg>
+                </div>
+            </div>
         </div>
-        <div class="stat-card">
-            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Piezas solicitadas</p>
-            <p class="text-2xl font-bold text-blue-600">{{ piezas_solicitadas }}</p>
+        <div class="dash-stat-card mod-taller">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Piezas solic.</p>
+                    <p class="dash-stat-value" style="color:#2563eb;">{{ piezas_solicitadas }}</p>
+                    <p class="dash-stat-sub">solicitadas</p>
+                </div>
+                <div class="dash-stat-icon icon-blue">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z"/>
+                    </svg>
+                </div>
+            </div>
         </div>
-        <div class="stat-card bg-purple-50">
-            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Tiempo promedio</p>
-            <p class="text-2xl font-bold text-purple-700">{{ tiempo_promedio_dias }} días</p>
+        <div class="dash-stat-card mod-taller">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Tiempo prom.</p>
+                    <p class="dash-stat-value" style="color:#7c3aed;">{{ tiempo_promedio_dias }}</p>
+                    <p class="dash-stat-sub">días promedio</p>
+                </div>
+                <div class="dash-stat-icon icon-purple">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Alerta: Órdenes Críticas ──────────────────────────── -->
+    <!-- Alerta: Órdenes Críticas -->
     {% if ordenes_criticas %}
     <section aria-label="Órdenes críticas"
              class="bg-red-50 border border-red-200 rounded-xl p-4 sm:p-6 mb-5">
         <h2 class="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
-            <span aria-hidden="true">&#9888;&#65039;</span>
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+            </svg>
             Órdenes Críticas — más de 7 días en taller
         </h2>
         <div class="space-y-3">
@@ -242,11 +302,16 @@
     </section>
     {% endif %}
 
-    <!-- Piezas Pendientes ─────────────────────────────────── -->
+    <!-- Piezas Pendientes -->
     {% if piezas_pendientes %}
     <section aria-label="Piezas pendientes de solicitar"
              class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 sm:p-6 mb-5">
-        <h2 class="text-lg font-bold text-yellow-900 mb-4">Piezas Pendientes de Solicitar</h2>
+        <h2 class="text-lg font-bold text-yellow-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
+            </svg>
+            Piezas Pendientes de Solicitar
+        </h2>
         <div class="bg-white rounded-lg overflow-hidden shadow-sm">
             <div class="tabla-piezas-wrap">
                 <table class="min-w-full divide-y divide-gray-100">
@@ -284,127 +349,132 @@
     </section>
     {% endif %}
 
-    <!-- Últimas Órdenes ──────────────────────────────────── -->
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-5">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">Últimas Órdenes de Trabajo</h2>
+    <!-- Últimas Órdenes -->
+    <section class="dash-section">
+        <div class="dash-section-header">
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"/>
+            </svg>
+            <h2 class="dash-section-title">Últimas Órdenes de Trabajo</h2>
+            <a href="{% url 'taller:lista_ordenes' %}" class="dash-section-link">Ver todas</a>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
 
-        <!-- Cards móvil -->
-        <div class="ultimas-cards space-y-3">
-            {% for orden in ultimas_ordenes %}
-            <div class="border border-gray-100 rounded-lg p-3">
-                <div class="flex justify-between items-start mb-1">
-                    <a href="{% url 'taller:detalle_orden' orden.folio %}"
-                       class="font-bold text-blue-700 hover:underline text-sm">{{ orden.folio }}</a>
-                    <span class="estado-badge estado-{{ orden.estado|lower }}">{{ orden.get_estado_display }}</span>
+            <!-- Cards móvil -->
+            <div class="ultimas-cards divide-y divide-gray-50">
+                {% for orden in ultimas_ordenes %}
+                <div class="p-3">
+                    <div class="flex justify-between items-start mb-1">
+                        <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                           class="font-bold text-blue-700 hover:underline text-sm">{{ orden.folio }}</a>
+                        <span class="estado-badge estado-{{ orden.estado|lower }}">{{ orden.get_estado_display }}</span>
+                    </div>
+                    <p class="text-sm font-semibold text-gray-800">
+                        {{ orden.unidad.numero_economico }}
+                        <span class="text-gray-400 font-normal text-xs">— {{ orden.fecha_creacion|date:"d/m/Y" }}</span>
+                    </p>
+                    {% if orden.mecanico_asignado %}
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
+                    </p>
+                    {% endif %}
                 </div>
-                <p class="text-sm font-semibold text-gray-800">
-                    {{ orden.unidad.numero_economico }}
-                    <span class="text-gray-400 font-normal text-xs">— {{ orden.fecha_creacion|date:"d/m/Y" }}</span>
-                </p>
-                {% if orden.mecanico_asignado %}
-                <p class="text-xs text-gray-500 mt-1">
-                    {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
-                </p>
-                {% endif %}
+                {% empty %}
+                <p class="text-gray-400 text-sm text-center py-6 px-3">No hay órdenes registradas</p>
+                {% endfor %}
             </div>
-            {% empty %}
-            <p class="text-gray-400 text-sm text-center py-4">No hay órdenes registradas</p>
-            {% endfor %}
-        </div>
 
-        <!-- Tabla escritorio -->
-        <div class="ultimas-tabla overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Folio</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidad</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Prioridad</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mecánico</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                    {% for orden in ultimas_ordenes %}
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <a href="{% url 'taller:detalle_orden' orden.folio %}"
-                               class="font-bold text-blue-700 hover:underline text-sm">
-                                {{ orden.folio }}
-                            </a>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
-                            {{ orden.unidad.numero_economico }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                            {% if orden.tipo_mantenimiento %}
-                                {{ orden.tipo_mantenimiento.nombre|truncatewords:3 }}
-                            {% else %}
-                                <span class="text-gray-400">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="estado-badge estado-{{ orden.estado|lower }}">
-                                {{ orden.get_estado_display }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="priority-badge priority-{{ orden.prioridad|lower }}">
-                                {{ orden.get_prioridad_display }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                            {% if orden.mecanico_asignado %}
-                                {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username|truncatewords:2 }}
-                            {% else %}
-                                <span class="text-gray-400">Sin asignar</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                            {{ orden.fecha_creacion|date:"d/m/Y" }}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-gray-400">
-                            No hay órdenes de trabajo registradas
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="mt-4 pt-3 border-t border-gray-100">
-            <a href="{% url 'taller:lista_ordenes' %}"
-               class="text-blue-600 hover:underline font-semibold text-sm">
-                Ver todas las órdenes
-            </a>
+            <!-- Tabla escritorio -->
+            <div class="ultimas-tabla overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Folio</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidad</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Prioridad</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mecánico</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for orden in ultimas_ordenes %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                                   class="font-bold text-blue-700 hover:underline text-sm">
+                                    {{ orden.folio }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                {{ orden.unidad.numero_economico }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                {% if orden.tipo_mantenimiento %}
+                                    {{ orden.tipo_mantenimiento.nombre|truncatewords:3 }}
+                                {% else %}
+                                    <span class="text-gray-400">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="estado-badge estado-{{ orden.estado|lower }}">
+                                    {{ orden.get_estado_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="priority-badge priority-{{ orden.prioridad|lower }}">
+                                    {{ orden.get_prioridad_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                {% if orden.mecanico_asignado %}
+                                    {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username|truncatewords:2 }}
+                                {% else %}
+                                    <span class="text-gray-400">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {{ orden.fecha_creacion|date:"d/m/Y" }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-gray-400">
+                                No hay órdenes de trabajo registradas
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
 
-    <!-- Accesos Rápidos ──────────────────────────────────── -->
+    <!-- Accesos Rápidos -->
     <nav aria-label="Accesos rápidos" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <a href="{% url 'taller:lista_ordenes' %}"
-           class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-xl text-center
-                  font-semibold text-sm transition min-h-[64px] flex items-center justify-center">
+        <a href="{% url 'taller:lista_ordenes' %}" class="dash-quick-link" style="background:rgba(239,68,68,0.12);color:#b91c1c;">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+            </svg>
             Todas las Órdenes
         </a>
-        <a href="{% url 'taller:crear_orden' %}"
-           class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-xl text-center
-                  font-semibold text-sm transition min-h-[64px] flex items-center justify-center">
+        <a href="{% url 'taller:crear_orden' %}" class="dash-quick-link" style="background:rgba(34,197,94,0.12);color:#15803d;">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+            </svg>
             Nueva Orden
         </a>
-        <a href="{% url 'taller:lista_ordenes' %}?estado=PENDIENTE"
-           class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-xl text-center
-                  font-semibold text-sm transition min-h-[64px] flex items-center justify-center">
+        <a href="{% url 'taller:lista_ordenes' %}?estado=PENDIENTE" class="dash-quick-link" style="background:rgba(245,158,11,0.12);color:#92400e;">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+            </svg>
             Órdenes Pendientes
         </a>
-        <a href="{% url 'taller:lista_ordenes' %}?estado=EN_REPARACION"
-           class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-xl text-center
-                  font-semibold text-sm transition min-h-[64px] flex items-center justify-center">
+        <a href="{% url 'taller:lista_ordenes' %}?estado=EN_REPARACION" class="dash-quick-link" style="background:rgba(168,85,247,0.12);color:#6b21a8;">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"/>
+            </svg>
             En Reparación
         </a>
     </nav>

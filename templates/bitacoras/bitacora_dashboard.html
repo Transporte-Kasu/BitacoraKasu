@@ -5,27 +5,6 @@
 
 {% block extra_css %}
 <style>
-    .stat-card {
-        background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        padding: 1.25rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    .stat-value { font-size: 1.75rem; font-weight: 800; color: #111827; line-height: 1; }
-    .stat-label { font-size: 0.8125rem; color: #6b7280; margin-top: 0.25rem; }
-
     .modal-badge {
         display: inline-block;
         padding: 0.2rem 0.65rem;
@@ -37,18 +16,6 @@
     .modal-sencillo { background: #dbeafe; color: #1e40af; }
     .modal-full     { background: #ede9fe; color: #5b21b6; }
     .modal-local    { background: #d1fae5; color: #065f46; }
-
-    .alerta-row {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem;
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        border-radius: 0.5rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-    }
 </style>
 {% endblock %}
 
@@ -56,22 +23,25 @@
 <div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
 
     <!-- Encabezado -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="dash-page-header">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Bitácoras</h1>
-            <p class="text-gray-500 mt-0.5 text-sm">Resumen de viajes y rendimiento</p>
+            <h1 class="dash-page-title">Bitácoras</h1>
+            <p class="dash-page-subtitle">Resumen de viajes y rendimiento</p>
         </div>
-        <div class="flex gap-2">
+        <div class="dash-page-actions">
             <a href="{% url 'bitacoras:list' %}"
-               class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg
-                      font-semibold text-sm transition min-h-[44px] inline-flex items-center">
+               class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700
+                      px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[44px]">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+                </svg>
                 Ver Lista
             </a>
             <a href="{% url 'bitacoras:create' %}"
-               class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+               class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white
                       px-5 py-2.5 rounded-lg font-semibold text-sm transition min-h-[44px]">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
                 </svg>
                 Nueva Bitácora
             </a>
@@ -80,71 +50,101 @@
 
     <!-- Stats generales -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="stat-card">
-            <div class="stat-icon bg-blue-100">
-                <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            </div>
-            <div>
-                <div class="stat-value">{{ total_bitacoras }}</div>
-                <div class="stat-label">Total Bitácoras</div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon bg-yellow-100">
-                <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
-            <div>
-                <div class="stat-value">{{ viajes_en_curso }}</div>
-                <div class="stat-label">En Curso</div>
+        <div class="dash-stat-card mod-bitacoras">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Total Bitácoras</p>
+                    <p class="dash-stat-value">{{ total_bitacoras }}</p>
+                    <p class="dash-stat-sub">registradas</p>
+                </div>
+                <div class="dash-stat-icon icon-green">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
+                    </svg>
+                </div>
             </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-icon bg-green-100">
-                <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            </div>
-            <div>
-                <div class="stat-value">{{ viajes_completados }}</div>
-                <div class="stat-label">Completados</div>
+        <div class="dash-stat-card mod-warning">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">En Curso</p>
+                    <p class="dash-stat-value" style="color:#ca8a04;">{{ viajes_en_curso }}</p>
+                    <p class="dash-stat-sub">viajes activos</p>
+                </div>
+                <div class="dash-stat-icon icon-yellow">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+                    </svg>
+                </div>
             </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-icon bg-purple-100">
-                <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+        <div class="dash-stat-card mod-success">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Completados</p>
+                    <p class="dash-stat-value">{{ viajes_completados }}</p>
+                    <p class="dash-stat-sub">finalizados</p>
+                </div>
+                <div class="dash-stat-icon icon-green">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                </div>
             </div>
-            <div>
-                <div class="stat-value">{{ total_km_recorridos|floatformat:"0" }}</div>
-                <div class="stat-label">Km Totales</div>
+        </div>
+
+        <div class="dash-stat-card mod-bitacoras">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Km Totales</p>
+                    <p class="dash-stat-value" style="color:#7c3aed;">{{ total_km_recorridos|floatformat:"0" }}</p>
+                    <p class="dash-stat-sub">kilómetros</p>
+                </div>
+                <div class="dash-stat-icon icon-purple">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"/>
+                    </svg>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Fila secundaria de stats -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="stat-card">
-            <div class="stat-icon bg-orange-100">
-                <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
-            </div>
-            <div>
-                <div class="stat-value">{{ total_diesel_consumido|floatformat:"0" }}</div>
-                <div class="stat-label">Litros Consumidos</div>
+        <div class="dash-stat-card mod-bitacoras">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Litros Consumidos</p>
+                    <p class="dash-stat-value" style="color:#ea580c;">{{ total_diesel_consumido|floatformat:"0" }}</p>
+                    <p class="dash-stat-sub">litros de diesel</p>
+                </div>
+                <div class="dash-stat-icon icon-orange">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-.293.707L13 13.414V19a1 1 0 0 1-.553.894l-4 2A1 1 0 0 1 7 21v-7.586L3.293 6.707A1 1 0 0 1 3 6V4Z"/>
+                    </svg>
+                </div>
             </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-icon bg-teal-100">
-                <svg class="w-6 h-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            </div>
-            <div>
-                <div class="stat-value">{{ rendimiento_promedio }}</div>
-                <div class="stat-label">km/lt Promedio</div>
+        <div class="dash-stat-card mod-bitacoras">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">km/lt Promedio</p>
+                    <p class="dash-stat-value" style="color:#0f766e;">{{ rendimiento_promedio }}</p>
+                    <p class="dash-stat-sub">rendimiento</p>
+                </div>
+                <div class="dash-stat-icon icon-teal">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+                    </svg>
+                </div>
             </div>
         </div>
 
         <!-- Por modalidad -->
-        <div class="bg-white rounded-xl shadow-sm p-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <p class="text-xs font-semibold text-gray-500 uppercase mb-3">Por Modalidad</p>
             <div class="space-y-2">
                 {% for modalidad, total in bitacoras_por_modalidad.items %}
@@ -161,7 +161,12 @@
         <!-- Bitácoras recientes -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <h2 class="font-bold text-gray-900 text-sm">Viajes Recientes</h2>
+                <h2 class="font-bold text-gray-900 text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
+                    </svg>
+                    Viajes Recientes
+                </h2>
                 <a href="{% url 'bitacoras:list' %}" class="text-xs text-blue-600 hover:underline font-semibold">Ver todos</a>
             </div>
             <div class="divide-y divide-gray-50">
@@ -181,7 +186,12 @@
                     </div>
                 </a>
                 {% empty %}
-                <div class="px-5 py-8 text-center text-gray-400 text-sm">No hay viajes registrados</div>
+                <div class="px-5 py-10 text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-gray-200" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
+                    </svg>
+                    <p class="text-sm text-gray-400">No hay viajes registrados</p>
+                </div>
                 {% endfor %}
             </div>
         </div>
@@ -190,7 +200,9 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <h2 class="font-bold text-gray-900 text-sm flex items-center gap-2">
-                    <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                    </svg>
                     Alertas de Bajo Rendimiento
                 </h2>
                 {% if alertas_bajo_rendimiento %}
@@ -199,10 +211,12 @@
                 </span>
                 {% endif %}
             </div>
-            <div class="p-4">
+            <div class="divide-y divide-gray-50">
                 {% for b in alertas_bajo_rendimiento %}
-                <div class="alerta-row">
-                    <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/></svg>
+                <div class="flex items-center gap-3 px-5 py-3 bg-red-50 border-l-2 border-red-400 hover:bg-red-100 transition">
+                    <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                    </svg>
                     <div class="flex-1">
                         <p class="font-semibold text-gray-900 text-sm">
                             {{ b.unidad.numero_economico }} — {{ b.operador.nombre }}
@@ -210,12 +224,14 @@
                         <p class="text-xs text-red-600">{{ b.rendimiento_combustible }} km/lt · {{ b.fecha_salida|date:"d/m/Y" }}</p>
                     </div>
                     <a href="{% url 'bitacoras:detail' b.pk %}"
-                       class="text-xs text-blue-600 hover:underline font-semibold flex-shrink-0">Ver</a>
+                       class="text-xs text-blue-600 hover:underline font-semibold flex-shrink-0 cursor-pointer">Ver</a>
                 </div>
                 {% empty %}
-                <div class="text-center py-8 text-gray-400">
-                    <svg class="w-10 h-10 mx-auto mb-2 text-green-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <p class="text-sm">Sin alertas de rendimiento</p>
+                <div class="px-5 py-10 text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-green-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                    <p class="text-sm text-gray-400">Sin alertas de rendimiento</p>
                 </div>
                 {% endfor %}
             </div>

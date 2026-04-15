@@ -682,3 +682,194 @@ table td {
         max-width: 100%;
     }
 }
+
+/* ========================================================================
+   Dashboard Unified Components
+   Sistema de componentes compartidos para todos los dashboards de módulo.
+   ======================================================================== */
+
+/* -- Encabezado de página ------------------------------------------------ */
+.dash-page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+}
+@media (min-width: 640px) {
+    .dash-page-header {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+}
+.dash-page-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    line-height: 1.2;
+}
+.dash-page-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0.25rem 0 0 0;
+}
+.dash-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+/* -- Sección con encabezado ---------------------------------------------- */
+.dash-section {
+    margin-bottom: 1.75rem;
+}
+.dash-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+.dash-section-icon {
+    display: flex;
+    align-items: center;
+    color: #6b7280;
+    flex-shrink: 0;
+}
+.dash-section-icon svg { width: 1.125rem; height: 1.125rem; }
+.dash-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+    flex: 1;
+}
+.dash-section-link {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #3b82f6;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.dash-section-link:hover { color: #1d4ed8; }
+
+/* -- Tarjeta de estadística ---------------------------------------------- */
+.dash-stat-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+.dash-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+.dash-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+}
+
+/* Barras de color por módulo */
+.dash-stat-card.mod-operadores::before { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+.dash-stat-card.mod-unidades::before   { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+.dash-stat-card.mod-bitacoras::before  { background: linear-gradient(90deg,#10b981,#34d399); }
+.dash-stat-card.mod-combustible::before{ background: linear-gradient(90deg,#8b5cf6,#a78bfa); }
+.dash-stat-card.mod-taller::before     { background: linear-gradient(90deg,#ef4444,#f87171); }
+.dash-stat-card.mod-compras::before    { background: linear-gradient(90deg,#ec4899,#f472b6); }
+.dash-stat-card.mod-almacen::before    { background: linear-gradient(90deg,#06b6d4,#22d3ee); }
+.dash-stat-card.mod-success::before    { background: linear-gradient(90deg,#10b981,#34d399); }
+.dash-stat-card.mod-warning::before    { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+.dash-stat-card.mod-danger::before     { background: linear-gradient(90deg,#ef4444,#f87171); }
+.dash-stat-card.mod-gray::before       { background: linear-gradient(90deg,#6b7280,#9ca3af); }
+.dash-stat-card.mod-violet::before     { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
+
+.dash-stat-link { display: block; text-decoration: none; color: inherit; cursor: pointer; }
+
+.dash-stat-body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.dash-stat-info { flex: 1; min-width: 0; }
+.dash-stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 0.5rem;
+}
+.dash-stat-value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1;
+}
+.dash-stat-value-sm {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1;
+}
+.dash-stat-sub {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin: 0.4rem 0 0;
+}
+.dash-stat-sub.warning { color: #d97706; }
+.dash-stat-sub.danger  { color: #dc2626; }
+.dash-stat-sub.success { color: #059669; }
+
+.dash-stat-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.dash-stat-icon svg { width: 1.625rem; height: 1.625rem; }
+
+/* Fondos de iconos */
+.icon-blue   { background: rgba(59,130,246,0.12);  color: #2563eb; }
+.icon-amber  { background: rgba(245,158,11,0.12);  color: #d97706; }
+.icon-green  { background: rgba(16,185,129,0.12);  color: #059669; }
+.icon-violet { background: rgba(139,92,246,0.12);  color: #7c3aed; }
+.icon-red    { background: rgba(239,68,68,0.12);   color: #dc2626; }
+.icon-pink   { background: rgba(236,72,153,0.12);  color: #db2777; }
+.icon-cyan   { background: rgba(6,182,212,0.12);   color: #0891b2; }
+.icon-orange { background: rgba(249,115,22,0.12);  color: #ea580c; }
+.icon-gray   { background: rgba(107,114,128,0.12); color: #4b5563; }
+.icon-purple { background: rgba(168,85,247,0.12);  color: #9333ea; }
+.icon-teal   { background: rgba(20,184,166,0.12);  color: #0f766e; }
+.icon-yellow { background: rgba(234,179,8,0.12);   color: #a16207; }
+
+/* -- Accesos rápidos (botones coloreados) -------------------------------- */
+.dash-quick-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    min-height: 48px;
+    text-align: center;
+}
+.dash-quick-link svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+.dash-quick-link:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }

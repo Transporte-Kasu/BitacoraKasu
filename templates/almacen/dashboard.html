@@ -4,61 +4,363 @@
 {% block title %}Dashboard de Almacén{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-6">
-    <h1 class="text-3xl font-bold text-gray-900 mb-6">📦 Dashboard de Almacén</h1>
-    
-    <!-- Estadísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-lg shadow">
-            <p class="text-sm text-gray-600">Total Productos</p>
-            <p class="text-3xl font-bold text-blue-600">{{ total_productos }}</p>
+<div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
+
+    <!-- Encabezado -->
+    <div class="dash-page-header">
+        <div>
+            <h1 class="dash-page-title">Almacén</h1>
+            <p class="dash-page-subtitle">Inventario, entradas, salidas y control de stock</p>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow">
-            <p class="text-sm text-gray-600">Stock Bajo</p>
-            <p class="text-3xl font-bold text-yellow-600">{{ productos_stock_bajo }}</p>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow">
-            <p class="text-sm text-gray-600">Agotados</p>
-            <p class="text-3xl font-bold text-red-600">{{ productos_agotados }}</p>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow">
-            <p class="text-sm text-gray-600">Alertas Activas</p>
-            <p class="text-3xl font-bold text-orange-600">{{ total_alertas }}</p>
+        <div class="dash-page-actions">
+            <a href="{% url 'almacen:entrada_create' %}"
+               class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white
+                      px-4 py-2 rounded-lg font-semibold text-sm transition min-h-[44px]">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                Nueva Entrada
+            </a>
         </div>
     </div>
-    
-    <!-- Enlaces rápidos -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        <a href="{% url 'almacen:producto_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition">
-            📦 Productos
-        </a>
-        <a href="{% url 'almacen:entrada_list' %}" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center transition">
-            ⬇️ Entradas
-        </a>
-        <a href="{% url 'almacen:solicitud_list' %}" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition">
-            📝 Salidas
-        </a>
-        <a href="{% url 'almacen:salida_rapida_consumible' %}" class="bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-lg text-center transition">
-            🧴 Consumibles
-        </a>
-        <a href="{% url 'almacen:alerta_list' %}" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg text-center transition">
-            ⚠️ Alertas
-        </a>
-    </div>
-    
-    <!-- Alertas activas -->
-    {% if alertas_activas %}
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-        <h2 class="text-xl font-bold mb-4">⚠️ Alertas Activas</h2>
-        <div class="space-y-2">
-            {% for alerta in alertas_activas %}
-            <div class="bg-white p-3 rounded border-l-4 border-orange-500">
-                <span class="font-semibold">{{ alerta.producto_almacen.sku }}</span>: {{ alerta.mensaje }}
+
+    <!-- KPIs principales -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div class="dash-stat-card mod-almacen">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Total Productos</p>
+                    <p class="dash-stat-value">{{ total_productos }}</p>
+                    <p class="dash-stat-sub">en inventario</p>
+                </div>
+                <div class="dash-stat-icon icon-cyan">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
+                    </svg>
+                </div>
             </div>
-            {% endfor %}
         </div>
-        <a href="{% url 'almacen:alerta_list' %}" class="text-blue-600 hover:underline mt-4 inline-block">Ver todas las alertas →</a>
+
+        <div class="dash-stat-card mod-warning">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Stock Bajo</p>
+                    <p class="dash-stat-value" style="color:#ca8a04;">{{ productos_stock_bajo }}</p>
+                    <p class="dash-stat-sub">por reponer</p>
+                </div>
+                <div class="dash-stat-icon icon-yellow">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-stat-card mod-danger">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Agotados</p>
+                    <p class="dash-stat-value" style="color:#dc2626;">{{ productos_agotados }}</p>
+                    <p class="dash-stat-sub">sin stock</p>
+                </div>
+                <div class="dash-stat-icon icon-red">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-stat-card {% if total_alertas > 0 %}mod-danger{% else %}mod-almacen{% endif %}">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Alertas Activas</p>
+                    <p class="dash-stat-value {% if total_alertas > 0 %}text-orange-600{% else %}text-gray-400{% endif %}">{{ total_alertas }}</p>
+                    <p class="dash-stat-sub">sin resolver</p>
+                </div>
+                <div class="dash-stat-icon {% if total_alertas > 0 %}icon-orange{% else %}icon-gray{% endif %}">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Valor inventario + Proximos a caducar -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+        {% if user.is_superuser %}
+        <div class="dash-stat-card mod-almacen">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Valor del Inventario</p>
+                    <p class="dash-stat-value text-cyan-700" style="font-size:1.5rem;">${{ valor_inventario|floatformat:2 }}</p>
+                    <p class="dash-stat-sub">MXN en stock activo</p>
+                </div>
+                <div class="dash-stat-icon icon-cyan">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+        {% if productos_caducar %}
+        <div class="dash-stat-card mod-warning">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Próximos a Caducar</p>
+                    <p class="dash-stat-value text-amber-600">{{ productos_caducar|length }}</p>
+                    <p class="dash-stat-sub">en los próximos 30 días</p>
+                </div>
+                <div class="dash-stat-icon icon-yellow">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="dash-stat-card mod-almacen">
+            <div class="dash-stat-body">
+                <div class="dash-stat-info">
+                    <p class="dash-stat-label">Próximos a Caducar</p>
+                    <p class="dash-stat-value text-gray-400">0</p>
+                    <p class="dash-stat-sub">en los próximos 30 días</p>
+                </div>
+                <div class="dash-stat-icon icon-green">
+                    <svg width="26" height="26" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Accesos Rápidos -->
+    <section class="dash-section">
+        <div class="dash-section-header">
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/>
+            </svg>
+            <h2 class="dash-section-title">Accesos Rápidos</h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <a href="{% url 'almacen:producto_list' %}" class="dash-quick-link" style="background:rgba(6,182,212,0.12);color:#0e7490;">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
+                </svg>
+                Productos
+            </a>
+            <a href="{% url 'almacen:entrada_list' %}" class="dash-quick-link" style="background:rgba(34,197,94,0.12);color:#15803d;">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                </svg>
+                Entradas
+            </a>
+            <a href="{% url 'almacen:solicitud_list' %}" class="dash-quick-link" style="background:rgba(168,85,247,0.12);color:#6b21a8;">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+                </svg>
+                Salidas
+            </a>
+            <a href="{% url 'almacen:salida_rapida_consumible' %}" class="dash-quick-link" style="background:rgba(249,115,22,0.12);color:#9a3412;">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 1-6.23-.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+                </svg>
+                Consumibles
+            </a>
+            <a href="{% url 'almacen:alerta_list' %}" class="dash-quick-link col-span-2 sm:col-span-1" style="background:rgba(239,68,68,0.12);color:#b91c1c;">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                </svg>
+                Alertas
+            </a>
+        </div>
+    </section>
+
+    <!-- Contenido principal en 2 columnas -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+
+        <!-- Alertas activas -->
+        {% if alertas_activas %}
+        <div class="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-amber-200">
+                <h2 class="font-bold text-amber-900 text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                    </svg>
+                    Alertas de Stock
+                </h2>
+                <span class="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{{ total_alertas }}</span>
+            </div>
+            <div class="divide-y divide-amber-100">
+                {% for alerta in alertas_activas %}
+                <div class="flex items-start gap-3 px-5 py-3 bg-white hover:bg-amber-50 transition-colors">
+                    <div class="flex-shrink-0 mt-0.5">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100">
+                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900">{{ alerta.producto_almacen.sku }}</p>
+                        <p class="text-xs text-gray-500 truncate">{{ alerta.mensaje }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="px-5 py-3 border-t border-amber-100">
+                <a href="{% url 'almacen:alerta_list' %}" class="text-amber-700 hover:underline font-semibold text-sm">
+                    Ver todas las alertas
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="flex items-center px-5 py-4 border-b border-gray-100">
+                <h2 class="font-bold text-gray-900 text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                    Alertas de Stock
+                </h2>
+            </div>
+            <div class="px-5 py-10 text-center">
+                <svg class="w-10 h-10 mx-auto mb-2 text-green-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                </svg>
+                <p class="text-sm text-gray-400">Sin alertas activas</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Solicitudes pendientes -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <h2 class="font-bold text-gray-900 text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+                    </svg>
+                    Solicitudes Pendientes
+                </h2>
+                <a href="{% url 'almacen:solicitud_list' %}?estado=PENDIENTE" class="text-xs text-blue-600 hover:underline font-semibold">Ver todas</a>
+            </div>
+            <div class="divide-y divide-gray-50">
+                {% for sol in solicitudes_pendientes %}
+                <a href="{% url 'almacen:solicitud_detail' sol.pk %}"
+                   class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">{{ sol.folio }}</p>
+                        <p class="text-xs text-gray-500">{{ sol.solicitante.get_full_name|default:sol.solicitante.username }}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0 ml-3">
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Pendiente</span>
+                        <p class="text-xs text-gray-400 mt-1">{{ sol.fecha_solicitud|date:"d/m/Y" }}</p>
+                    </div>
+                </a>
+                {% empty %}
+                <div class="px-5 py-10 text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-gray-200" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+                    </svg>
+                    <p class="text-sm text-gray-400">Sin solicitudes pendientes</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos próximos a caducar -->
+    {% if productos_caducar %}
+    <section class="dash-section">
+        <div class="dash-section-header">
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/>
+            </svg>
+            <h2 class="dash-section-title">Productos Próximos a Caducar</h2>
+            <a href="{% url 'almacen:producto_list' %}" class="dash-section-link">Ver inventario</a>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">SKU</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Producto</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stock</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Caduca</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for producto in productos_caducar %}
+                        <tr class="hover:bg-amber-50 transition-colors">
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-700">{{ producto.sku }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-800">{{ producto.nombre }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ producto.cantidad }} {{ producto.unidad_medida }}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-amber-700">{{ producto.fecha_caducidad|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
     {% endif %}
+
+    <!-- Movimientos recientes -->
+    <section class="dash-section">
+        <div class="dash-section-header">
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+            </svg>
+            <h2 class="dash-section-title">Movimientos Recientes</h2>
+            <a href="{% url 'almacen:movimiento_list' %}" class="dash-section-link">Ver historial</a>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="divide-y divide-gray-50">
+                {% for mov in movimientos_recientes %}
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
+                    <div class="flex-shrink-0">
+                        {% if mov.tipo_movimiento == 'ENTRADA' %}
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100">
+                            <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                            </svg>
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100">
+                            <svg class="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+                            </svg>
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 truncate">{{ mov.producto_almacen.nombre }}</p>
+                        <p class="text-xs text-gray-500">{{ mov.get_tipo_movimiento_display }} · {{ mov.usuario.get_full_name|default:mov.usuario.username }}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-sm font-bold {% if mov.tipo_movimiento == 'ENTRADA' %}text-green-600{% else %}text-orange-600{% endif %}">
+                            {% if mov.tipo_movimiento == 'ENTRADA' %}+{% else %}-{% endif %}{{ mov.cantidad }}
+                        </p>
+                        <p class="text-xs text-gray-400">{{ mov.fecha_movimiento|date:"d/m H:i" }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="px-5 py-10 text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-gray-200" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                    <p class="text-sm text-gray-400">Sin movimientos registrados</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
 </div>
 {% endblock %}
