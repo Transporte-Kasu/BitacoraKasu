@@ -1,0 +1,33 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('combustible', '0010_alertacombustible_campos_ia'),
+    ]
+
+    operations = [
+        migrations.AlterField(
+            model_name='alertacombustible',
+            name='tipo_alerta',
+            field=models.CharField(
+                choices=[
+                    ('CANDADO_ALTERADO', 'Candado Alterado'),
+                    ('CANDADO_VIOLADO', 'Candado Violado'),
+                    ('SIN_CANDADO', 'Sin Candado'),
+                    ('EXCESO_COMBUSTIBLE', 'Exceso de Combustible'),
+                    ('CANDADO_NO_COINCIDE', 'Candado no coincide con carga anterior'),
+                    ('KILOMETRAJE_MENOR', 'Kilometraje menor al anterior'),
+                    ('CONSUMO_ATIPICO', 'Consumo atípico vs. historial'),
+                    ('RENDIMIENTO_ANOMALO', 'Rendimiento fuera del rango histórico'),
+                    ('TIEMPO_CARGA_ATIPICO', 'Tiempo de carga inusual'),
+                    ('NIVEL_INCONSISTENTE', 'Nivel inicial inconsistente con litros cargados'),
+                    ('PATRON_DESPACHADOR', 'Patrón anómalo en despachador'),
+                    ('FRECUENCIA_IRREGULAR', 'Frecuencia de carga irregular vs. historial'),
+                ],
+                max_length=30,
+                verbose_name='Tipo de alerta',
+            ),
+        ),
+    ]

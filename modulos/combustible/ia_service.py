@@ -9,6 +9,7 @@ Anomalías detectadas:
   - RENDIMIENTO_ANOMALO   : km/lt por debajo del percentil histórico de la unidad
   - TIEMPO_CARGA_ATIPICO  : duración de carga inusualmente alta
   - NIVEL_INCONSISTENTE   : nivel_combustible_inicial incompatible con litros cargados
+  - FRECUENCIA_IRREGULAR  : intervalo entre cargas atípico (muy largo o muy corto)
   - PATRON_DESPACHADOR    : despachador con alta concentración de cargas con alertas
 """
 
@@ -54,6 +55,7 @@ PUNTOS_ANOMALIA = {
     'NIVEL_INCONSISTENTE':        2,
     'PATRON_DESPACHADOR':         2,
     'TIEMPO_CARGA_ATIPICO':       1,
+    'FRECUENCIA_IRREGULAR':       1,
 }
 
 SCORE_THRESHOLDS = {
@@ -110,6 +112,7 @@ class AnalizadorCombustible:
             anomalias += self._detectar_tiempo_atipico(carga, stats)
 
         anomalias += self._detectar_nivel_inconsistente(carga)
+        anomalias += self._detectar_frecuencia_irregular(carga)
         anomalias += self._detectar_patron_despachador(carga)
 
         score_riesgo, total_puntos = self._calcular_score(anomalias)
@@ -474,6 +477,94 @@ class AnalizadorCombustible:
                 'espacio_estimado': round(espacio_estimado, 1),
                 'limite_razonable': round(limite_razonable, 1),
                 'litros_cargados': round(litros, 1),
+            },
+        }]
+
+    def _detectar_frecuencia_irregular(self, carga) -> list:
+        """
+        Detecta si el intervalo desde la carga anterior es atípico
+        respecto al patrón histórico de la unidad (últimos 90 días).
+
+        Alerta en ambas direcciones:
+          - Intervalo muy largo: posible uso no registrado o viajes fuera de ruta.
+          - Intervalo muy corto: frecuencia de carga inusualmente alta (posible fraude).
+
+        Requiere al menos MIN_CARGAS_PARA_ANALISIS cargas previas.
+        """
+        from modulos.combustible.models import CargaCombustible
+
+        fecha_limite = timezone.now() - timedelta(days=VENTANA_HISTORICA_DIAS)
+
+        cargas_anteriores = list(
+            CargaCombustible.objects
+            .filter(
+                unidad=carga.unidad,
+                estado='COMPLETADO',
+                fecha_hora_inicio__gte=fecha_limite,
+            )
+            .exclude(pk=carga.pk)
+            .order_by('fecha_hora_inicio')
+            .values_list('fecha_hora_inicio', flat=True)
+        )
+
+        if len(cargas_anteriores) < MIN_CARGAS_PARA_ANALISIS:
+            return []
+
+        # Calcular intervalos en días entre cargas consecutivas
+        intervalos = []
+        for i in range(1, len(cargas_anteriores)):
+            delta = (cargas_anteriores[i] - cargas_anteriores[i - 1]).total_seconds() / 86400
+            if delta > 0:
+                intervalos.append(delta)
+
+        if len(intervalos) < MIN_CARGAS_PARA_ANALISIS - 1:
+            return []
+
+        media = statistics.mean(intervalos)
+        std = statistics.stdev(intervalos) if len(intervalos) > 1 else 0
+
+        if std == 0:
+            return []
+
+        # Intervalo entre la última carga registrada y la actual
+        intervalo_actual = (carga.fecha_hora_inicio - cargas_anteriores[-1]).total_seconds() / 86400
+
+        if intervalo_actual <= 0:
+            return []
+
+        z = (intervalo_actual - media) / std
+
+        if abs(z) <= UMBRAL_SIGMA:
+            return []
+
+        if z > 0:
+            # Intervalo más largo de lo normal
+            mensaje = (
+                f"Unidad {carga.unidad.numero_economico}: han transcurrido {intervalo_actual:.1f} días "
+                f"desde la carga anterior, cuando el patrón histórico es cada {media:.1f} días "
+                f"(±{std:.1f} días, z={z:.1f}σ, n={len(intervalos)} intervalos en 90 días). "
+                f"El largo período sin carga podría indicar uso no registrado o viajes fuera de ruta."
+            )
+        else:
+            # Intervalo más corto de lo normal
+            mensaje = (
+                f"Unidad {carga.unidad.numero_economico}: carga realizada {intervalo_actual:.1f} días "
+                f"después de la anterior, cuando el patrón histórico es cada {media:.1f} días "
+                f"(±{std:.1f} días, z={z:.1f}σ, n={len(intervalos)} intervalos en 90 días). "
+                f"La frecuencia de carga es inusualmente alta para esta unidad."
+            )
+
+        return [{
+            'tipo_alerta': 'FRECUENCIA_IRREGULAR',
+            'tipo_interno': 'FRECUENCIA_IRREGULAR',
+            'mensaje': mensaje,
+            'datos_estadisticos': {
+                'media_dias': round(media, 2),
+                'std_dias': round(std, 2),
+                'intervalo_actual_dias': round(intervalo_actual, 2),
+                'z_score': round(z, 2),
+                'n_historico': len(intervalos),
+                'direccion': 'largo' if z > 0 else 'corto',
             },
         }]
 

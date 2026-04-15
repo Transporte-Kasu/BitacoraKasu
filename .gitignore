@@ -293,10 +293,9 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-IAKasu.md
 mejora_carga_combustible.md
 VIEWS_URLS_README.md
 WARP.md
-
+IAKasu.md
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,python,django

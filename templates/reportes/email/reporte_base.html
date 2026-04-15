@@ -19,6 +19,9 @@
   .footer a { color: #3b82f6; }
   .alert { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px; font-size: 13px; color: #92400e; }
   .alert.danger { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+  .narrativa { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 20px; }
+  .narrativa .ia-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #7c3aed; margin-bottom: 6px; }
+  .narrativa p { font-size: 14px; color: #1f2937; line-height: 1.6; margin: 0; }
 </style>
 </head>
 <body>
@@ -30,6 +33,14 @@
   </div>
 
   <div class="body">
+
+    <!-- Narrativa IAKasu -->
+    {% if narrativa %}
+    <div class="narrativa">
+      <div class="ia-label">Análisis IAKasu</div>
+      <p>{{ narrativa }}</p>
+    </div>
+    {% endif %}
 
     <!-- Resumen KPIs -->
     {% if datos.resumen %}

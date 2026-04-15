@@ -29,6 +29,7 @@ from modulos.reportes.models import ConfiguracionReporte, ReporteGenerado
 from modulos.reportes.generadores import almacen as gen_almacen
 from modulos.reportes.generadores import combustible as gen_combustible
 from modulos.reportes.generadores import unidades as gen_unidades
+from modulos.reportes.generadores.narrativa import generar_narrativa
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ def _generar_excel(datos: dict) -> bytes:
 
 
 def _enviar_email(config: ConfiguracionReporte, datos: dict, dry_run: bool,
-                  excel_bytes: bytes = None) -> list:
+                  excel_bytes: bytes = None, narrativa: str = '') -> list:
     """Envía el reporte por correo. Devuelve lista de destinatarios enviados."""
     destinatarios = config.get_destinatarios_list()
     if not destinatarios:
@@ -132,11 +133,17 @@ def _enviar_email(config: ConfiguracionReporte, datos: dict, dry_run: bool,
         return destinatarios
 
     asunto = f"[BitacoraKasu] {datos['titulo']}"
-    texto_plano = f"{datos['titulo']}\n\nGenerado: {datos['generado_en']}\n\nResumen:\n"
+    texto_plano = f"{datos['titulo']}\n\nGenerado: {datos['generado_en']}\n\n"
+    if narrativa:
+        texto_plano += f"Análisis IAKasu:\n{narrativa}\n\n"
+    texto_plano += "Resumen:\n"
     for k, v in datos.get('resumen', {}).items():
         texto_plano += f"  {k}: {v}\n"
 
-    html = render_to_string('reportes/email/reporte_base.html', {'datos': datos, 'config': config})
+    html = render_to_string(
+        'reportes/email/reporte_base.html',
+        {'datos': datos, 'config': config, 'narrativa': narrativa},
+    )
 
     msg = EmailMultiAlternatives(
         subject=asunto,
@@ -206,8 +213,22 @@ class Command(BaseCommand):
 
             try:
                 datos = generador(periodo_inicio, periodo_fin)
+
+                narrativa = generar_narrativa(
+                    tipo_reporte=config.tipo_reporte,
+                    resumen=datos.get('resumen', {}),
+                    periodo_inicio=str(periodo_inicio),
+                    periodo_fin=str(periodo_fin),
+                )
+                if narrativa:
+                    self.stdout.write(f"  IA    Narrativa generada para {config.nombre}")
+
                 excel_bytes = _generar_excel(datos) if config.adjuntar_excel else None
-                enviados = _enviar_email(config, datos, dry_run, excel_bytes=excel_bytes)
+                enviados = _enviar_email(
+                    config, datos, dry_run,
+                    excel_bytes=excel_bytes,
+                    narrativa=narrativa,
+                )
 
                 if not dry_run:
                     ReporteGenerado.objects.create(
@@ -217,6 +238,7 @@ class Command(BaseCommand):
                         estado='GENERADO',
                         destinatarios_enviados=', '.join(enviados),
                         resumen=datos.get('resumen', {}),
+                        narrativa_ia=narrativa,
                     )
                     config.ultimo_envio = timezone.now()
                     config.save(update_fields=['ultimo_envio'])

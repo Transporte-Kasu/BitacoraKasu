@@ -156,6 +156,11 @@ class ReporteGenerado(models.Model):
         verbose_name='Resumen de datos',
         help_text='Snapshot de los datos clave del reporte'
     )
+    narrativa_ia = models.TextField(
+        blank=True,
+        verbose_name='Narrativa IA',
+        help_text='Párrafo ejecutivo generado automáticamente por IAKasu (Claude Haiku)'
+    )
     mensaje_error = models.TextField(blank=True, verbose_name='Error')
 
     class Meta:

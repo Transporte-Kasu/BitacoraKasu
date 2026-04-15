@@ -256,6 +256,7 @@ class AlertaCombustible(models.Model):
         ('TIEMPO_CARGA_ATIPICO', 'Tiempo de carga inusual'),
         ('NIVEL_INCONSISTENTE', 'Nivel inicial inconsistente con litros cargados'),
         ('PATRON_DESPACHADOR', 'Patrón anómalo en despachador'),
+        ('FRECUENCIA_IRREGULAR', 'Frecuencia de carga irregular vs. historial'),
     ]
 
     SCORE_RIESGO_CHOICES = [
