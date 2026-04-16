@@ -262,69 +262,64 @@
 
 
 {% block content %}
-
-<!-- Breadcrumb -->
-<nav class="mb-6" aria-label="Migas de pan">
-  <ol class="flex items-center space-x-2 text-sm text-gray-600">
-    <li>
-      <a href="{% url 'unidades:dashboard' %}" class="hover:text-blue-600 transition-colors">Unidades</a>
-    </li>
-    <li><span class="mx-1 text-gray-400" aria-hidden="true">/</span></li>
-    <li class="text-gray-900 font-medium" aria-current="page">Flota</li>
-  </ol>
-</nav>
+<div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
 
 <!-- Encabezado -->
-<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+<div class="dash-page-header">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Flota de Unidades</h1>
-    <p class="text-sm text-gray-500 mt-1">
-      {{ total_unidades }} unidad{% if total_unidades != 1 %}es{% endif %} registrada{% if total_unidades != 1 %}s{% endif %},
-      <span class="text-green-700 font-semibold">{{ unidades_activas }} activa{% if unidades_activas != 1 %}s{% endif %}</span>
+    <h1 class="dash-page-title">Flota de Unidades</h1>
+    <p class="dash-page-subtitle">
+      {{ total_unidades }} registrada{% if total_unidades != 1 %}s{% endif %} ·
+      <span class="text-green-600 font-semibold">{{ unidades_activas }} activa{% if unidades_activas != 1 %}s{% endif %}</span>
     </p>
   </div>
-  <a href="{% url 'unidades:create' %}"
-     class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg
-            hover:bg-green-700 transition-colors
-            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600
-            self-start sm:self-auto whitespace-nowrap">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-    </svg>
-    Nueva Unidad
-  </a>
+  <div class="dash-page-actions">
+    <a href="{% url 'unidades:dashboard' %}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700
+              text-sm font-semibold rounded-lg transition min-h-[44px]">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+      </svg>
+      Dashboard
+    </a>
+    <a href="{% url 'unidades:create' %}"
+       class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white
+              text-sm font-semibold rounded-lg transition min-h-[44px] whitespace-nowrap
+              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+      </svg>
+      Nueva Unidad
+    </a>
+  </div>
 </div>
 
-<!-- Filtros -->
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-8">
+<!-- Filtros + Toggle de vista -->
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
   <form method="get" role="search" aria-label="Filtros de flota">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
       <div class="sm:col-span-2">
-        <label for="search" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-          Buscar unidad
-        </label>
+        <label for="search" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Buscar</label>
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
             </svg>
           </span>
           <input type="text" name="search" id="search"
                  value="{{ request.GET.search }}"
                  placeholder="N. económico, placa, marca..."
-                 class="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg
-                        focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                 class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg
+                        focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition">
         </div>
       </div>
 
       <div>
-        <label for="tipo" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-          Tipo
-        </label>
+        <label for="tipo" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Tipo</label>
         <select name="tipo" id="tipo"
-                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
-                       focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
+                       focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none bg-white transition">
           <option value="">Todos los tipos</option>
           {% for value, label in tipos_choices %}
           <option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ label }}</option>
@@ -333,12 +328,10 @@
       </div>
 
       <div>
-        <label for="activa" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-          Estado
-        </label>
+        <label for="activa" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Estado</label>
         <select name="activa" id="activa"
-                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
-                       focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
+                       focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none bg-white transition">
           <option value="">Activas e inactivas</option>
           <option value="true"  {% if request.GET.activa == 'true'  %}selected{% endif %}>Solo activas</option>
           <option value="false" {% if request.GET.activa == 'false' %}selected{% endif %}>Solo inactivas</option>
@@ -347,22 +340,47 @@
 
     </div>
 
-    <div class="flex flex-wrap items-center gap-3 mt-4">
-      <button type="submit"
-              class="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg
-                     hover:bg-blue-700 transition-colors
-                     focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-        Filtrar
-      </button>
-      <a href="{% url 'unidades:list' %}"
-         class="px-5 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
-        Limpiar
-      </a>
-      {% if request.GET.search or request.GET.tipo or request.GET.activa %}
-      <span class="text-xs text-gray-400">
-        {{ unidades|length }} unidad{% if unidades|length != 1 %}es{% endif %} encontrada{% if unidades|length != 1 %}s{% endif %}
-      </span>
-      {% endif %}
+    <div class="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-100">
+      <div class="flex items-center gap-2">
+        <button type="submit"
+                class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white
+                       text-sm font-semibold rounded-lg transition cursor-pointer
+                       focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"/>
+          </svg>
+          Filtrar
+        </button>
+        <a href="{% url 'unidades:list' %}"
+           class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition cursor-pointer">
+          Limpiar
+        </a>
+        {% if request.GET.search or request.GET.tipo or request.GET.activa %}
+        <span class="text-xs text-gray-400 font-medium">
+          {{ unidades|length }} resultado{% if unidades|length != 1 %}s{% endif %}
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Toggle tarjetas / tabla -->
+      <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1" role="group" aria-label="Cambiar vista">
+        <button type="button" id="btn-vista-cards" onclick="setVista('cards')"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer
+                       bg-white text-amber-600 shadow-sm" aria-pressed="true">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/>
+          </svg>
+          Tarjetas
+        </button>
+        <button type="button" id="btn-vista-tabla" onclick="setVista('tabla')"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer
+                       text-gray-500 hover:text-gray-700" aria-pressed="false">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0 1 18 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0 1 18 9.375v1.5m1.5-3.75C19.496 8.25 20.25 8.754 20.25 9.375v1.5m0-5.25v5.25"/>
+          </svg>
+          Tabla
+        </button>
+      </div>
     </div>
   </form>
 </div>
@@ -373,6 +391,7 @@
 ===================================================== -->
 
 {% if unidades %}
+<div id="vista-cards-wrapper">
 
 <!-- Leyenda de indicadores -->
 <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 text-xs text-gray-500"
@@ -481,27 +500,107 @@
 </section>
 {% endif %}
 
+</div><!-- /vista-cards-wrapper -->
+
+<!-- Vista tabla -->
+<div id="vista-tabla" class="hidden mb-8">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-100">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidad</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Placa</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Marca / Modelo</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Kilometraje</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for unidad in unidades %}
+          <tr class="hover:bg-amber-50 transition-colors cursor-pointer" onclick="window.location='{% url 'unidades:detail' unidad.pk %}'">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
+                            {% if unidad.tipo == 'LOCAL' %}bg-blue-100
+                            {% elif unidad.tipo == 'FORANEA' %}bg-emerald-100
+                            {% else %}bg-violet-100{% endif %}">
+                  <svg class="w-4 h-4 {% if unidad.tipo == 'LOCAL' %}text-blue-600{% elif unidad.tipo == 'FORANEA' %}text-emerald-600{% else %}text-violet-600{% endif %}"
+                       fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+                  </svg>
+                </div>
+                <p class="text-sm font-bold text-gray-900">{{ unidad.numero_economico }}</p>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-sm font-semibold text-gray-700">{{ unidad.placa|default:"—" }}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold
+                           {% if unidad.tipo == 'LOCAL' %}bg-blue-100 text-blue-700
+                           {% elif unidad.tipo == 'FORANEA' %}bg-emerald-100 text-emerald-700
+                           {% else %}bg-violet-100 text-violet-700{% endif %}">
+                {{ unidad.get_tipo_display }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-600">
+              {{ unidad.marca|default:"—" }}{% if unidad.modelo %} / {{ unidad.modelo }}{% endif %}
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-700 font-medium">
+              {{ unidad.kilometraje_actual|default:"—" }} km
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              {% if unidad.activa %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Activa
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Inactiva
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap" onclick="event.stopPropagation()">
+              <div class="flex items-center gap-2">
+                <a href="{% url 'unidades:detail' unidad.pk %}"
+                   class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Ver</a>
+                <a href="{% url 'unidades:update' unidad.pk %}"
+                   class="text-xs text-gray-500 hover:text-gray-700 font-semibold cursor-pointer">Editar</a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="px-4 py-10 text-center text-gray-400 text-sm">
+              No hay unidades registradas
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 {% else %}
 <!-- Estado vacío -->
 <div class="flex flex-col items-center justify-center py-20 text-center">
   <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-5" aria-hidden="true">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    <svg class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
     </svg>
   </div>
   <h2 class="text-lg font-semibold text-gray-700 mb-1">No se encontraron unidades</h2>
-  <p class="text-sm text-gray-500 mb-6 max-w-xs">
-    Ninguna unidad coincide con los filtros actuales.
-    Intenta ajustar la búsqueda o limpiar los filtros.
-  </p>
+  <p class="text-sm text-gray-500 mb-6 max-w-xs">Ninguna unidad coincide con los filtros actuales.</p>
   <a href="{% url 'unidades:list' %}"
-     class="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+     class="px-5 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors cursor-pointer">
     Ver todas las unidades
   </a>
 </div>
 {% endif %}
 
+</div><!-- /max-w-7xl -->
 {% endblock %}
 
 
@@ -510,33 +609,63 @@
 (function () {
   'use strict';
 
+  var STORAGE_KEY = 'unidades_vista';
+
+  function setVista(vista) {
+    var isCards = vista === 'cards';
+    var vistaCards = document.getElementById('vista-cards-wrapper');
+    var vistaTabla = document.getElementById('vista-tabla');
+    var btnCards   = document.getElementById('btn-vista-cards');
+    var btnTabla   = document.getElementById('btn-vista-tabla');
+    if (!vistaCards || !vistaTabla) return;
+
+    if (isCards) {
+      vistaCards.classList.remove('hidden');
+      vistaTabla.classList.add('hidden');
+      btnCards.classList.add('bg-white', 'text-amber-600', 'shadow-sm');
+      btnCards.classList.remove('text-gray-500', 'hover:text-gray-700');
+      btnCards.setAttribute('aria-pressed', 'true');
+      btnTabla.classList.remove('bg-white', 'text-amber-600', 'shadow-sm');
+      btnTabla.classList.add('text-gray-500', 'hover:text-gray-700');
+      btnTabla.setAttribute('aria-pressed', 'false');
+    } else {
+      vistaCards.classList.add('hidden');
+      vistaTabla.classList.remove('hidden');
+      btnTabla.classList.add('bg-white', 'text-amber-600', 'shadow-sm');
+      btnTabla.classList.remove('text-gray-500', 'hover:text-gray-700');
+      btnTabla.setAttribute('aria-pressed', 'true');
+      btnCards.classList.remove('bg-white', 'text-amber-600', 'shadow-sm');
+      btnCards.classList.add('text-gray-500', 'hover:text-gray-700');
+      btnCards.setAttribute('aria-pressed', 'false');
+    }
+    try { localStorage.setItem(STORAGE_KEY, vista); } catch(e) {}
+  }
+
+  window.setVista = setVista;
+
   document.addEventListener('DOMContentLoaded', function () {
+    var savedVista = 'cards';
+    try { savedVista = localStorage.getItem(STORAGE_KEY) || 'cards'; } catch(e) {}
+    setVista(savedVista);
+
     document.querySelectorAll('.fleet-card').forEach(function (card) {
       var tooltip = card.querySelector('.fleet-tooltip');
       if (!tooltip) return;
 
       card.addEventListener('mouseenter', function () {
-        // Mostrar tooltip
         tooltip.classList.add('visible');
-
-        // Decidir si aparece arriba o abajo según posición en pantalla
         var rect = card.getBoundingClientRect();
         if (rect.top < 250) {
           tooltip.style.bottom = 'auto';
           tooltip.style.top   = 'calc(100% + 10px)';
-          // Invertir flecha
           tooltip.classList.add('tooltip-abajo');
         } else {
           tooltip.style.bottom = 'calc(100% + 10px)';
           tooltip.style.top    = 'auto';
           tooltip.classList.remove('tooltip-abajo');
         }
-
-        // Evitar que se salga por los bordes laterales
         var tooltipRect = tooltip.getBoundingClientRect();
         if (tooltipRect.left < 8) {
-          tooltip.style.left      = 'auto';
-          tooltip.style.right     = 'auto';
           tooltip.style.transform = 'translateX(' + (8 - tooltipRect.left) + 'px)';
         } else if (tooltipRect.right > window.innerWidth - 8) {
           var overflow = tooltipRect.right - (window.innerWidth - 8);
@@ -549,9 +678,7 @@
         tooltip.style.transform = 'translateX(-50%)';
       });
 
-      // Click en la tarjeta → navegar al detalle
       card.addEventListener('click', function (e) {
-        // Si el click fue en un <a> interno del tooltip, dejarlo pasar
         if (e.target.closest('a')) return;
         var dest = card.dataset.href;
         if (dest) window.location.href = dest;
