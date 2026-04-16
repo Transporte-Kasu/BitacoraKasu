@@ -37,7 +37,7 @@
     user-select: none;
     text-decoration: none;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .fuel-card:hover {
@@ -72,13 +72,21 @@
   /* Dot de alerta */
   .fuel-alerta-dot {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 8px;
-    height: 8px;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: #dc2626;
-    box-shadow: 0 0 0 2px #fff;
+    border: 2px solid #ffffff;
+    z-index: 30;
+    box-shadow: 0 0 0 1px rgba(220,38,38,0.3);
+    animation: pulse-dot 2s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(220,38,38,0.3); }
+    50%       { box-shadow: 0 0 0 4px rgba(220,38,38,0.15); }
   }
 
   /* Fila superior: número económico + badge tipo */
