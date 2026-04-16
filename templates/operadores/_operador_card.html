@@ -12,42 +12,28 @@
      data-href="{% url 'operadores:detail' operador.pk %}"
      aria-label="Operador {{ operador.nombre }}{% if not operador.activo %}, inactivo{% endif %}">
 
-  <!-- Icono SVG de persona/conductor -->
+  <!-- Icono de persona/conductor -->
   <span aria-hidden="true">
-    <svg class="fleet-truck-icon"
-         viewBox="0 0 100 80"
-         xmlns="http://www.w3.org/2000/svg"
-         role="img"
-         aria-label="Icono de operador">
-
-      {% if tipo_css == 'LOCAL' %}
-        {% if operador.activo %}<g style="color:#3b82f6;">{% else %}<g style="color:#9ca3af;">{% endif %}
-      {% elif tipo_css == 'FORANEO' %}
-        {% if operador.activo %}<g style="color:#10b981;">{% else %}<g style="color:#9ca3af;">{% endif %}
+    {% if tipo_css == 'LOCAL' %}
+      {% if operador.activo %}
+        <svg class="fleet-truck-icon" style="color:#3b82f6;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="44" height="44" role="img" aria-label="Icono de operador">
       {% else %}
-        {% if operador.activo %}<g style="color:#8b5cf6;">{% else %}<g style="color:#9ca3af;">{% endif %}
+        <svg class="fleet-truck-icon" style="color:#9ca3af;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="44" height="44" role="img" aria-label="Icono de operador">
       {% endif %}
-
-        <!-- Cabeza -->
-        <circle cx="50" cy="18" r="13" fill="currentColor" opacity="0.9"/>
-        <!-- Casco/visera -->
-        <path d="M37 18 Q37 6 50 6 Q63 6 63 18 Z" fill="currentColor"/>
-        <rect x="35" y="17" width="30" height="4" rx="2" fill="currentColor" opacity="0.5"/>
-        <!-- Cuello -->
-        <rect x="46" y="30" width="8" height="5" rx="2" fill="currentColor" opacity="0.7"/>
-        <!-- Cuerpo/torso (silueta sentada) -->
-        <path d="M28 60 Q28 35 50 35 Q72 35 72 60 Z" fill="currentColor" opacity="0.85"/>
-        <!-- Hombros y brazos -->
-        <rect x="24" y="38" width="12" height="20" rx="5" fill="currentColor" opacity="0.75"/>
-        <rect x="64" y="38" width="12" height="20" rx="5" fill="currentColor" opacity="0.75"/>
-        <!-- Manos en volante -->
-        <circle cx="32" cy="60" r="4" fill="currentColor"/>
-        <circle cx="68" cy="60" r="4" fill="currentColor"/>
-        <!-- Volante -->
-        <circle cx="50" cy="63" r="12" fill="none" stroke="currentColor" stroke-width="3.5" opacity="0.6"/>
-        <circle cx="50" cy="63" r="3" fill="currentColor" opacity="0.5"/>
-
-      </g>
+    {% elif tipo_css == 'FORANEO' %}
+      {% if operador.activo %}
+        <svg class="fleet-truck-icon" style="color:#10b981;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="44" height="44" role="img" aria-label="Icono de operador">
+      {% else %}
+        <svg class="fleet-truck-icon" style="color:#9ca3af;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="44" height="44" role="img" aria-label="Icono de operador">
+      {% endif %}
+    {% else %}
+      {% if operador.activo %}
+        <svg class="fleet-truck-icon" style="color:#8b5cf6;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="44" height="44" role="img" aria-label="Icono de operador">
+      {% else %}
+        <svg class="fleet-truck-icon" style="color:#9ca3af;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="44" height="44" role="img" aria-label="Icono de operador">
+      {% endif %}
+    {% endif %}
+      <path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clip-rule="evenodd"/>
     </svg>
   </span>
 
