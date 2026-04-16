@@ -1,252 +1,856 @@
 {% extends 'base.html' %}
 
-{% block title %}Lista de Cargas de Combustible{% endblock %}
+{% block title %}Cargas de Combustible{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =====================================================================
+     Fuel Ticket Card — tarjeta de carga de combustible
+     Color de módulo: violet / purple (#7c3aed)
+  ===================================================================== */
+
+  /* Grid de cards */
+  .fuel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  @media (min-width: 640px)  { .fuel-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 768px)  { .fuel-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 1024px) { .fuel-grid { grid-template-columns: repeat(5, 1fr); } }
+  @media (min-width: 1280px) { .fuel-grid { grid-template-columns: repeat(6, 1fr); } }
+
+  /* Tarjeta individual */
+  .fuel-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-top-width: 4px;
+    border-top-color: #7c3aed;
+    border-radius: 0.75rem;
+    padding: 0.875rem 0.75rem 0.75rem;
+    min-height: 160px;
+    cursor: pointer;
+    user-select: none;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    overflow: hidden;
+  }
+
+  .fuel-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.14);
+    border-color: #c4b5fd;
+    z-index: 10;
+  }
+
+  .fuel-card:focus-visible {
+    outline: 3px solid #7c3aed;
+    outline-offset: 2px;
+  }
+
+  /* Variantes de color por estado */
+  .fuel-card.estado-COMPLETADO  { border-top-color: #16a34a; }
+  .fuel-card.estado-EN_PROCESO  { border-top-color: #d97706; }
+  .fuel-card.estado-CANCELADO   { border-top-color: #dc2626; }
+  .fuel-card.estado-INICIADO    { border-top-color: #7c3aed; }
+
+  /* Alerta activa: borde rojo completo */
+  .fuel-card.con-alerta {
+    border-color: #fca5a5;
+    border-top-color: #dc2626;
+    background: #fff7f7;
+  }
+  .fuel-card.con-alerta:hover {
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.16);
+    border-color: #f87171;
+  }
+
+  /* Dot de alerta */
+  .fuel-alerta-dot {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dc2626;
+    box-shadow: 0 0 0 2px #fff;
+  }
+
+  /* Fila superior: número económico + badge tipo */
+  .fuel-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .fuel-numero {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+  }
+
+  /* Badge tipo LOCAL / FORANEO */
+  .fuel-tipo-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.15rem 0.4rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .fuel-tipo-LOCAL   { background: #dbeafe; color: #1d4ed8; }
+  .fuel-tipo-FORANEO { background: #d1fae5; color: #065f46; }
+
+  /* Fila de 3 métricas */
+  .fuel-metricas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .fuel-metrica {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .fuel-metrica svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: #9ca3af;
+  }
+
+  .fuel-metrica-valor {
+    font-size: 0.75rem;
+    color: #374151;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .fuel-metrica-valor.highlight {
+    color: #7c3aed;
+    font-weight: 700;
+  }
+
+  /* Fila inferior: candado + despachador */
+  .fuel-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f3f4f6;
+  }
+
+  .fuel-despachador {
+    font-size: 0.65rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+  }
+
+  /* Badges de estado candado */
+  .fuel-candado-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .fuel-candado-badge svg {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+  }
+  .candado-NORMAL    { background: #dcfce7; color: #16a34a; }
+  .candado-ALTERADO  { background: #fef9c3; color: #a16207; }
+  .candado-VIOLADO   { background: #fee2e2; color: #dc2626; }
+  .candado-SIN_CANDADO { background: #fee2e2; color: #dc2626; }
+
+  /* =====================================================================
+     Vista tabla — encabezados y badges inline
+  ===================================================================== */
+
+  .tabla-combustible th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .tabla-combustible td {
+    padding: 0.75rem 1rem;
+    font-size: 0.8125rem;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+  }
+
+  .tabla-combustible tbody tr {
+    transition: background-color 0.15s ease;
+  }
+
+  .tabla-combustible tbody tr:hover {
+    background-color: #f5f3ff;
+  }
+
+  .tabla-combustible tbody tr.fila-alerta {
+    background-color: #fff7f7;
+  }
+
+  .tabla-combustible tbody tr.fila-alerta:hover {
+    background-color: #fee2e2;
+  }
+
+  /* Badge de estado en tabla */
+  .estado-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+  }
+  .estado-badge svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+  .estado-COMPLETADO  { background: #dcfce7; color: #16a34a; }
+  .estado-EN_PROCESO  { background: #fef9c3; color: #a16207; }
+  .estado-CANCELADO   { background: #fee2e2; color: #dc2626; }
+  .estado-INICIADO    { background: #ede9fe; color: #7c3aed; }
+
+  /* =====================================================================
+     Botones toggle de vista
+  ===================================================================== */
+
+  .toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+  }
+  .toggle-btn svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+  .toggle-btn:hover { background: #f3f4f6; color: #374151; }
+  .toggle-btn.activo {
+    background: #ede9fe;
+    color: #7c3aed;
+    border-color: #c4b5fd;
+  }
+
+  /* =====================================================================
+     Paginación violet
+  ===================================================================== */
+  .pag-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    color: #374151;
+    background: #ffffff;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .pag-btn:hover { background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd; }
+  .pag-btn.activo {
+    background: #ede9fe;
+    color: #7c3aed;
+    border-color: #c4b5fd;
+    font-weight: 700;
+    pointer-events: none;
+  }
+
+  /* =====================================================================
+     Filtros
+  ===================================================================== */
+  .filtro-input,
+  .filtro-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #ffffff;
+    color: #111827;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    appearance: none;
+  }
+  .filtro-input:focus,
+  .filtro-select:focus {
+    outline: none;
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25);
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Breadcrumb -->
-<nav class="mb-6">
-    <ol class="flex items-center space-x-2 text-sm text-gray-600">
-        <li><a href="{% url 'inicio' %}" class="hover:text-blue-600">Inicio</a></li>
-        <li><span class="mx-2">/</span></li>
-        <li><a href="{% url 'combustible:dashboard' %}" class="hover:text-blue-600">Combustible</a></li>
-        <li><span class="mx-2">/</span></li>
-        <li class="text-gray-900 font-medium">Lista</li>
-    </ol>
-</nav>
 
-<!-- Header con botones -->
-<div class="flex items-center justify-between mb-8">
-    <div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">⛽ Cargas de Combustible</h1>
-        <p class="text-gray-600">{{ total_cargas }} cargas registradas, {{ cargas_completadas }} completadas</p>
-    </div>
-    <a href="{% url 'combustible:wizard' paso=1 %}" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium inline-flex items-center">
-        <span class="text-xl mr-2">+</span>
-        Nueva Carga
+<!-- =====================================================================
+     Header de página
+===================================================================== -->
+<div class="dash-page-header">
+  <div>
+    <h1 class="dash-page-title">Cargas de Combustible</h1>
+    <p class="dash-page-subtitle">
+      {{ total_cargas }} carga{% if total_cargas != 1 %}s{% endif %}
+      &middot;
+      {{ cargas_completadas }} completada{% if cargas_completadas != 1 %}s{% endif %}
+    </p>
+  </div>
+  <div class="dash-page-actions">
+
+    <!-- Ir al dashboard -->
+    <a href="{% url 'combustible:dashboard' %}"
+       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 cursor-pointer"
+       title="Dashboard de combustible">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+      </svg>
+      <span class="hidden sm:inline">Dashboard</span>
     </a>
+
+    <!-- Toggle: vista cards -->
+    <button id="btn-cards"
+            onclick="setVista('cards')"
+            class="toggle-btn activo"
+            aria-label="Vista en tarjetas"
+            title="Vista en tarjetas">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+      </svg>
+      <span class="hidden sm:inline">Tarjetas</span>
+    </button>
+
+    <!-- Toggle: vista tabla -->
+    <button id="btn-tabla"
+            onclick="setVista('tabla')"
+            class="toggle-btn"
+            aria-label="Vista en tabla"
+            title="Vista en tabla">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+      </svg>
+      <span class="hidden sm:inline">Tabla</span>
+    </button>
+
+    <!-- Nueva carga -->
+    <a href="{% url 'combustible:wizard' paso=1 %}"
+       class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-all duration-200 cursor-pointer"
+       style="background:#7c3aed;"
+       onmouseover="this.style.background='#6d28d9'"
+       onmouseout="this.style.background='#7c3aed'">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nueva Carga
+    </a>
+
+  </div>
 </div>
 
-<!-- Filtros y Búsqueda -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <!-- Búsqueda por Unidad -->
-        <div>
-            <label for="unidad" class="block text-sm font-medium text-gray-700 mb-2">Unidad</label>
-            <input type="text" name="unidad" id="unidad" value="{{ request.GET.unidad }}" 
-                   placeholder="Número económico..." 
-                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        </div>
+<!-- =====================================================================
+     Filtros
+===================================================================== -->
+<div class="border border-gray-200 rounded-xl bg-white p-4 mb-5">
+  <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
-        <!-- Filtro por Despachador -->
-        <div>
-            <label for="despachador" class="block text-sm font-medium text-gray-700 mb-2">Despachador</label>
-            <input type="text" name="despachador" id="despachador" value="{{ request.GET.despachador }}" 
-                   placeholder="Nombre del despachador..." 
-                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        </div>
+    <div>
+      <label for="unidad" class="block text-xs font-medium text-gray-600 mb-1.5">Unidad</label>
+      <input type="text"
+             id="unidad"
+             name="unidad"
+             value="{{ request.GET.unidad }}"
+             placeholder="Número económico..."
+             class="filtro-input">
+    </div>
 
-        <!-- Filtro por Estado -->
-        <div>
-            <label for="estado" class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-            <select name="estado" id="estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">Todos</option>
-                {% for value, label in estado_choices %}
-                <option value="{{ value }}" {% if request.GET.estado == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
+    <div>
+      <label for="despachador" class="block text-xs font-medium text-gray-600 mb-1.5">Despachador</label>
+      <input type="text"
+             id="despachador"
+             name="despachador"
+             value="{{ request.GET.despachador }}"
+             placeholder="Nombre del despachador..."
+             class="filtro-input">
+    </div>
 
-        <!-- Filtro por Estado Candado -->
-        <div>
-            <label for="candado" class="block text-sm font-medium text-gray-700 mb-2">Estado Candado</label>
-            <select name="candado" id="candado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">Todos</option>
-                {% for value, label in candado_choices %}
-                <option value="{{ value }}" {% if request.GET.candado == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
+    <div>
+      <label for="estado" class="block text-xs font-medium text-gray-600 mb-1.5">Estado</label>
+      <select id="estado" name="estado" class="filtro-select">
+        <option value="">Todos los estados</option>
+        {% for value, label in estado_choices %}
+        <option value="{{ value }}" {% if request.GET.estado == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-        <!-- Botones -->
-        <div class="md:col-span-4 flex space-x-3">
-            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
-                🔍 Buscar
-            </button>
-            <a href="{% url 'combustible:lista' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
-                Limpiar
-            </a>
-        </div>
-    </form>
+    <div>
+      <label for="candado" class="block text-xs font-medium text-gray-600 mb-1.5">Estado candado</label>
+      <select id="candado" name="candado" class="filtro-select">
+        <option value="">Todos</option>
+        {% for value, label in candado_choices %}
+        <option value="{{ value }}" {% if request.GET.candado == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="sm:col-span-2 lg:col-span-4 flex items-center gap-2 pt-1">
+      <button type="submit"
+              class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-all duration-200 cursor-pointer"
+              style="background:#7c3aed;"
+              onmouseover="this.style.background='#6d28d9'"
+              onmouseout="this.style.background='#7c3aed'">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+        </svg>
+        Filtrar
+      </button>
+      <a href="{% url 'combustible:lista' %}"
+         class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-200 cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        Limpiar
+      </a>
+    </div>
+
+  </form>
 </div>
 
-<!-- Tabla de Cargas -->
-<div class="bg-white rounded-lg shadow-md overflow-hidden">
-    {% if cargas %}
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ID
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Fecha/Hora
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Unidad
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Despachador
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Litros
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Kilometraje
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Candado
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Estado
-                    </th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Acciones
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for carga in cargas %}
-                <tr class="hover:bg-gray-50 transition duration-150 {% if carga.tiene_alertas %}bg-red-50{% endif %}">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{{ carga.id }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {{ carga.fecha_hora_inicio|date:"d/m/Y" }}<br>
-                        <span class="text-xs text-gray-500">{{ carga.fecha_hora_inicio|time:"H:i" }}</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <a href="{% url 'unidades:detail' carga.unidad.pk %}" class="font-bold text-blue-600 hover:text-blue-800">
-                            {{ carga.unidad.numero_economico }}
-                        </a><br>
-                        <span class="text-xs text-gray-500">{{ carga.unidad.placa }}</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {{ carga.despachador.nombre }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
-                        {{ carga.cantidad_litros }} L
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {{ carga.kilometraje_actual|floatformat:0 }} km
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        {% if carga.estado_candado_anterior == 'NORMAL' %}
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                ✓ Normal
-                            </span>
-                        {% elif carga.estado_candado_anterior == 'ALTERADO' %}
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                ⚠️ Alterado
-                            </span>
-                        {% elif carga.estado_candado_anterior == 'VIOLADO' %}
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                🚨 Violado
-                            </span>
-                        {% else %}
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                ❌ Sin candado
-                            </span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        {% if carga.estado == 'COMPLETADO' %}
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                ✓ Completado
-                            </span>
-                        {% elif carga.estado == 'EN_PROCESO' %}
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                🔄 En proceso
-                            </span>
-                        {% elif carga.estado == 'CANCELADO' %}
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                ❌ Cancelado
-                            </span>
-                        {% else %}
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                🔵 Iniciado
-                            </span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="{% url 'combustible:detalle' carga.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
-                            👁️ Ver
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+{% if cargas %}
 
-    <!-- Paginación -->
-    {% if is_paginated %}
-    <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-        <div class="flex items-center justify-between">
-            <div class="text-sm text-gray-700">
-                Mostrando 
-                <span class="font-medium">{{ page_obj.start_index }}</span>
-                -
-                <span class="font-medium">{{ page_obj.end_index }}</span>
-                de
-                <span class="font-medium">{{ page_obj.paginator.count }}</span>
-                resultados
-            </div>
-            <div class="flex space-x-2">
-                {% if page_obj.has_previous %}
-                <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Primera
-                </a>
-                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Anterior
-                </a>
-                {% endif %}
+  <!-- ===================================================================
+       VISTA CARDS
+  =================================================================== -->
+  <div id="vista-cards-wrapper">
+    <div class="fuel-grid" role="list">
+      {% for carga in cargas %}
+      <a href="{% url 'combustible:detalle' carga.pk %}"
+         class="fuel-card estado-{{ carga.estado }}{% if carga.tiene_alertas %} con-alerta{% endif %}"
+         role="listitem"
+         aria-label="Carga #{{ carga.id }}, unidad {{ carga.unidad.numero_economico }}, {{ carga.cantidad_litros }} litros, {{ carga.estado }}">
 
-                <span class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-blue-50 text-blue-700">
-                    {{ page_obj.number }}
-                </span>
+        {% if carga.tiene_alertas %}
+        <span class="fuel-alerta-dot" aria-hidden="true" title="Tiene alertas activas"></span>
+        {% endif %}
 
-                {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Siguiente
-                </a>
-                <a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Última
-                </a>
-                {% endif %}
-            </div>
+        <!-- Header: número económico + badge tipo -->
+        <div class="fuel-card-header">
+          <span class="fuel-numero">{{ carga.unidad.numero_economico }}</span>
+          <span class="fuel-tipo-badge fuel-tipo-{{ carga.tipo_flujo }}">
+            {{ carga.tipo_flujo }}
+          </span>
         </div>
-    </div>
-    {% endif %}
-    {% else %}
-    <!-- Sin resultados -->
-    <div class="text-center py-12">
-        <div class="inline-block p-4 bg-gray-100 rounded-full mb-4">
-            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+
+        <!-- Métricas: litros, kilometraje, fecha -->
+        <div class="fuel-metricas">
+
+          <!-- Litros -->
+          <div class="fuel-metrica">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.003 3.5-4.697 3.5-8.327a8 8 0 10-16 0c0 3.63 1.556 6.326 3.5 8.327a19.516 19.516 0 002.682 2.282 16.975 16.975 0 001.144.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
             </svg>
-        </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No hay cargas registradas</h3>
-        <p class="text-gray-600 mb-6">Comienza registrando tu primera carga de combustible.</p>
-        <a href="{% url 'combustible:wizard' paso=1 %}" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium inline-block">
-            ➤ Registrar Primera Carga
-        </a>
-    </div>
-    {% endif %}
-</div>
+            <span class="fuel-metrica-valor highlight">{{ carga.cantidad_litros }} L</span>
+          </div>
 
+          <!-- Kilometraje -->
+          <div class="fuel-metrica">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+            </svg>
+            <span class="fuel-metrica-valor">{{ carga.kilometraje_actual|floatformat:0 }} km</span>
+          </div>
+
+          <!-- Fecha -->
+          <div class="fuel-metrica">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span class="fuel-metrica-valor">{{ carga.fecha_hora_inicio|date:"d/m/y" }}</span>
+          </div>
+
+        </div>
+
+        <!-- Footer: badge candado + despachador -->
+        <div class="fuel-card-footer">
+
+          {% if carga.estado_candado_anterior == 'NORMAL' %}
+          <span class="fuel-candado-badge candado-NORMAL">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            Normal
+          </span>
+          {% elif carga.estado_candado_anterior == 'ALTERADO' %}
+          <span class="fuel-candado-badge candado-ALTERADO">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            Alterado
+          </span>
+          {% elif carga.estado_candado_anterior == 'VIOLADO' %}
+          <span class="fuel-candado-badge candado-VIOLADO">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+            Violado
+          </span>
+          {% else %}
+          <span class="fuel-candado-badge candado-SIN_CANDADO">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+            Sin candado
+          </span>
+          {% endif %}
+
+          <span class="fuel-despachador" title="{{ carga.despachador.nombre }}">
+            {{ carga.despachador.nombre }}
+          </span>
+
+        </div>
+
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       VISTA TABLA
+  =================================================================== -->
+  <div id="vista-tabla-wrapper" style="display:none;">
+    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full tabla-combustible" aria-label="Listado de cargas de combustible">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Fecha</th>
+              <th scope="col">Unidad</th>
+              <th scope="col">Despachador</th>
+              <th scope="col">Litros</th>
+              <th scope="col">Kilometraje</th>
+              <th scope="col">Candado</th>
+              <th scope="col">Estado</th>
+              <th scope="col" class="text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for carga in cargas %}
+            <tr class="{% if carga.tiene_alertas %}fila-alerta{% endif %}">
+
+              <!-- ID -->
+              <td class="font-medium text-gray-500 text-xs">#{{ carga.id }}</td>
+
+              <!-- Fecha -->
+              <td>
+                <span class="font-medium text-gray-800">{{ carga.fecha_hora_inicio|date:"d/m/Y" }}</span><br>
+                <span class="text-xs text-gray-400">{{ carga.fecha_hora_inicio|time:"H:i" }}</span>
+              </td>
+
+              <!-- Unidad -->
+              <td>
+                <a href="{% url 'unidades:detail' carga.unidad.pk %}"
+                   class="font-bold text-violet-700 hover:text-violet-900 transition-colors duration-150 cursor-pointer"
+                   onclick="event.stopPropagation()">
+                  {{ carga.unidad.numero_economico }}
+                </a><br>
+                <span class="text-xs text-gray-400">{{ carga.unidad.placa }}</span>
+              </td>
+
+              <!-- Despachador -->
+              <td class="text-gray-700">{{ carga.despachador.nombre }}</td>
+
+              <!-- Litros -->
+              <td>
+                <span class="font-bold text-violet-700">{{ carga.cantidad_litros }} L</span>
+              </td>
+
+              <!-- Kilometraje -->
+              <td class="text-gray-600">{{ carga.kilometraje_actual|floatformat:0 }} km</td>
+
+              <!-- Candado -->
+              <td>
+                {% if carga.estado_candado_anterior == 'NORMAL' %}
+                <span class="estado-badge" style="background:#dcfce7;color:#16a34a;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Normal
+                </span>
+                {% elif carga.estado_candado_anterior == 'ALTERADO' %}
+                <span class="estado-badge" style="background:#fef9c3;color:#a16207;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                  </svg>
+                  Alterado
+                </span>
+                {% elif carga.estado_candado_anterior == 'VIOLADO' %}
+                <span class="estado-badge" style="background:#fee2e2;color:#dc2626;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                  Violado
+                </span>
+                {% else %}
+                <span class="estado-badge" style="background:#fee2e2;color:#dc2626;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                  Sin candado
+                </span>
+                {% endif %}
+              </td>
+
+              <!-- Estado -->
+              <td>
+                {% if carga.estado == 'COMPLETADO' %}
+                <span class="estado-badge estado-COMPLETADO">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Completado
+                </span>
+                {% elif carga.estado == 'EN_PROCESO' %}
+                <span class="estado-badge estado-EN_PROCESO">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                  </svg>
+                  En proceso
+                </span>
+                {% elif carga.estado == 'CANCELADO' %}
+                <span class="estado-badge estado-CANCELADO">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                  Cancelado
+                </span>
+                {% else %}
+                <span class="estado-badge estado-INICIADO">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                  </svg>
+                  Iniciado
+                </span>
+                {% endif %}
+              </td>
+
+              <!-- Acciones -->
+              <td class="text-right">
+                <a href="{% url 'combustible:detalle' carga.pk %}"
+                   class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition-all duration-150 cursor-pointer"
+                   title="Ver detalles de la carga #{{ carga.id }}">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  Ver
+                </a>
+              </td>
+
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       Paginación (compartida entre vistas)
+  =================================================================== -->
+  {% if is_paginated %}
+  <nav class="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3" aria-label="Paginación">
+
+    <p class="text-sm text-gray-500 order-2 sm:order-1">
+      Mostrando
+      <span class="font-semibold text-gray-800">{{ page_obj.start_index }}</span>
+      &ndash;
+      <span class="font-semibold text-gray-800">{{ page_obj.end_index }}</span>
+      de
+      <span class="font-semibold text-gray-800">{{ page_obj.paginator.count }}</span>
+      resultados
+    </p>
+
+    <div class="flex items-center gap-1.5 order-1 sm:order-2">
+
+      {% if page_obj.has_previous %}
+      <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+         class="pag-btn"
+         aria-label="Primera página">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+        </svg>
+      </a>
+      <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+         class="pag-btn"
+         aria-label="Página anterior">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      {% endif %}
+
+      <span class="pag-btn activo" aria-current="page" aria-label="Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}">
+        {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+      </span>
+
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+         class="pag-btn"
+         aria-label="Página siguiente">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      <a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+         class="pag-btn"
+         aria-label="Última página">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+        </svg>
+      </a>
+      {% endif %}
+
+    </div>
+  </nav>
+  {% endif %}
+
+{% else %}
+
+  <!-- ===================================================================
+       Estado vacío
+  =================================================================== -->
+  <div class="bg-white border border-gray-200 rounded-xl py-16 px-6 text-center">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background:#ede9fe;">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+        <!-- gota de combustible estilizada -->
+        <path d="M16 3c0 0-3 3.5-3 5.5a3 3 0 006 0C19 6.5 16 3 16 3z"/>
+      </svg>
+    </div>
+    <h3 class="text-base font-semibold text-gray-800 mb-1">Sin cargas registradas</h3>
+    <p class="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
+      {% if request.GET.unidad or request.GET.despachador or request.GET.estado or request.GET.candado %}
+        No se encontraron cargas con los filtros aplicados.
+        <a href="{% url 'combustible:lista' %}" class="text-violet-600 hover:text-violet-800 font-medium cursor-pointer">Limpiar filtros</a>
+      {% else %}
+        Registra la primera carga de combustible para comenzar el seguimiento.
+      {% endif %}
+    </p>
+    <a href="{% url 'combustible:wizard' paso=1 %}"
+       class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-all duration-200 cursor-pointer"
+       style="background:#7c3aed;"
+       onmouseover="this.style.background='#6d28d9'"
+       onmouseout="this.style.background='#7c3aed'">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Registrar primera carga
+    </a>
+  </div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    'use strict';
+
+    var STORAGE_KEY = 'combustible_vista';
+    var cardWrapper = document.getElementById('vista-cards-wrapper');
+    var tablaWrapper = document.getElementById('vista-tabla-wrapper');
+    var btnCards = document.getElementById('btn-cards');
+    var btnTabla = document.getElementById('btn-tabla');
+
+    /* Si no hay resultados, los wrappers no existen — salir sin error */
+    if (!cardWrapper && !tablaWrapper) return;
+
+    function setVista(v) {
+      localStorage.setItem(STORAGE_KEY, v);
+      applyVista(v);
+    }
+
+    function applyVista(v) {
+      var esCards = (v === 'cards');
+
+      if (cardWrapper)  cardWrapper.style.display  = esCards ? '' : 'none';
+      if (tablaWrapper) tablaWrapper.style.display  = esCards ? 'none' : '';
+
+      if (btnCards) {
+        btnCards.classList.toggle('activo', esCards);
+        btnCards.setAttribute('aria-pressed', String(esCards));
+      }
+      if (btnTabla) {
+        btnTabla.classList.toggle('activo', !esCards);
+        btnTabla.setAttribute('aria-pressed', String(!esCards));
+      }
+    }
+
+    /* Exponer para onclick en los botones del header */
+    window.setVista = setVista;
+
+    /* Leer preferencia guardada al cargar */
+    var saved = localStorage.getItem(STORAGE_KEY);
+    applyVista(saved === 'tabla' ? 'tabla' : 'cards');
+
+    /* Navegación por teclado en las cards (Enter/Space activa el link) */
+    document.querySelectorAll('.fuel-card[role="listitem"]').forEach(function (card) {
+      /* Las cards ya son <a>, por lo que el teclado funciona nativamente.
+         Registramos el data-href sólo si en el futuro se use <div role="button">. */
+    });
+
+  })();
+</script>
 {% endblock %}
