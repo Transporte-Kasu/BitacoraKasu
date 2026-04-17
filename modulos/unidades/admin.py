@@ -141,7 +141,7 @@ class UnidadAdmin(admin.ModelAdmin):
         return "Sin datos"
     eficiencia_combustible_display.short_description = 'Eficiencia'
     
-    actions = ['activar_unidades', 'desactivar_unidades', 'actualizar_rendimiento']
+    actions = ['activar_unidades', 'desactivar_unidades', 'actualizar_rendimiento', 'actualizar_capacidad_tanque']
     
     def activar_unidades(self, request, queryset):
         """Activa las unidades seleccionadas"""
@@ -191,3 +191,39 @@ class UnidadAdmin(admin.ModelAdmin):
             }
         )
     actualizar_rendimiento.short_description = '⛽ Actualizar rendimiento de combustible'
+
+    def actualizar_capacidad_tanque(self, request, queryset):
+        """Establece la capacidad del tanque de combustible a varias unidades"""
+        if 'confirmado' in request.POST:
+            try:
+                nueva_capacidad = Decimal(request.POST.get('capacidad_combustible', '0'))
+            except (InvalidOperation, ValueError):
+                self.message_user(
+                    request, 'Valor de capacidad inválido.', messages.ERROR
+                )
+                return
+
+            if nueva_capacidad <= 0:
+                self.message_user(
+                    request, 'La capacidad debe ser mayor a 0.', messages.ERROR
+                )
+                return
+
+            updated = queryset.update(capacidad_combustible=nueva_capacidad)
+            self.message_user(
+                request,
+                f'Capacidad de tanque actualizada a {nueva_capacidad} lt en {updated} unidad(es).',
+                messages.SUCCESS
+            )
+            return
+
+        return render(
+            request,
+            'admin/unidades/actualizar_capacidad_tanque.html',
+            {
+                'unidades': queryset.order_by('numero_economico'),
+                'opts': self.model._meta,
+                'title': 'Actualizar Capacidad de Tanque',
+            }
+        )
+    actualizar_capacidad_tanque.short_description = '🛢️ Actualizar capacidad de tanque'
