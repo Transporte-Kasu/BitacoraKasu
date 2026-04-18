@@ -1119,4 +1119,120 @@ gunicorn                          # WSGI server
 
 ---
 
-*Última actualización: 2026-03-18 (OCR Vision API + AlertaCombustible KILOMETRAJE_MENOR + ReporteFalla módulo taller + ServicioMantenimiento/ReporteTaller services + módulo reportes completo + RF- folio + GOOGLE_VISION_API_KEY)*
+## Sistema de Diseño UI
+
+> Estándares de interfaz para todos los formularios y vistas del sistema. **Desktop-first** (uso interno en oficina). Stack visual: Tailwind CSS vía CDN + CSS nativo en bloque `extra_css`.
+
+### Restricciones técnicas
+
+- **Tailwind CDN**: No soporta `@apply` en bloques `<style>`. Usar clases Tailwind inline o CSS nativo en `extra_css`.
+- **Sin emojis como íconos**: Usar exclusivamente SVG Heroicons (stroke-width 2px, stroke-linecap/linejoin round). Stroke consistente en toda la UI.
+- **Clases de widgets Django**: Los widgets usan `form-control` (inputs/selects/textareas) y `form-check-input` (checkboxes). Estilizar apuntando a estas clases en `extra_css`.
+
+### Layout de formularios
+
+**Patrón estándar para formularios de creación/edición (desktop-first):**
+
+```
+[Encabezado: ← botón volver + título + breadcrumb]
+[Errores generales (si hay)]
+[Grid xl:grid-cols-3]
+  Columna principal (xl:col-span-2):
+    Cards con secciones lógicas de campos
+  Columna lateral (1 col):
+    Card: campo de asignación (FK principal)
+    Card: estado / toggle
+    Card: botones de acción (sticky visualmente)
+```
+
+- Columna lateral contiene siempre los **botones de acción** (primario azul full-width + cancelar gris)
+- Sin scroll innecesario: acciones siempre visibles en viewport desktop
+
+### Clases CSS reutilizables (definir en `extra_css` de cada template)
+
+| Clase | Descripción |
+|-------|-------------|
+| `.form-control` | Input/select/textarea: border slate-300, radius 0.5rem, focus ring azul, hover sutil |
+| `.form-control.is-invalid` | Estado de error: border rojo, shadow rojo tenue |
+| `select.form-control` | Chevron SVG personalizado vía `background-image`, `appearance: none` |
+| `.toggle-switch` | Wrapper `<label>` para toggle. Contiene `<input type="checkbox">` + `<span class="toggle-track">` |
+| `.toggle-track` | Pista del toggle: 2.75rem × 1.5rem, verde (#22c55e) cuando checked, slate cuando unchecked |
+| `.form-section-label` | Encabezado de sección: uppercase 0.6875rem, slate-400, línea decorativa `::after` |
+
+### Toggle switch (activo/inactivo)
+
+Patrón HTML estándar para campos booleanos importantes:
+
+```html
+<label class="toggle-switch" for="id_campo">
+    {{ form.campo }}          {# <input type="checkbox"> — oculto con CSS #}
+    <span class="toggle-track"></span>
+</label>
+```
+
+**JS para campos dependientes** (ej. fecha_baja visible solo si activo=False):
+
+```js
+const toggle = document.getElementById('id_activo');
+const grupo  = document.getElementById('fechaBajaGroup');
+function sync() {
+    grupo.classList.toggle('hidden', toggle.checked);
+}
+toggle.addEventListener('change', sync);
+sync(); // estado inicial al cargar
+```
+
+### Marcado de errores del servidor
+
+Al recargar con errores de validación de Django, marcar el input afectado con `.is-invalid`:
+
+```js
+document.querySelectorAll('p[role="alert"]').forEach(function(p) {
+    const field = p.closest('div')?.querySelector('.form-control');
+    if (field) field.classList.add('is-invalid');
+});
+```
+
+Los mensajes de error van en `<p role="alert" class="mt-1 text-xs text-red-600 ...">` bajo cada campo.
+
+### Encabezado de página estándar
+
+```html
+<div class="flex items-center gap-3 mb-6">
+    <a href="..." class="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
+        {# SVG flecha izquierda #}
+    </a>
+    <div class="min-w-0">
+        <h1 class="text-xl font-bold text-slate-900 leading-tight">Título</h1>
+        <nav class="mt-0.5">
+            <ol class="flex items-center gap-1.5 text-xs text-slate-400">
+                <li><a href="...">Módulo</a></li>
+                <li>/</li>
+                <li class="text-slate-600 font-medium">Subnivel</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+```
+
+### Cards de sección
+
+```html
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <p class="form-section-label">
+        {# SVG ícono 3.5 h-3.5 text-blue-500 #}
+        Nombre de sección
+    </p>
+    {# campos #}
+</div>
+```
+
+### Módulos con formulario mejorado
+
+| Módulo | Template | Estado |
+|--------|----------|--------|
+| `operadores` | `operador_form.html` | Implementado (2026-04-17) |
+
+---
+
+*Última actualización: 2026-04-17 (OCR Vision API + AlertaCombustible KILOMETRAJE_MENOR + ReporteFalla módulo taller + ServicioMantenimiento/ReporteTaller services + módulo reportes completo + RF- folio + GOOGLE_VISION_API_KEY + Sistema de Diseño UI)*
