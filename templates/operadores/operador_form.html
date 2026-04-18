@@ -2,217 +2,376 @@
 
 {% block title %}{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Operador{% endblock %}
 
-{% block content %}
-<!-- Breadcrumb -->
-<nav class="mb-6">
-    <ol class="flex items-center space-x-2 text-sm text-gray-600">
-        <li><a href="{% url 'admin:index' %}" class="hover:text-blue-600">Inicio</a></li>
-        <li><span class="mx-2">/</span></li>
-        <li><a href="{% url 'operadores:dashboard' %}" class="hover:text-blue-600">Operadores</a></li>
-        <li><span class="mx-2">/</span></li>
-        <li class="text-gray-900 font-medium">{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %}</li>
-    </ol>
-</nav>
+{% block extra_css %}
+<style>
+/* === Inputs === */
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: #1e293b;
+    background-color: #fff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    outline: none;
+}
+.form-control:hover:not(:focus) { border-color: #94a3b8; }
+.form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.form-control.is-invalid {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+select.form-control {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+}
+textarea.form-control {
+    resize: vertical;
+    min-height: 5.5rem;
+}
 
-<!-- Header -->
-<div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-900 mb-2">
-        {% if form.instance.pk %}
-            <span class="text-2xl">✏️</span> Editar Operador {{ form.instance.nombre }}
-        {% else %}
-            <span class="text-2xl">➕</span> Nuevo Operador
-        {% endif %}
-    </h1>
-    <p class="text-gray-600">Complete los datos del operador</p>
+/* === Toggle switch para activo === */
+.toggle-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+.toggle-switch input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-track {
+    width: 2.75rem;
+    height: 1.5rem;
+    background: #cbd5e1;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+    position: relative;
+    flex-shrink: 0;
+}
+.toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 1.125rem;
+    height: 1.125rem;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+.toggle-switch input:checked ~ .toggle-track { background: #22c55e; }
+.toggle-switch input:checked ~ .toggle-track::after { transform: translateX(1.25rem); }
+.toggle-switch input:focus ~ .toggle-track { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25); }
+
+/* === Encabezados de sección === */
+.form-section-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.form-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Encabezado de página -->
+<div class="flex items-center gap-3 mb-6">
+    <a href="{{ request.GET.next|default:'' }}{% if not request.GET.next %}{% url 'operadores:list' %}{% endif %}"
+       class="flex-shrink-0 p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors"
+       title="Volver">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/>
+        </svg>
+    </a>
+    <div class="min-w-0">
+        <h1 class="text-xl font-bold text-slate-900 leading-tight">
+            {% if form.instance.pk %}Editar operador{% else %}Nuevo operador{% endif %}
+        </h1>
+        <nav class="mt-0.5">
+            <ol class="flex items-center gap-1.5 text-xs text-slate-400">
+                <li><a href="{% url 'operadores:dashboard' %}" class="hover:text-blue-600 transition-colors">Operadores</a></li>
+                <li>/</li>
+                <li class="text-slate-600 font-medium">
+                    {% if form.instance.pk %}{{ form.instance.nombre }}{% else %}Nuevo{% endif %}
+                </li>
+            </ol>
+        </nav>
+    </div>
 </div>
 
-<!-- Formulario -->
-<div class="max-w-4xl mx-auto">
-    <form method="post" class="space-y-6">
-        {% csrf_token %}
-        
-        <!-- Errores generales del formulario -->
-        {% if form.non_field_errors %}
-        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-            <div class="flex items-center">
-                <span class="text-2xl mr-3">⚠️</span>
-                <div>
-                    <h3 class="text-red-800 font-medium">Errores en el formulario:</h3>
-                    <ul class="list-disc list-inside text-red-700 text-sm mt-1">
-                        {% for error in form.non_field_errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
+<!-- Errores generales -->
+{% if form.non_field_errors %}
+<div class="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+    </svg>
+    <div>
+        <p class="text-sm font-semibold text-red-700">Corrige los siguientes errores:</p>
+        <ul class="mt-1 space-y-0.5">
+            {% for error in form.non_field_errors %}
+            <li class="text-sm text-red-600">{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<form method="post" id="operadorForm" novalidate>
+    {% csrf_token %}
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        <!-- ── Columna principal (2/3 en XL) ── -->
+        <div class="xl:col-span-2 space-y-5">
+
+            <!-- Card: Datos del operador -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
+                    </svg>
+                    Datos del operador
+                </p>
+
+                <div class="space-y-4">
+                    <!-- Nombre completo (ancho total) -->
+                    <div>
+                        <label for="id_nombre" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Nombre completo <span class="text-red-500" aria-hidden="true">*</span>
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                        <p class="mt-1 text-xs text-red-600 flex items-center gap-1" role="alert">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+                            </svg>
+                            {{ form.nombre.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tipo + Licencia en 2 columnas -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="id_tipo" class="block text-sm font-medium text-slate-700 mb-1.5">
+                                Tipo de operador <span class="text-red-500" aria-hidden="true">*</span>
+                            </label>
+                            {{ form.tipo }}
+                            {% if form.tipo.errors %}
+                            <p class="mt-1 text-xs text-red-600" role="alert">{{ form.tipo.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="id_licencia" class="block text-sm font-medium text-slate-700 mb-1.5">
+                                Núm. de licencia
+                            </label>
+                            {{ form.licencia }}
+                            {% if form.licencia.errors %}
+                            <p class="mt-1 text-xs text-red-600" role="alert">{{ form.licencia.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        {% endif %}
 
-        <!-- Sección: Información Personal -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
-                👤 Información Personal
-            </h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Nombre -->
-                <div class="md:col-span-2">
-                    <label for="id_nombre" class="block text-sm font-medium text-gray-700 mb-2">
-                        Nombre Completo <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.nombre }}
-                    {% if form.nombre.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.nombre.errors.0 }}</p>
-                    {% endif %}
+            <!-- Card: Contacto -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/>
+                    </svg>
+                    Contacto
+                </p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="id_telefono" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Teléfono
+                        </label>
+                        {{ form.telefono }}
+                        {% if form.telefono.errors %}
+                        <p class="mt-1 text-xs text-red-600" role="alert">{{ form.telefono.errors.0 }}</p>
+                        {% else %}
+                        <p class="mt-1 text-xs text-slate-400">10 dígitos, ej. 7771234567</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="id_email" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Correo electrónico
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <p class="mt-1 text-xs text-red-600" role="alert">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
                 </div>
+            </div>
 
-                <!-- Tipo -->
-                <div>
-                    <label for="id_tipo" class="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo de Operador <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.tipo }}
-                    {% if form.tipo.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.tipo.errors.0 }}</p>
-                    {% endif %}
-                    <p class="mt-1 text-xs text-gray-500">Local, Foráneo o Esperanza</p>
-                </div>
-
-                <!-- Licencia -->
-                <div>
-                    <label for="id_licencia" class="block text-sm font-medium text-gray-700 mb-2">
-                        Número de Licencia
-                    </label>
-                    {{ form.licencia }}
-                    {% if form.licencia.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.licencia.errors.0 }}</p>
-                    {% endif %}
-                </div>
+            <!-- Card: Notas -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/>
+                    </svg>
+                    Notas adicionales
+                </p>
+                <label for="id_notas" class="sr-only">Notas adicionales</label>
+                {{ form.notas }}
+                {% if form.notas.errors %}
+                <p class="mt-1 text-xs text-red-600" role="alert">{{ form.notas.errors.0 }}</p>
+                {% else %}
+                <p class="mt-1.5 text-xs text-slate-400">Observaciones, restricciones o cualquier información relevante del operador.</p>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Sección: Asignación -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
-                🚛 Asignación de Unidad
-            </h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Unidad Asignada -->
-                <div class="md:col-span-2">
-                    <label for="id_unidad_asignada" class="block text-sm font-medium text-gray-700 mb-2">
-                        Unidad Asignada
+        <!-- ── Columna lateral (1/3 en XL) ── -->
+        <div class="space-y-5">
+
+            <!-- Card: Unidad asignada -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+                    </svg>
+                    Unidad asignada
+                </p>
+                <label for="id_unidad_asignada" class="sr-only">Unidad asignada</label>
+                {{ form.unidad_asignada }}
+                {% if form.unidad_asignada.errors %}
+                <p class="mt-1 text-xs text-red-600" role="alert">{{ form.unidad_asignada.errors.0 }}</p>
+                {% else %}
+                <p class="mt-1.5 text-xs text-slate-400">Opcional. Se puede asignar después.</p>
+                {% endif %}
+            </div>
+
+            <!-- Card: Estado -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                    Estado
+                </p>
+
+                <!-- Toggle activo/inactivo -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-700">Operador activo</p>
+                        <p class="text-xs text-slate-400 mt-0.5" id="activoHelperText">Puede recibir viajes asignados</p>
+                    </div>
+                    <label class="toggle-switch" for="id_activo" aria-label="Activar o desactivar operador">
+                        {{ form.activo }}
+                        <span class="toggle-track"></span>
                     </label>
-                    {{ form.unidad_asignada }}
-                    {% if form.unidad_asignada.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.unidad_asignada.errors.0 }}</p>
-                    {% endif %}
-                    <p class="mt-1 text-xs text-gray-500">Seleccione la unidad que operará este conductor</p>
                 </div>
 
-                <!-- Estado -->
-                <div class="flex items-center space-x-3">
-                    {{ form.activo }}
-                    <label for="id_activo" class="text-sm font-medium text-gray-700">
-                        Operador Activo
-                    </label>
-                </div>
-
-                <!-- Fecha de Baja -->
-                <div>
-                    <label for="id_fecha_baja" class="block text-sm font-medium text-gray-700 mb-2">
-                        Fecha de Baja (solo para inactivos)
+                <!-- Fecha de baja (visible solo si inactivo) -->
+                <div id="fechaBajaGroup" class="mt-4 pt-4 border-t border-slate-100 hidden">
+                    <label for="id_fecha_baja" class="block text-sm font-medium text-slate-700 mb-1.5">
+                        Fecha de baja <span class="text-red-500" aria-hidden="true">*</span>
                     </label>
                     {{ form.fecha_baja }}
                     {% if form.fecha_baja.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.fecha_baja.errors.0 }}</p>
+                    <p class="mt-1 text-xs text-red-600" role="alert">{{ form.fecha_baja.errors.0 }}</p>
+                    {% else %}
+                    <p class="mt-1.5 text-xs text-slate-400">Requerida al desactivar un operador.</p>
                     {% endif %}
                 </div>
             </div>
-        </div>
 
-        <!-- Sección: Información de Contacto -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
-                📞 Información de Contacto
-            </h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Teléfono -->
-                <div>
-                    <label for="id_telefono" class="block text-sm font-medium text-gray-700 mb-2">
-                        Teléfono
-                    </label>
-                    {{ form.telefono }}
-                    {% if form.telefono.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.telefono.errors.0 }}</p>
+            <!-- Card: Acciones -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
+                <button type="submit"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm cursor-pointer">
+                    {% if form.instance.pk %}
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                    Guardar cambios
+                    {% else %}
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+                    Crear operador
                     {% endif %}
-                    <p class="mt-1 text-xs text-gray-500">Formato: (código de área) número</p>
-                </div>
+                </button>
+                <a href="{{ request.GET.next|default:'' }}{% if not request.GET.next %}{% url 'operadores:list' %}{% endif %}"
+                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                    </svg>
+                    Cancelar
+                </a>
 
-                <!-- Email -->
-                <div>
-                    <label for="id_email" class="block text-sm font-medium text-gray-700 mb-2">
-                        Correo Electrónico
-                    </label>
-                    {{ form.email }}
-                    {% if form.email.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
-                    {% endif %}
-                </div>
+                <!-- Indicador campos requeridos -->
+                <p class="text-xs text-slate-400 text-center pt-1">
+                    <span class="text-red-400">*</span> Campo requerido
+                </p>
             </div>
-        </div>
 
-        <!-- Sección: Notas -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-3">
-                📝 Notas Adicionales
-            </h2>
-            
-            <div>
-                <label for="id_notas" class="block text-sm font-medium text-gray-700 mb-2">
-                    Notas
-                </label>
-                {{ form.notas }}
-                {% if form.notas.errors %}
-                <p class="mt-1 text-sm text-red-600">{{ form.notas.errors.0 }}</p>
-                {% endif %}
-                <p class="mt-1 text-xs text-gray-500">Información adicional sobre el operador</p>
-            </div>
         </div>
-
-        <!-- Botones de Acción -->
-        <div class="flex justify-end space-x-4 pt-4">
-            <a href="{{ request.GET.next|default:'' }}{% if not request.GET.next %}{% url 'operadores:list' %}{% endif %}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 font-medium">
-                Cancelar
-            </a>
-            <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
-                {% if form.instance.pk %}
-                    💾 Guardar Cambios
-                {% else %}
-                    ➕ Crear Operador
-                {% endif %}
-            </button>
-        </div>
-    </form>
-</div>
+    </div>
+</form>
 
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    /* Personalización de campos de formulario con Tailwind */
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    input[type="email"],
-    select,
-    textarea {
-        @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200;
+{% block extra_js %}
+<script>
+(function () {
+    const toggleActivo   = document.getElementById('id_activo');
+    const fechaBajaGroup = document.getElementById('fechaBajaGroup');
+    const helperText     = document.getElementById('activoHelperText');
+
+    function syncEstado() {
+        const activo = toggleActivo.checked;
+        if (activo) {
+            fechaBajaGroup.classList.add('hidden');
+            helperText.textContent = 'Puede recibir viajes asignados';
+        } else {
+            fechaBajaGroup.classList.remove('hidden');
+            helperText.textContent = 'Operador dado de baja';
+        }
     }
-    
-    input[type="checkbox"] {
-        @apply w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500;
+
+    if (toggleActivo && fechaBajaGroup) {
+        toggleActivo.addEventListener('change', syncEstado);
+        syncEstado(); // estado inicial
     }
-</style>
+
+    // Marcar inputs con error al cargar (validación del servidor)
+    document.querySelectorAll('p[role="alert"]').forEach(function (errMsg) {
+        const field = errMsg.closest('div')?.querySelector('.form-control');
+        if (field) field.classList.add('is-invalid');
+    });
+})();
+</script>
 {% endblock %}
