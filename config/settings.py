@@ -202,6 +202,7 @@ IA_ALERTAS_COMBUSTIBLE_EMAILS = env.list(
     default=[
         'gerencia.general@transporteskasu.com.mx',
         'f.suarez@loginco.com.mx',
+        'administracion@transporteskasu.com.mx',
         'xoyocl2@gmail.com',
     ]
 )
