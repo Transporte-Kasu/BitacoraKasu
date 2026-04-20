@@ -1,164 +1,151 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Órdenes de Trabajo - Taller{% endblock %}
+{% block title %}Órdenes de Trabajo — Taller{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* ── Badges de estado ─────────────────────────────── */
-    .priority-badge {
-        display: inline-block;
-        padding: 0.2rem 0.65rem;
-        border-radius: 9999px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        white-space: nowrap;
-    }
-    .priority-baja    { background-color: #d1fae5; color: #065f46; }
-    .priority-media   { background-color: #fef3c7; color: #92400e; }
-    .priority-alta    { background-color: #fed7aa; color: #9a3412; }
-    .priority-critica { background-color: #fee2e2; color: #991b1b; }
+/* ── Badges de estado ───────────────────────────────── */
+.priority-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+.priority-baja    { background: #d1fae5; color: #065f46; }
+.priority-media   { background: #fef3c7; color: #92400e; }
+.priority-alta    { background: #fed7aa; color: #9a3412; }
+.priority-critica { background: #fee2e2; color: #991b1b; }
 
-    .estado-badge {
-        display: inline-block;
-        padding: 0.2rem 0.65rem;
-        border-radius: 0.375rem;
-        font-size: 0.7rem;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-    .estado-pendiente        { background-color: #e5e7eb; color: #374151; }
-    .estado-en_diagnostico   { background-color: #dbeafe; color: #1e40af; }
-    .estado-esperando_piezas { background-color: #fef3c7; color: #92400e; }
-    .estado-en_reparacion    { background-color: #ddd6fe; color: #5b21b6; }
-    .estado-en_pruebas       { background-color: #bfdbfe; color: #1e3a8a; }
-    .estado-completada       { background-color: #d1fae5; color: #065f46; }
-    .estado-cancelada        { background-color: #fee2e2; color: #991b1b; }
+.estado-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.375rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.estado-pendiente        { background: #e5e7eb; color: #374151; }
+.estado-en_diagnostico   { background: #dbeafe; color: #1e40af; }
+.estado-esperando_piezas { background: #fef3c7; color: #92400e; }
+.estado-en_reparacion    { background: #ddd6fe; color: #5b21b6; }
+.estado-en_pruebas       { background: #bfdbfe; color: #1e3a8a; }
+.estado-completada       { background: #d1fae5; color: #065f46; }
+.estado-cancelada        { background: #fee2e2; color: #991b1b; }
 
-    /* ── Cards móvil ──────────────────────────────────── */
-    .orden-card {
-        background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        border: 1px solid #e5e7eb;
-        padding: 1rem;
-        transition: box-shadow 0.15s;
-    }
-    .orden-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
-    }
-    .orden-card.critica {
-        border-left: 4px solid #ef4444;
-    }
+/* ── Filtros ────────────────────────────────────────── */
+.filtro-input, .filtro-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: #1e293b;
+    background: white;
+    min-height: 40px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+}
+.filtro-input:focus, .filtro-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+select.filtro-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 1rem;
+    padding-right: 2.25rem;
+    cursor: pointer;
+}
 
-    /* ── Tabla escritorio ─────────────────────────────── */
-    .tabla-ordenes {
-        display: none;
-    }
-
-    @media (min-width: 768px) {
-        .tabla-ordenes   { display: block; }
-        .cards-ordenes   { display: none; }
-    }
-
-    /* ── Inputs accesibles ────────────────────────────── */
-    .filtro-input, .filtro-select {
-        width: 100%;
-        padding: 0.625rem 0.875rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        color: #111827;
-        background: white;
-        min-height: 44px;
-        transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .filtro-input:focus, .filtro-select:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
-    }
+/* ── Vista toggle ───────────────────────────────────── */
+#vista-tabla-wrapper { display: none; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
 
-    <!-- Encabezado ───────────────────────────────────────── -->
-    <div class="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <!-- Encabezado ─────────────────────────────────────── -->
+    <div class="dash-page-header">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Órdenes de Trabajo</h1>
-            <p class="text-gray-500 mt-0.5 text-sm">Gestión de órdenes del taller</p>
+            <h1 class="dash-page-title">Órdenes de Trabajo</h1>
+            <p class="dash-page-subtitle">
+                {{ ordenes|length }} orden{{ ordenes|length|pluralize:"es" }}
+                {% with activas=ordenes|length %}{% endwith %}
+            </p>
         </div>
-        <a href="{% url 'taller:crear_orden' %}"
-           class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
-                  px-5 py-2.5 rounded-lg font-semibold text-sm transition min-h-[44px]">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Nueva Orden
-        </a>
+        <div class="dash-page-actions">
+            <a href="{% url 'taller:dashboard' %}"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200
+                      text-gray-700 text-sm font-semibold rounded-lg transition min-h-[40px]">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="{% url 'taller:crear_orden' %}"
+               class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700
+                      text-white text-sm font-semibold rounded-lg transition min-h-[40px]
+                      focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                Nueva Orden
+            </a>
+        </div>
     </div>
 
-    <!-- Filtros ──────────────────────────────────────────── -->
-    <section aria-label="Filtros de búsqueda"
-             class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
-        <form method="get">
-            <!-- Búsqueda general -->
-            <div class="mb-3">
-                <label for="q" class="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                    Buscar
-                </label>
-                <input
-                    type="search"
-                    id="q"
-                    name="q"
-                    value="{{ request.GET.q }}"
-                    placeholder="Folio, descripción, unidad o placa…"
-                    class="filtro-input"
-                    autocomplete="off"
-                >
-            </div>
+    <!-- Filtros ─────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+        <form method="get" role="search" aria-label="Filtros de órdenes">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
-            <!-- Filtros en grid responsive -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-                <!-- Estado -->
+                <div class="sm:col-span-2">
+                    <label for="q" class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Buscar</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" aria-hidden="true">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                            </svg>
+                        </span>
+                        <input type="search" id="q" name="q" value="{{ request.GET.q }}"
+                               placeholder="Folio, descripción, unidad o placa…"
+                               class="filtro-input pl-9" autocomplete="off">
+                    </div>
+                </div>
+
                 <div>
-                    <label for="filtro-estado" class="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                        Estado
-                    </label>
+                    <label for="filtro-estado" class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Estado</label>
                     <select id="filtro-estado" name="estado" class="filtro-select">
                         <option value="">Todos los estados</option>
                         {% for valor, nombre in estados %}
-                        <option value="{{ valor }}" {% if request.GET.estado == valor %}selected{% endif %}>
-                            {{ nombre }}
-                        </option>
+                        <option value="{{ valor }}" {% if request.GET.estado == valor %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Prioridad -->
                 <div>
-                    <label for="filtro-prioridad" class="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                        Prioridad
-                    </label>
+                    <label for="filtro-prioridad" class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Prioridad</label>
                     <select id="filtro-prioridad" name="prioridad" class="filtro-select">
-                        <option value="">Todas las prioridades</option>
+                        <option value="">Todas</option>
                         {% for valor, nombre in prioridades %}
-                        <option value="{{ valor }}" {% if request.GET.prioridad == valor %}selected{% endif %}>
-                            {{ nombre }}
-                        </option>
+                        <option value="{{ valor }}" {% if request.GET.prioridad == valor %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Unidad -->
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                 <div>
-                    <label for="filtro-unidad" class="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                        Unidad
-                    </label>
+                    <label for="filtro-unidad" class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Unidad</label>
                     <select id="filtro-unidad" name="unidad" class="filtro-select">
                         <option value="">Todas las unidades</option>
                         {% for unidad in unidades %}
@@ -169,195 +156,277 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Mecánico -->
                 <div>
-                    <label for="filtro-mecanico" class="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                        Mecánico
-                    </label>
-                    <input
-                        type="text"
-                        id="filtro-mecanico"
-                        name="mecanico"
-                        value="{{ request.GET.mecanico }}"
-                        placeholder="Nombre o ID"
-                        class="filtro-input"
-                    >
+                    <label for="filtro-mecanico" class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Mecánico (ID)</label>
+                    <input type="text" id="filtro-mecanico" name="mecanico"
+                           value="{{ request.GET.mecanico }}"
+                           placeholder="ID del mecánico"
+                           class="filtro-input">
                 </div>
             </div>
 
-            <!-- Botones -->
-            <div class="flex flex-wrap gap-2">
-                <button type="submit"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg
-                               font-semibold text-sm transition min-h-[44px]">
-                    Filtrar
-                </button>
-                <a href="{% url 'taller:lista_ordenes' %}"
-                   class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg
-                          font-semibold text-sm transition min-h-[44px] inline-flex items-center">
-                    Limpiar filtros
-                </a>
+            <div class="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-100">
+                <div class="flex items-center gap-2">
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700
+                                   text-white text-sm font-semibold rounded-lg transition cursor-pointer
+                                   focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"/>
+                        </svg>
+                        Filtrar
+                    </button>
+                    <a href="{% url 'taller:lista_ordenes' %}"
+                       class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium rounded-lg transition cursor-pointer">
+                        Limpiar
+                    </a>
+                    {% if request.GET.q or request.GET.estado or request.GET.prioridad or request.GET.unidad or request.GET.mecanico %}
+                    <span class="text-xs text-slate-400 font-medium">{{ ordenes|length }} resultado{{ ordenes|length|pluralize:"s" }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Toggle tarjetas / tabla -->
+                <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1" role="group" aria-label="Cambiar vista">
+                    <button type="button" id="btn-vista-cards" onclick="setVista('cards')"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer
+                                   bg-white text-blue-600 shadow-sm" aria-pressed="true">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/>
+                        </svg>
+                        Tarjetas
+                    </button>
+                    <button type="button" id="btn-vista-tabla" onclick="setVista('tabla')"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer
+                                   text-slate-500 hover:text-slate-700" aria-pressed="false">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0 1 18 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0 1 18 9.375v1.5m1.5-3.75C19.496 8.25 20.25 8.754 20.25 9.375v1.5m0-5.25v5.25"/>
+                        </svg>
+                        Tabla
+                    </button>
+                </div>
             </div>
         </form>
-    </section>
-
-    <!-- Vista CARDS (móvil < 768px) ──────────────────────── -->
-    <div class="cards-ordenes space-y-3">
-        {% for orden in ordenes %}
-        <article class="orden-card {% if orden.dias_en_taller > 7 %}critica{% endif %}"
-                 aria-label="Orden {{ orden.folio }}">
-            <div class="flex justify-between items-start mb-2">
-                <div>
-                    <a href="{% url 'taller:detalle_orden' orden.folio %}"
-                       class="font-bold text-blue-700 text-base hover:underline">
-                        {{ orden.folio }}
-                    </a>
-                    <p class="text-sm font-semibold text-gray-800 mt-0.5">
-                        {{ orden.unidad.numero_economico }}
-                        <span class="text-gray-400 font-normal">{{ orden.unidad.placa }}</span>
-                    </p>
-                </div>
-                <div class="flex flex-col items-end gap-1">
-                    <span class="estado-badge estado-{{ orden.estado|lower }}">
-                        {{ orden.get_estado_display }}
-                    </span>
-                    <span class="priority-badge priority-{{ orden.prioridad|lower }}">
-                        {{ orden.get_prioridad_display }}
-                    </span>
-                </div>
-            </div>
-
-            {% if orden.descripcion_problema %}
-            <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ orden.descripcion_problema|truncatewords:15 }}</p>
-            {% endif %}
-
-            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 border-t pt-2 mt-2">
-                <span>{{ orden.fecha_creacion|date:"d/m/Y" }}</span>
-                {% if orden.mecanico_asignado %}
-                <span>{{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}</span>
-                {% else %}
-                <span class="italic">Sin mecánico</span>
-                {% endif %}
-                {% if orden.dias_en_taller > 0 %}
-                <span class="{% if orden.dias_en_taller > 7 %}text-red-600 font-semibold{% endif %}">
-                    {{ orden.dias_en_taller }} día{{ orden.dias_en_taller|pluralize }}
-                </span>
-                {% endif %}
-            </div>
-        </article>
-        {% empty %}
-        <div class="bg-white rounded-xl border border-gray-100 px-6 py-12 text-center text-gray-400">
-            <p class="text-4xl mb-3" aria-hidden="true">&#128269;</p>
-            <p class="font-medium">No se encontraron órdenes con los filtros aplicados</p>
-        </div>
-        {% endfor %}
     </div>
 
-    <!-- Vista TABLA (escritorio >= 768px) ────────────────── -->
-    <div class="tabla-ordenes bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Folio</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Unidad</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descripción</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Prioridad</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mecánico</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            <abbr title="Días en taller">Días</abbr>
-                        </th>
-                        <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            <span class="sr-only">Acciones</span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-100">
-                    {% for orden in ordenes %}
-                    <tr class="hover:bg-gray-50 transition-colors {% if orden.dias_en_taller > 7 %}bg-red-50{% endif %}">
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <a href="{% url 'taller:detalle_orden' orden.folio %}"
-                               class="font-bold text-blue-700 hover:underline text-sm">
-                                {{ orden.folio }}
-                            </a>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <div class="text-sm font-semibold text-gray-900">{{ orden.unidad.numero_economico }}</div>
-                            <div class="text-xs text-gray-500">{{ orden.unidad.placa }}</div>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                            {% if orden.tipo_mantenimiento %}
-                                <span title="{{ orden.tipo_mantenimiento.nombre }}">
-                                    {{ orden.tipo_mantenimiento.nombre|truncatewords:2 }}
-                                </span>
-                            {% else %}
-                                <span class="text-gray-400">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs">
-                            <span class="block truncate" title="{{ orden.descripcion_problema }}">
-                                {{ orden.descripcion_problema|truncatewords:8 }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="estado-badge estado-{{ orden.estado|lower }}">
-                                {{ orden.get_estado_display }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="priority-badge priority-{{ orden.prioridad|lower }}">
-                                {{ orden.get_prioridad_display }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                            {% if orden.mecanico_asignado %}
-                                {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
-                            {% else %}
-                                <span class="text-gray-400">Sin asignar</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                            {{ orden.fecha_creacion|date:"d/m/Y" }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm">
-                            {% if orden.dias_en_taller > 7 %}
-                                <span class="text-red-600 font-bold">{{ orden.dias_en_taller }}</span>
-                            {% elif orden.dias_en_taller > 0 %}
-                                <span class="text-yellow-700">{{ orden.dias_en_taller }}</span>
-                            {% else %}
-                                <span class="text-gray-400">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-right">
-                            <a href="{% url 'taller:detalle_orden' orden.folio %}"
-                               class="text-blue-600 hover:text-blue-800 text-sm font-semibold">
-                                Ver
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="10" class="px-4 py-12 text-center text-gray-400">
-                            <p class="text-3xl mb-3" aria-hidden="true">&#128269;</p>
-                            <p>No se encontraron órdenes con los filtros aplicados</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Contador de resultados -->
     {% if ordenes %}
-    <p class="mt-3 text-sm text-gray-400">
-        {{ ordenes|length }} orden{{ ordenes|length|pluralize:"es" }} encontrada{{ ordenes|length|pluralize:"s" }}
-    </p>
+
+    <!-- Vista TARJETAS ──────────────────────────────────── -->
+    <div id="vista-cards-wrapper">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for orden in ordenes %}
+            <article class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md
+                            transition-shadow overflow-hidden
+                            {% if orden.prioridad == 'CRITICA' %}border-l-4 border-l-red-500{% elif orden.prioridad == 'ALTA' %}border-l-4 border-l-orange-400{% endif %}"
+                     aria-label="Orden {{ orden.folio }}">
+
+                <!-- Cabecera de la tarjeta -->
+                <div class="px-4 pt-4 pb-3 border-b border-slate-100">
+                    <div class="flex items-start justify-between gap-2">
+                        <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                           class="text-sm font-bold text-blue-700 hover:text-blue-900 hover:underline leading-tight">
+                            {{ orden.folio }}
+                        </a>
+                        <span class="estado-badge estado-{{ orden.estado|lower }} flex-shrink-0">
+                            {{ orden.get_estado_display }}
+                        </span>
+                    </div>
+                    <div class="mt-1.5 flex items-center gap-2">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-900 leading-none">{{ orden.unidad.numero_economico }}</p>
+                                <p class="text-xs text-slate-400 mt-0.5">{{ orden.unidad.placa }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cuerpo -->
+                <div class="px-4 py-3">
+                    {% if orden.descripcion_problema %}
+                    <p class="text-sm text-slate-600 line-clamp-2 mb-3">{{ orden.descripcion_problema|truncatewords:12 }}</p>
+                    {% endif %}
+
+                    <div class="flex flex-wrap gap-1.5 mb-3">
+                        <span class="priority-badge priority-{{ orden.prioridad|lower }}">{{ orden.get_prioridad_display }}</span>
+                        {% if orden.tipo_mantenimiento %}
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                            {{ orden.tipo_mantenimiento.nombre|truncatechars:20 }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs text-slate-400 border-t border-slate-50 pt-2.5">
+                        <div class="flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/>
+                            </svg>
+                            {{ orden.fecha_creacion|date:"d/m/Y" }}
+                        </div>
+                        {% if orden.dias_en_taller > 0 %}
+                        <span class="{% if orden.dias_en_taller > 7 %}text-red-600 font-bold{% else %}text-slate-400{% endif %}">
+                            {{ orden.dias_en_taller }} día{{ orden.dias_en_taller|pluralize }}
+                        </span>
+                        {% endif %}
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                               class="font-semibold text-blue-600 hover:text-blue-800 hover:underline">Ver</a>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Vista TABLA ─────────────────────────────────────── -->
+    <div id="vista-tabla-wrapper">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Folio</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Unidad</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Descripción</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Prioridad</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mecánico</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
+                            <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Días</th>
+                            <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider"><span class="sr-only">Acciones</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-50">
+                        {% for orden in ordenes %}
+                        <tr class="hover:bg-blue-50 transition-colors cursor-pointer {% if orden.dias_en_taller > 7 %}bg-red-50{% endif %}"
+                            onclick="window.location='{% url 'taller:detalle_orden' orden.folio %}'">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                                   class="text-sm font-bold text-blue-700 hover:underline"
+                                   onclick="event.stopPropagation()">
+                                    {{ orden.folio }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm font-semibold text-slate-900">{{ orden.unidad.numero_economico }}</div>
+                                <div class="text-xs text-slate-400">{{ orden.unidad.placa }}</div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+                                {% if orden.tipo_mantenimiento %}
+                                <span title="{{ orden.tipo_mantenimiento.nombre }}">{{ orden.tipo_mantenimiento.nombre|truncatechars:16 }}</span>
+                                {% else %}
+                                <span class="text-slate-300">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-slate-600 max-w-xs">
+                                <span class="block truncate" title="{{ orden.descripcion_problema }}">
+                                    {{ orden.descripcion_problema|truncatewords:8 }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="estado-badge estado-{{ orden.estado|lower }}">{{ orden.get_estado_display }}</span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="priority-badge priority-{{ orden.prioridad|lower }}">{{ orden.get_prioridad_display }}</span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+                                {% if orden.mecanico_asignado %}
+                                    {{ orden.mecanico_asignado.get_full_name|default:orden.mecanico_asignado.username }}
+                                {% else %}
+                                    <span class="text-slate-300">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{{ orden.fecha_creacion|date:"d/m/Y" }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
+                                {% if orden.dias_en_taller > 7 %}
+                                    <span class="text-red-600 font-bold">{{ orden.dias_en_taller }}</span>
+                                {% elif orden.dias_en_taller > 0 %}
+                                    <span class="text-amber-600">{{ orden.dias_en_taller }}</span>
+                                {% else %}
+                                    <span class="text-slate-300">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right" onclick="event.stopPropagation()">
+                                <a href="{% url 'taller:detalle_orden' orden.folio %}"
+                                   class="text-sm font-semibold text-blue-600 hover:text-blue-800">Ver</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Estado vacío ──────────────────────────────────── -->
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+        <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-5" aria-hidden="true">
+            <svg class="w-10 h-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l5.654-4.654m5.896-2.572c.193-.374.315-.795.315-1.237A3.87 3.87 0 0 0 12.244 5H12a3.87 3.87 0 0 0-3.87 3.87c0 .442.122.863.315 1.237m5.896-2.572L12.244 5"/>
+            </svg>
+        </div>
+        <h2 class="text-lg font-semibold text-slate-700 mb-1">No se encontraron órdenes</h2>
+        <p class="text-sm text-slate-500 mb-6 max-w-xs">Ninguna orden coincide con los filtros actuales.</p>
+        <a href="{% url 'taller:lista_ordenes' %}"
+           class="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+            Ver todas las órdenes
+        </a>
+    </div>
     {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    'use strict';
+    var STORAGE_KEY = 'taller_ordenes_vista';
+
+    function setVista(vista) {
+        var isCards   = vista === 'cards';
+        var wCards    = document.getElementById('vista-cards-wrapper');
+        var wTabla    = document.getElementById('vista-tabla-wrapper');
+        var btnCards  = document.getElementById('btn-vista-cards');
+        var btnTabla  = document.getElementById('btn-vista-tabla');
+        if (!wCards || !wTabla) return;
+
+        if (isCards) {
+            wCards.style.display = '';
+            wTabla.style.display = 'none';
+            btnCards.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            btnCards.classList.remove('text-slate-500', 'hover:text-slate-700');
+            btnCards.setAttribute('aria-pressed', 'true');
+            btnTabla.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            btnTabla.classList.add('text-slate-500', 'hover:text-slate-700');
+            btnTabla.setAttribute('aria-pressed', 'false');
+        } else {
+            wCards.style.display = 'none';
+            wTabla.style.display = '';
+            btnTabla.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            btnTabla.classList.remove('text-slate-500', 'hover:text-slate-700');
+            btnTabla.setAttribute('aria-pressed', 'true');
+            btnCards.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            btnCards.classList.add('text-slate-500', 'hover:text-slate-700');
+            btnCards.setAttribute('aria-pressed', 'false');
+        }
+        try { localStorage.setItem(STORAGE_KEY, vista); } catch(e) {}
+    }
+
+    window.setVista = setVista;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var saved = 'cards';
+        try { saved = localStorage.getItem(STORAGE_KEY) || 'cards'; } catch(e) {}
+        setVista(saved);
+    });
+}());
+</script>
 {% endblock %}

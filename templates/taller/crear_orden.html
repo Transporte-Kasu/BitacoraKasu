@@ -1,337 +1,371 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Nueva Orden de Trabajo - Taller{% endblock %}
+{% block title %}{% if es_edicion %}Editar Orden{% else %}Nueva Orden de Trabajo{% endif %} — Taller{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* ── Secciones del formulario ─────────────────────── */
-    .form-section {
-        background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        padding: 1.5rem;
-        margin-bottom: 1.25rem;
-    }
-    .section-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #111827;
-        margin-bottom: 1rem;
-        padding-bottom: 0.625rem;
-        border-bottom: 1px solid #f3f4f6;
-    }
+/* === Inputs === */
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: #1e293b;
+    background-color: #fff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    outline: none;
+    min-height: 42px;
+}
+.form-control:hover:not(:focus) { border-color: #94a3b8; }
+.form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.form-control.is-invalid {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+select.form-control {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+}
+textarea.form-control {
+    resize: vertical;
+    min-height: 5.5rem;
+}
 
-    /* ── Campos de formulario ─────────────────────────── */
-    .form-label {
-        display: block;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 0.375rem;
-    }
-    .form-label .requerido {
-        color: #ef4444;
-        margin-left: 0.15rem;
-    }
-    .form-input,
-    .form-select,
-    .form-textarea {
-        width: 100%;
-        padding: 0.625rem 0.875rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        color: #111827;
-        background: white;
-        min-height: 44px;
-        transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .form-input:focus,
-    .form-select:focus,
-    .form-textarea:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
-    }
-    .form-input:invalid:not(:placeholder-shown),
-    .form-select:invalid:not(:placeholder-shown) {
-        border-color: #ef4444;
-    }
-    .form-textarea {
-        resize: vertical;
-        min-height: 96px;
-    }
-    .form-help {
-        font-size: 0.75rem;
-        color: #6b7280;
-        margin-top: 0.25rem;
-    }
-    .form-group {
-        margin-bottom: 1rem;
-    }
+/* === Sección de formulario === */
+.form-section-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.form-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto py-4 px-4 sm:py-6">
 
-    <!-- Encabezado ───────────────────────────────────────── -->
-    <div class="mb-5 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Nueva Orden de Trabajo</h1>
-            <p class="text-gray-500 mt-0.5 text-sm">Crear una nueva orden para el taller</p>
-        </div>
-        <a href="{% url 'taller:dashboard' %}"
-           class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg
-                  font-semibold text-sm transition min-h-[44px] inline-flex items-center self-start">
-            Cancelar
-        </a>
+<!-- Encabezado de página -->
+<div class="flex items-center gap-3 mb-6">
+    <a href="{% url 'taller:lista_ordenes' %}"
+       class="flex-shrink-0 p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors"
+       title="Volver a lista">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/>
+        </svg>
+    </a>
+    <div class="min-w-0">
+        <h1 class="text-xl font-bold text-slate-900 leading-tight">Nueva Orden de Trabajo</h1>
+        <nav class="mt-0.5">
+            <ol class="flex items-center gap-1.5 text-xs text-slate-400">
+                <li><a href="{% url 'taller:dashboard' %}" class="hover:text-blue-600 transition-colors">Taller</a></li>
+                <li>/</li>
+                <li><a href="{% url 'taller:lista_ordenes' %}" class="hover:text-blue-600 transition-colors">Órdenes</a></li>
+                <li>/</li>
+                <li class="text-slate-600 font-medium">Nueva</li>
+            </ol>
+        </nav>
     </div>
-
-    <form method="post" action="{% url 'taller:crear_orden' %}" novalidate>
-        {% csrf_token %}
-
-        <!-- Sección: Unidad ──────────────────────────────── -->
-        <div class="form-section">
-            <h2 class="section-title">Información de la Unidad</h2>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="form-group">
-                    <label for="unidad" class="form-label">
-                        Unidad <span class="requerido" aria-label="requerido">*</span>
-                    </label>
-                    <select id="unidad" name="unidad" class="form-select" required>
-                        <option value="">Seleccione una unidad</option>
-                        {% for unidad in unidades %}
-                        <option value="{{ unidad.id }}" data-km="{{ unidad.kilometraje_actual }}">
-                            {{ unidad.numero_economico }} — {{ unidad.placa }} ({{ unidad.marca }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="kilometraje_ingreso" class="form-label">
-                        Kilometraje de Ingreso <span class="requerido" aria-label="requerido">*</span>
-                    </label>
-                    <input
-                        type="number"
-                        id="kilometraje_ingreso"
-                        name="kilometraje_ingreso"
-                        class="form-input"
-                        required
-                        min="0"
-                        placeholder="Ej. 125000"
-                        inputmode="numeric"
-                    >
-                    <p class="form-help" id="help-km">
-                        Se actualiza automáticamente al seleccionar la unidad
-                    </p>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="operador_reporta" class="form-label">
-                    Operador que Reporta
-                    <span class="text-gray-400 font-normal">(opcional)</span>
-                </label>
-                <input
-                    type="number"
-                    id="operador_reporta"
-                    name="operador_reporta"
-                    class="form-input"
-                    placeholder="ID del operador"
-                    inputmode="numeric"
-                >
-                <p class="form-help">ID del operador que reporta el problema</p>
-            </div>
-        </div>
-
-        <!-- Sección: Tipo de Mantenimiento ─────────────── -->
-        <div class="form-section">
-            <h2 class="section-title">Tipo de Mantenimiento</h2>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="form-group">
-                    <label for="tipo_mantenimiento" class="form-label">
-                        Tipo de Mantenimiento <span class="requerido" aria-label="requerido">*</span>
-                    </label>
-                    <select id="tipo_mantenimiento" name="tipo_mantenimiento" class="form-select" required>
-                        <option value="">Seleccione un tipo</option>
-                        {% for tipo in tipos_mantenimiento %}
-                        <option value="{{ tipo.id }}">
-                            {{ tipo.nombre }} ({{ tipo.get_tipo_display }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="categoria_falla" class="form-label">
-                        Categoría de Falla
-                        <span class="text-gray-400 font-normal">(opcional)</span>
-                    </label>
-                    <select id="categoria_falla" name="categoria_falla" class="form-select">
-                        <option value="">Sin categoría</option>
-                        {% for categoria in categorias_falla %}
-                        <option value="{{ categoria.id }}">
-                            {{ categoria.nombre }} — Prioridad {{ categoria.get_prioridad_default_display }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sección: Descripción ────────────────────────── -->
-        <div class="form-section">
-            <h2 class="section-title">Descripción del Problema</h2>
-
-            <div class="form-group">
-                <label for="descripcion_problema" class="form-label">
-                    Descripción <span class="requerido" aria-label="requerido">*</span>
-                </label>
-                <textarea
-                    id="descripcion_problema"
-                    name="descripcion_problema"
-                    class="form-textarea"
-                    rows="4"
-                    required
-                    placeholder="Describa detalladamente el problema o servicio requerido…"
-                ></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="sintomas" class="form-label">
-                    Síntomas Observados
-                    <span class="text-gray-400 font-normal">(opcional)</span>
-                </label>
-                <textarea
-                    id="sintomas"
-                    name="sintomas"
-                    class="form-textarea"
-                    rows="3"
-                    placeholder="Síntomas que presenta la unidad…"
-                ></textarea>
-                <p class="form-help">Síntomas observados por el operador o al inspeccionar la unidad</p>
-            </div>
-        </div>
-
-        <!-- Sección: Prioridad y Programación ──────────── -->
-        <div class="form-section">
-            <h2 class="section-title">Prioridad y Programación</h2>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="form-group">
-                    <label for="prioridad" class="form-label">
-                        Prioridad <span class="requerido" aria-label="requerido">*</span>
-                    </label>
-                    <select id="prioridad" name="prioridad" class="form-select" required>
-                        {% for valor, nombre in prioridades %}
-                        <option value="{{ valor }}" {% if valor == "MEDIA" %}selected{% endif %}>
-                            {{ nombre }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <p class="form-help">Nivel de urgencia del servicio o reparación</p>
-                </div>
-
-                <div class="form-group">
-                    <label for="fecha_programada" class="form-label">
-                        Fecha Programada
-                        <span class="text-gray-400 font-normal">(opcional)</span>
-                    </label>
-                    <input
-                        type="date"
-                        id="fecha_programada"
-                        name="fecha_programada"
-                        class="form-input"
-                    >
-                    <p class="form-help">Fecha estimada para realizar el servicio</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sección: Asignación ─────────────────────────── -->
-        <div class="form-section">
-            <h2 class="section-title">Asignación</h2>
-
-            <div class="form-group sm:max-w-xs">
-                <label for="mecanico_asignado" class="form-label">
-                    Mecánico Asignado
-                    <span class="text-gray-400 font-normal">(opcional)</span>
-                </label>
-                <input
-                    type="number"
-                    id="mecanico_asignado"
-                    name="mecanico_asignado"
-                    class="form-input"
-                    placeholder="ID del mecánico"
-                    inputmode="numeric"
-                >
-                <p class="form-help">Se puede asignar después desde el detalle de la orden</p>
-            </div>
-        </div>
-
-        <!-- Sección: Observaciones ──────────────────────── -->
-        <div class="form-section">
-            <h2 class="section-title">Observaciones Adicionales</h2>
-
-            <div class="form-group">
-                <label for="observaciones" class="form-label">
-                    Observaciones
-                    <span class="text-gray-400 font-normal">(opcional)</span>
-                </label>
-                <textarea
-                    id="observaciones"
-                    name="observaciones"
-                    class="form-textarea"
-                    rows="3"
-                    placeholder="Observaciones adicionales sobre la orden…"
-                ></textarea>
-            </div>
-        </div>
-
-        <!-- Botones de Acción ────────────────────────────── -->
-        <div class="flex flex-col sm:flex-row gap-3">
-            <button
-                type="submit"
-                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg
-                       font-semibold text-base transition shadow-sm min-h-[50px]">
-                Crear Orden de Trabajo
-            </button>
-            <a href="{% url 'taller:dashboard' %}"
-               class="sm:w-auto px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold
-                      text-gray-700 hover:bg-gray-50 transition text-center min-h-[50px]
-                      inline-flex items-center justify-center">
-                Cancelar
-            </a>
-        </div>
-    </form>
 </div>
+
+<!-- Mensajes de error global -->
+{% if messages %}
+{% for message in messages %}
+{% if message.tags == 'error' %}
+<div class="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+    </svg>
+    <div>
+        <p class="text-sm font-semibold text-red-700">Error al crear la orden:</p>
+        <p class="text-sm text-red-600 mt-0.5">{{ message }}</p>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
+
+<form method="post" action="{% url 'taller:crear_orden' %}" id="ordenForm" novalidate>
+    {% csrf_token %}
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        <!-- ── Columna principal (2/3) ── -->
+        <div class="xl:col-span-2 space-y-5">
+
+            <!-- Card: Unidad e identificación -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+                    </svg>
+                    Unidad e identificación
+                </p>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Unidad -->
+                        <div>
+                            <label for="unidad" class="block text-sm font-medium text-slate-700 mb-1.5">
+                                Unidad <span class="text-red-500" aria-hidden="true">*</span>
+                            </label>
+                            <select id="unidad" name="unidad" class="form-control" required>
+                                <option value="">Seleccione una unidad</option>
+                                {% for unidad in unidades %}
+                                <option value="{{ unidad.id }}" data-km="{{ unidad.kilometraje_actual }}">
+                                    {{ unidad.numero_economico }} — {{ unidad.placa }}{% if unidad.marca %} ({{ unidad.marca }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Kilometraje -->
+                        <div>
+                            <label for="kilometraje_ingreso" class="block text-sm font-medium text-slate-700 mb-1.5">
+                                Kilometraje de ingreso <span class="text-red-500" aria-hidden="true">*</span>
+                            </label>
+                            <input type="number" id="kilometraje_ingreso" name="kilometraje_ingreso"
+                                   class="form-control" required min="0"
+                                   placeholder="Ej. 125 000" inputmode="numeric">
+                            <p class="mt-1.5 text-xs text-slate-400">Se autocompleta al elegir la unidad</p>
+                        </div>
+                    </div>
+
+                    <!-- Operador que reporta -->
+                    <div class="sm:max-w-xs">
+                        <label for="operador_reporta" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Operador que reporta
+                            <span class="text-slate-400 font-normal">(opcional)</span>
+                        </label>
+                        <input type="number" id="operador_reporta" name="operador_reporta"
+                               class="form-control" placeholder="ID del operador" inputmode="numeric">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Tipo de mantenimiento y falla -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l5.654-4.654m5.896-2.572c.193-.374.315-.795.315-1.237A3.87 3.87 0 0 0 12.244 5H12a3.87 3.87 0 0 0-3.87 3.87c0 .442.122.863.315 1.237m5.896-2.572L12.244 5"/>
+                    </svg>
+                    Clasificación del trabajo
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="tipo_mantenimiento" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Tipo de mantenimiento <span class="text-red-500" aria-hidden="true">*</span>
+                        </label>
+                        <select id="tipo_mantenimiento" name="tipo_mantenimiento" class="form-control" required>
+                            <option value="">Seleccione un tipo</option>
+                            {% for tipo in tipos_mantenimiento %}
+                            <option value="{{ tipo.id }}">{{ tipo.nombre }} ({{ tipo.get_tipo_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="categoria_falla" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Categoría de falla
+                            <span class="text-slate-400 font-normal">(opcional)</span>
+                        </label>
+                        <select id="categoria_falla" name="categoria_falla" class="form-control">
+                            <option value="">Sin categoría</option>
+                            {% for cat in categorias_falla %}
+                            <option value="{{ cat.id }}">{{ cat.nombre }} — {{ cat.get_prioridad_default_display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Descripción del problema -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/>
+                    </svg>
+                    Descripción del problema
+                </p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="descripcion_problema" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Descripción <span class="text-red-500" aria-hidden="true">*</span>
+                        </label>
+                        <textarea id="descripcion_problema" name="descripcion_problema"
+                                  class="form-control" rows="4" required
+                                  placeholder="Describa detalladamente el problema o servicio requerido…"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="sintomas" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Síntomas observados
+                            <span class="text-slate-400 font-normal">(opcional)</span>
+                        </label>
+                        <textarea id="sintomas" name="sintomas"
+                                  class="form-control" rows="3"
+                                  placeholder="Síntomas que presenta la unidad…"></textarea>
+                        <p class="mt-1.5 text-xs text-slate-400">Observaciones del operador al inspeccionar la unidad.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Observaciones adicionales -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/>
+                    </svg>
+                    Observaciones adicionales
+                </p>
+                <label for="observaciones" class="sr-only">Observaciones adicionales</label>
+                <textarea id="observaciones" name="observaciones"
+                          class="form-control" rows="3"
+                          placeholder="Cualquier información adicional relevante…"></textarea>
+            </div>
+        </div>
+
+        <!-- ── Columna lateral (1/3) ── -->
+        <div class="space-y-5">
+
+            <!-- Card: Prioridad y programación -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+                    </svg>
+                    Prioridad y fecha
+                </p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="prioridad" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Prioridad <span class="text-red-500" aria-hidden="true">*</span>
+                        </label>
+                        <select id="prioridad" name="prioridad" class="form-control" required>
+                            {% for valor, nombre in prioridades %}
+                            <option value="{{ valor }}" {% if valor == "MEDIA" %}selected{% endif %}>{{ nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="mt-1.5 text-xs text-slate-400">Nivel de urgencia del servicio.</p>
+                    </div>
+
+                    <div>
+                        <label for="fecha_programada" class="block text-sm font-medium text-slate-700 mb-1.5">
+                            Fecha programada
+                            <span class="text-slate-400 font-normal">(opcional)</span>
+                        </label>
+                        <input type="date" id="fecha_programada" name="fecha_programada"
+                               class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Asignación -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <p class="form-section-label">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
+                    </svg>
+                    Asignación
+                </p>
+
+                <div>
+                    <label for="mecanico_asignado" class="block text-sm font-medium text-slate-700 mb-1.5">
+                        Mecánico asignado
+                        <span class="text-slate-400 font-normal">(opcional)</span>
+                    </label>
+                    <input type="number" id="mecanico_asignado" name="mecanico_asignado"
+                           class="form-control" placeholder="ID del mecánico" inputmode="numeric">
+                    <p class="mt-1.5 text-xs text-slate-400">Se puede asignar desde el detalle de la orden.</p>
+                </div>
+            </div>
+
+            <!-- Card: Acciones -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
+                <button type="submit"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5
+                               bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white
+                               text-sm font-semibold rounded-lg transition-colors shadow-sm cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+                    Crear orden de trabajo
+                </button>
+                <a href="{% url 'taller:lista_ordenes' %}"
+                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5
+                          bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium
+                          rounded-lg transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                    </svg>
+                    Cancelar
+                </a>
+                <p class="text-xs text-slate-400 text-center pt-1">
+                    <span class="text-red-400">*</span> Campo requerido
+                </p>
+            </div>
+
+        </div>
+    </div>
+</form>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Auto-llenar kilometraje al seleccionar unidad
-document.getElementById('unidad').addEventListener('change', function () {
-    const opt = this.options[this.selectedIndex];
-    const km = opt.getAttribute('data-km');
-    const input = document.getElementById('kilometraje_ingreso');
-    if (km) {
-        input.value = km;
-    }
-});
+(function () {
+    // Auto-llenar kilometraje al seleccionar unidad
+    var selectUnidad = document.getElementById('unidad');
+    var inputKm      = document.getElementById('kilometraje_ingreso');
 
-// Validación antes de enviar
-document.querySelector('form').addEventListener('submit', function (e) {
-    const km = parseInt(document.getElementById('kilometraje_ingreso').value, 10);
-    if (!isNaN(km) && km < 0) {
-        e.preventDefault();
-        document.getElementById('kilometraje_ingreso').focus();
-        alert('El kilometraje debe ser un valor igual o mayor a cero.');
+    if (selectUnidad && inputKm) {
+        selectUnidad.addEventListener('change', function () {
+            var km = this.options[this.selectedIndex].getAttribute('data-km');
+            if (km) inputKm.value = km;
+        });
     }
-});
+
+    // Validación básica antes de enviar
+    var form = document.getElementById('ordenForm');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            var km = parseInt(inputKm ? inputKm.value : '', 10);
+            if (!isNaN(km) && km < 0) {
+                e.preventDefault();
+                if (inputKm) { inputKm.focus(); inputKm.classList.add('is-invalid'); }
+            }
+        });
+    }
+
+    // Marcar campos con error del servidor (si existieran vía mensajes)
+    document.querySelectorAll('[role="alert"]').forEach(function (errMsg) {
+        var field = errMsg.closest('div')?.querySelector('.form-control');
+        if (field) field.classList.add('is-invalid');
+    });
+}());
 </script>
 {% endblock %}
