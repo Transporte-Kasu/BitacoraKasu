@@ -10,11 +10,35 @@
     .navbar-menu{display:none}
     body { background: #f3f4f6; }
     .preview-image { max-width: 100%; height: auto; border-radius: 0.5rem; }
-    .radio-card { transition: all 0.2s; }
-    .radio-card input:checked + label {
-        background: #3b82f6;
+
+    /* Tarjetas de nivel de combustible */
+    .nivel-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border-radius: 0.75rem;
+        border: 3px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
         color: white;
-        border-color: #3b82f6;
+        font-weight: 700;
+        font-size: 1.25rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    .nivel-label:hover { filter: brightness(1.08); }
+
+    .nivel-label-cuarto       { background: #ef4444; }
+    .nivel-label-medio        { background: #f97316; }
+    .nivel-label-tres-cuartos { background: #22c55e; }
+
+    /* Estado seleccionado — anillo blanco + sombra */
+    #nivel_CUARTO:checked + .nivel-label-cuarto,
+    #nivel_MEDIO:checked + .nivel-label-medio,
+    #nivel_TRES_CUARTOS:checked + .nivel-label-tres-cuartos {
+        border-color: white;
+        box-shadow: 0 0 0 3px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.2);
     }
 </style>
 {% endblock %}
@@ -102,17 +126,31 @@
                             Nivel de Combustible Inicial
                         </span>
                     </label>
-                    <div class="grid grid-cols-2 gap-3">
-                        {% for value, label in form.nivel_combustible_inicial.field.choices %}
-                        <div class="radio-card">
-                            <input type="radio" id="nivel_{{ value }}" name="nivel_combustible_inicial" value="{{ value }}"
-                                   class="hidden" {% if form.nivel_combustible_inicial.value == value %}checked{% endif %}>
-                            <label for="nivel_{{ value }}"
-                                   class="block p-4 border-2 border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-400 font-medium">
-                                {{ label }}
+                    <div class="space-y-3">
+                        <!-- 1/4 — Rojo -->
+                        <div>
+                            <input type="radio" id="nivel_CUARTO" name="nivel_combustible_inicial" value="CUARTO"
+                                   class="hidden" {% if form.nivel_combustible_inicial.value == 'CUARTO' %}checked{% endif %}>
+                            <label for="nivel_CUARTO" class="nivel-label nivel-label-cuarto">
+                                1/4 del tanque
                             </label>
                         </div>
-                        {% endfor %}
+                        <!-- 1/2 — Naranja -->
+                        <div>
+                            <input type="radio" id="nivel_MEDIO" name="nivel_combustible_inicial" value="MEDIO"
+                                   class="hidden" {% if form.nivel_combustible_inicial.value == 'MEDIO' %}checked{% endif %}>
+                            <label for="nivel_MEDIO" class="nivel-label nivel-label-medio">
+                                1/2 del tanque
+                            </label>
+                        </div>
+                        <!-- 3/4 — Verde -->
+                        <div>
+                            <input type="radio" id="nivel_TRES_CUARTOS" name="nivel_combustible_inicial" value="TRES_CUARTOS"
+                                   class="hidden" {% if form.nivel_combustible_inicial.value == 'TRES_CUARTOS' %}checked{% endif %}>
+                            <label for="nivel_TRES_CUARTOS" class="nivel-label nivel-label-tres-cuartos">
+                                3/4 del tanque
+                            </label>
+                        </div>
                     </div>
                     {% if form.nivel_combustible_inicial.errors %}
                         <p class="mt-1 text-sm text-red-600">{{ form.nivel_combustible_inicial.errors.0 }}</p>
