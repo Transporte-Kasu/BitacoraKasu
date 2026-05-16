@@ -723,6 +723,36 @@
     </div>
 </div>
 
+{% if asignaciones_salida %}
+<div class="mt-8">
+  <h2 class="text-base font-bold text-slate-800 mb-3">Asignaciones de almacén (ASG)</h2>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-100">
+        <tr>
+          <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500">Folio</th>
+          <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500">Fecha</th>
+          <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500">Solicitante</th>
+          <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500">Productos</th>
+          <th class="px-4 py-2"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for a in asignaciones_salida %}
+        <tr>
+          <td class="px-4 py-3 font-mono text-xs font-medium text-slate-700">{{ a.folio }}</td>
+          <td class="px-4 py-3 text-slate-600">{{ a.fecha|date:"d/m/Y" }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ a.solicitante }}</td>
+          <td class="px-4 py-3 text-slate-500">{{ a.items.count }}</td>
+          <td class="px-4 py-3 text-right"><a href="{% url 'almacen:asignacion_salida_detail' a.pk %}" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}

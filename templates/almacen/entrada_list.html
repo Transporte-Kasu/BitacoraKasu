@@ -6,9 +6,19 @@
 <div class="max-w-7xl mx-auto py-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-900">⬇️ Entradas de Almacén</h1>
-        <a href="{% url 'almacen:entrada_create' %}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
-            ➕ Nueva Entrada
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'almacen:entrada_directa' %}"
+               class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                Entrada Directa
+            </a>
+            <a href="{% url 'almacen:entrada_create' %}"
+               class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                Otros tipos
+            </a>
+        </div>
     </div>
 
     <!-- Filtros -->
@@ -16,6 +26,7 @@
         <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <select name="tipo" class="px-4 py-2 border rounded">
                 <option value="">Todos los tipos</option>
+                <option value="ENTRADA_DIRECTA" {% if request.GET.tipo == 'ENTRADA_DIRECTA' %}selected{% endif %}>Entrada Directa</option>
                 <option value="FACTURA" {% if request.GET.tipo == 'FACTURA' %}selected{% endif %}>Factura</option>
                 <option value="TALLER_REPARADO" {% if request.GET.tipo == 'TALLER_REPARADO' %}selected{% endif %}>Taller - Reparado</option>
                 <option value="TALLER_RECICLADO" {% if request.GET.tipo == 'TALLER_RECICLADO' %}selected{% endif %}>Taller - Reciclado</option>

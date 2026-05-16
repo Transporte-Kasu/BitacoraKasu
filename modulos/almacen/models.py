@@ -192,6 +192,7 @@ class ProductoAlmacen(models.Model):
 class EntradaAlmacen(models.Model):
     """Registro de entradas al almacén"""
     TIPO_CHOICES = [
+        ('ENTRADA_DIRECTA', 'Entrada Directa'),
         ('FACTURA', 'Producto Nuevo desde Factura'),
         ('TALLER_REPARADO', 'Pieza Reparada del Taller'),
         ('TALLER_RECICLADO', 'Pieza/Material para Reciclar del Taller'),
@@ -860,3 +861,115 @@ class AsignacionDirectaAlmacen(models.Model):
 
     def __str__(self):
         return f"{self.folio} - {self.producto.descripcion} → {self.unidad}"
+
+
+class AsignacionSalida(models.Model):
+    TIPO_CHOICES = [
+        ('UNIDAD', 'Unidad'),
+        ('EQUIPO', 'Equipo'),
+        ('DOLLY', 'Dolly'),
+        ('CAJA_SECA', 'Caja Seca'),
+        ('OTRO', 'Otro'),
+    ]
+
+    folio = models.CharField(max_length=20, unique=True, editable=False)
+    fecha = models.DateField(default=timezone.now)
+    solicitante = models.CharField(max_length=150)
+    tipo_destino = models.CharField(max_length=10, choices=TIPO_CHOICES)
+
+    unidad = models.ForeignKey(
+        'unidades.Unidad',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='asignaciones_salida',
+    )
+    equipo = models.ForeignKey(
+        'equipos.Equipo',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='asignaciones_salida',
+    )
+    dolly = models.ForeignKey(
+        'dollys.Dolly',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='asignaciones_salida',
+    )
+    caja_seca = models.ForeignKey(
+        'caja_seca.CajaSeca',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='asignaciones_salida',
+    )
+    otro_destino = models.CharField(max_length=200, blank=True)
+
+    justificacion = models.TextField()
+    entregado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='asignaciones_salida_almacen',
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Asignación de Salida"
+        verbose_name_plural = "Asignaciones de Salida"
+        ordering = ['-creado_en']
+        indexes = [
+            models.Index(fields=['folio']),
+            models.Index(fields=['-creado_en']),
+            models.Index(fields=['tipo_destino']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.folio:
+            from django.db.models import Max
+            fecha = timezone.now().strftime('%Y%m%d')
+            ultimo = AsignacionSalida.objects.filter(
+                folio__startswith=f'ASG-{fecha}'
+            ).aggregate(Max('folio'))['folio__max']
+            numero = int(ultimo.split('-')[-1]) + 1 if ultimo else 1
+            self.folio = f'ASG-{fecha}-{numero:03d}'
+        super().save(*args, **kwargs)
+
+    @property
+    def destino_display(self):
+        if self.tipo_destino == 'UNIDAD' and self.unidad:
+            return str(self.unidad)
+        if self.tipo_destino == 'EQUIPO' and self.equipo:
+            return str(self.equipo)
+        if self.tipo_destino == 'DOLLY' and self.dolly:
+            return str(self.dolly)
+        if self.tipo_destino == 'CAJA_SECA' and self.caja_seca:
+            return str(self.caja_seca)
+        return self.otro_destino or '—'
+
+    def __str__(self):
+        return f"{self.folio} → {self.destino_display}"
+
+
+class ItemAsignacionSalida(models.Model):
+    asignacion = models.ForeignKey(
+        AsignacionSalida,
+        on_delete=models.CASCADE,
+        related_name='items',
+    )
+    producto = models.ForeignKey(
+        ProductoAlmacen,
+        on_delete=models.CASCADE,
+        related_name='items_asignacion_salida',
+    )
+    cantidad = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+    )
+    observaciones = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        verbose_name = "Ítem de Asignación de Salida"
+        verbose_name_plural = "Ítems de Asignación de Salida"
+
+    def __str__(self):
+        return f"{self.producto.descripcion} × {self.cantidad}"

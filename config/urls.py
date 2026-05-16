@@ -35,6 +35,9 @@ urlpatterns = [
     path('compras/', include('modulos.compras.urls')),
     path('almacen/', include('modulos.almacen.urls')),
     path('reportes/', include('modulos.reportes.urls')),
+    path('equipos/', include('modulos.equipos.urls')),
+    path('dollys/', include('modulos.dollys.urls')),
+    path('caja-seca/', include('modulos.caja_seca.urls')),
 ]
 
 # Servir archivos media en desarrollo

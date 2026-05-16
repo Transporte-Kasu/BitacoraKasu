@@ -95,8 +95,8 @@ class ProductoAlmacenForm(forms.ModelForm):
 
 
 class EntradaAlmacenForm(forms.ModelForm):
-    """Formulario para EntradaAlmacen"""
-    
+    """Formulario para EntradaAlmacen (tipos con referencia externa)"""
+
     class Meta:
         model = EntradaAlmacen
         fields = [
@@ -108,6 +108,13 @@ class EntradaAlmacenForm(forms.ModelForm):
             'fecha_entrada': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
             'observaciones': forms.Textarea(attrs={'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Entrada directa tiene su propio flujo (/entradas/directa/)
+        self.fields['tipo'].choices = [
+            c for c in EntradaAlmacen.TIPO_CHOICES if c[0] != 'ENTRADA_DIRECTA'
+        ]
     
     def clean(self):
         cleaned_data = super().clean()
@@ -389,6 +396,58 @@ class SalidaRapidaConsumibleForm(forms.ModelForm):
                 })
 
         return cleaned_data
+
+
+class EntradaDirectaForm(forms.Form):
+    """Cabecera del formulario de entrada directa (sin OC ni OT)"""
+    fecha_entrada = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        label='Fecha de entrada',
+    )
+    observaciones = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 2}),
+        label='Observaciones',
+    )
+
+
+UNIDADES_MEDIDA_CHOICES = [
+    ('Pieza', 'Pieza'),
+    ('Litro', 'Litro'),
+    ('Kg', 'Kilogramo'),
+    ('Caja', 'Caja'),
+    ('Metro', 'Metro'),
+    ('Par', 'Par'),
+    ('Rollo', 'Rollo'),
+    ('Otro', 'Otro'),
+]
+
+
+class AltaExpressProductoForm(forms.Form):
+    """Mini-formulario de alta express para productos nuevos en entrada directa"""
+    sku = forms.CharField(
+        max_length=50,
+        label='SKU',
+        help_text='Código único del producto',
+    )
+    descripcion = forms.CharField(
+        max_length=500,
+        label='Descripción',
+    )
+    unidad_medida = forms.ChoiceField(
+        choices=UNIDADES_MEDIDA_CHOICES,
+        label='Unidad de medida',
+    )
+    categoria = forms.CharField(
+        max_length=100,
+        label='Categoría',
+    )
+
+    def clean_sku(self):
+        sku = self.cleaned_data.get('sku', '').upper()
+        if ProductoAlmacen.objects.filter(sku=sku).exists():
+            raise ValidationError('Ya existe un producto con ese SKU. Búscalo en el catálogo.')
+        return sku
 
 
 class AsignacionConsumibleUnidadForm(forms.Form):

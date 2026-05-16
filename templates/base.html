@@ -213,6 +213,16 @@
                             <span>Almacén</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="{% url 'almacen:asignacion_salida_list' %}"
+                           class="flex items-center gap-3 pl-9 pr-3 py-2 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if request.resolver_match.url_name|slice:':10' == 'asignacion' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+                            </svg>
+                            <span>Asignaciones</span>
+                        </a>
+                    </li>
 
                     {% if user.is_superuser %}
                     <!-- Reportes -->
@@ -227,6 +237,47 @@
                         </a>
                     </li>
                     {% endif %}
+
+                    <!-- Separador: Equipos -->
+                    <li class="px-3 pt-5 pb-1">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Equipos</span>
+                    </li>
+
+                    <!-- Equipos -->
+                    <li>
+                        <a href="{% url 'equipos:list' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if request.resolver_match.app_name == 'equipos' %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+                            </svg>
+                            <span>Equipos</span>
+                        </a>
+                    </li>
+
+                    <!-- Dollys -->
+                    <li>
+                        <a href="{% url 'dollys:list' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if request.resolver_match.app_name == 'dollys' %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                            </svg>
+                            <span>Dollys</span>
+                        </a>
+                    </li>
+
+                    <!-- Cajas Secas -->
+                    <li>
+                        <a href="{% url 'caja_seca:list' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if request.resolver_match.app_name == 'caja_seca' %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+                            </svg>
+                            <span>Cajas Secas</span>
+                        </a>
+                    </li>
 
                     <!-- Separador: Sistema -->
                     <li class="px-3 pt-5 pb-1">

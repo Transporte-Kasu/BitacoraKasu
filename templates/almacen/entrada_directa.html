@@ -1,0 +1,694 @@
+{% extends 'base.html' %}
+
+{% block title %}Entrada Directa — Almacén{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: #1e293b;
+    background-color: #fff;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+  }
+  .form-control.is-invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
+  select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.25rem;
+    padding-right: 2rem;
+  }
+  .form-section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 1rem;
+  }
+  .form-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+  }
+
+  /* Tabla de productos */
+  #tabla-productos tbody tr { transition: background .1s; }
+  #tabla-productos tbody tr:hover { background: #f8fafc; }
+
+  /* Buscador dropdown */
+  .search-wrapper { position: relative; }
+  .search-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,.1);
+    z-index: 50;
+    max-height: 260px;
+    overflow-y: auto;
+    display: none;
+  }
+  .search-dropdown.open { display: block; }
+  .search-item {
+    padding: 0.625rem 0.875rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .search-item:last-child { border-bottom: none; }
+  .search-item:hover { background: #f0f9ff; }
+  .search-item .si-sku { font-size: 0.7rem; font-weight: 600; color: #64748b; font-family: monospace; }
+  .search-item .si-desc { font-size: 0.8125rem; color: #1e293b; }
+  .search-item .si-stock { font-size: 0.7rem; color: #64748b; }
+  .search-item.no-result { cursor: default; color: #94a3b8; font-size: 0.8125rem; padding: 0.75rem; }
+  .search-item.alta-express {
+    color: #7c3aed;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    background: #faf5ff;
+  }
+  .search-item.alta-express:hover { background: #f3e8ff; }
+
+  /* Modal alta express */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.4);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-box {
+    background: #fff;
+    border-radius: 0.875rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    width: 100%;
+    max-width: 460px;
+    padding: 1.75rem;
+    animation: modal-in .15s ease;
+  }
+  @keyframes modal-in { from { opacity:0; transform:scale(.96) } to { opacity:1; transform:scale(1) } }
+
+  /* Tags de cantidad/costo en tabla */
+  .qty-input {
+    width: 80px;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.4rem;
+    font-size: 0.8125rem;
+    text-align: right;
+  }
+  .qty-input:focus { outline: none; border-color: #3b82f6; }
+
+  /* Badge tipo fila */
+  .badge-nuevo { background:#f3e8ff; color:#7c3aed; font-size:.65rem; font-weight:700; padding:.15rem .4rem; border-radius:.25rem; letter-spacing:.03em; text-transform:uppercase; }
+  .badge-existente { background:#eff6ff; color:#2563eb; font-size:.65rem; font-weight:700; padding:.15rem .4rem; border-radius:.25rem; letter-spacing:.03em; text-transform:uppercase; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'almacen:entrada_list' %}"
+     class="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+    </svg>
+  </a>
+  <div class="min-w-0">
+    <h1 class="text-xl font-bold text-slate-900 leading-tight">Nueva Entrada Directa</h1>
+    <nav class="mt-0.5">
+      <ol class="flex items-center gap-1.5 text-xs text-slate-400">
+        <li><a href="{% url 'almacen:dashboard' %}" class="hover:text-slate-600">Almacén</a></li>
+        <li>/</li>
+        <li><a href="{% url 'almacen:entrada_list' %}" class="hover:text-slate-600">Entradas</a></li>
+        <li>/</li>
+        <li class="text-slate-600 font-medium">Directa</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<form method="post" id="form-entrada">
+  {% csrf_token %}
+  <input type="hidden" name="items_json" id="items-json-input" value="[]">
+
+  <div class="grid xl:grid-cols-3 gap-6">
+
+    <!-- Columna principal -->
+    <div class="xl:col-span-2 space-y-6">
+
+      <!-- Errores globales -->
+      {% if form.non_field_errors or errores_items %}
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+        <div class="flex items-start gap-2">
+          <svg class="h-4 w-4 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/>
+          </svg>
+          <div class="text-sm text-red-700 space-y-0.5">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            {% for e in errores_items %}<p>{{ e }}</p>{% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Fecha -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <p class="form-section-label">
+          <svg class="h-3.5 w-3.5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5"/>
+          </svg>
+          Datos de la entrada
+        </p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5" for="{{ form.fecha_entrada.id_for_label }}">
+              Fecha y hora <span class="text-red-500">*</span>
+            </label>
+            <input type="datetime-local" name="fecha_entrada" id="{{ form.fecha_entrada.id_for_label }}"
+                   value="{{ form.fecha_entrada.value }}"
+                   class="form-control {% if form.fecha_entrada.errors %}is-invalid{% endif %}">
+            {% if form.fecha_entrada.errors %}
+            <p role="alert" class="mt-1 text-xs text-red-600">{{ form.fecha_entrada.errors.0 }}</p>
+            {% endif %}
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-slate-600 mb-1.5" for="{{ form.observaciones.id_for_label }}">
+              Observaciones
+            </label>
+            <textarea name="observaciones" id="{{ form.observaciones.id_for_label }}" rows="2"
+                      class="form-control">{{ form.observaciones.value|default:'' }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de productos -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <p class="form-section-label">
+          <svg class="h-3.5 w-3.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+          </svg>
+          Productos
+        </p>
+
+        <!-- Buscador -->
+        <div class="mb-4">
+          <div class="search-wrapper">
+            <div class="relative">
+              <svg class="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                   fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+              </svg>
+              <input type="text" id="buscador-producto" autocomplete="off"
+                     placeholder="Buscar por SKU o descripción…"
+                     class="form-control pl-9">
+            </div>
+            <div id="search-dropdown" class="search-dropdown"></div>
+          </div>
+          <p class="mt-1.5 text-xs text-slate-400">Si el producto no existe en el catálogo, escribe su SKU y selecciona "Alta express".</p>
+        </div>
+
+        <!-- Tabla -->
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="w-full text-sm" id="tabla-productos">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">SKU</th>
+                <th class="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Descripción</th>
+                <th class="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Unidad</th>
+                <th class="px-3 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide w-24">Cantidad</th>
+                <th class="px-3 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide w-28">Costo unit.</th>
+                <th class="px-3 py-2.5 w-10"></th>
+              </tr>
+            </thead>
+            <tbody id="items-tbody">
+              <tr id="fila-vacia">
+                <td colspan="6" class="px-4 py-8 text-center text-slate-400 text-sm">
+                  <svg class="h-8 w-8 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5"/>
+                  </svg>
+                  Usa el buscador para agregar productos
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Totales -->
+        <div id="resumen-totales" class="mt-3 hidden flex justify-end">
+          <div class="text-sm text-slate-600">
+            <span id="resumen-items" class="font-medium">0 productos</span>
+            &nbsp;·&nbsp;
+            Total estimado: <span id="resumen-total" class="font-bold text-slate-900">$0.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna lateral -->
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p class="form-section-label">
+          <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Tipo de entrada
+        </p>
+        <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
+          <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+          <span class="text-sm font-medium text-slate-700">Entrada Directa</span>
+        </div>
+        <p class="mt-2 text-xs text-slate-400 leading-relaxed">
+          Sin orden de compra ni de trabajo. El folio ENT- se genera automáticamente al guardar.
+        </p>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p class="form-section-label">
+          <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Acciones
+        </p>
+        <button type="submit" id="btn-guardar"
+                class="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Registrar entrada
+        </button>
+        <a href="{% url 'almacen:entrada_list' %}"
+           class="mt-2 w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+          Cancelar
+        </a>
+      </div>
+
+      <!-- Leyenda alta express -->
+      <div class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+        <div class="flex gap-2">
+          <svg class="h-4 w-4 text-violet-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+          </svg>
+          <div>
+            <p class="text-xs font-semibold text-violet-800">Alta express</p>
+            <p class="text-xs text-violet-600 mt-0.5 leading-relaxed">
+              Si el SKU no existe, se crea el producto con campos mínimos. Podrás completar el catálogo después desde <strong>Productos → Editar</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Modal Alta Express -->
+<div id="modal-alta-express" class="modal-backdrop hidden">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <div class="bg-violet-100 rounded-lg p-1.5">
+          <svg class="h-4 w-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+          </svg>
+        </div>
+        <h2 class="text-base font-bold text-slate-900">Alta Express de Producto</h2>
+      </div>
+      <button type="button" id="btn-cerrar-modal"
+              class="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition-colors">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">SKU <span class="text-red-500">*</span></label>
+        <input type="text" id="ae-sku" class="form-control" placeholder="Ej: FILT-001">
+        <p id="ae-sku-error" class="mt-1 text-xs text-red-600 hidden"></p>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">Descripción <span class="text-red-500">*</span></label>
+        <input type="text" id="ae-descripcion" class="form-control" placeholder="Nombre o descripción del producto">
+        <p id="ae-desc-error" class="mt-1 text-xs text-red-600 hidden"></p>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Unidad de medida <span class="text-red-500">*</span></label>
+          <select id="ae-unidad-medida" class="form-control">
+            {% for val, label in unidades_medida %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Categoría <span class="text-red-500">*</span></label>
+          <input type="text" id="ae-categoria" class="form-control" list="lista-categorias"
+                 placeholder="Ej: Filtros">
+          <datalist id="lista-categorias">
+            {% for cat in categorias %}<option value="{{ cat }}">{% endfor %}
+          </datalist>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Cantidad <span class="text-red-500">*</span></label>
+          <input type="number" id="ae-cantidad" class="form-control" min="0.01" step="0.01" value="1" placeholder="0">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Costo unitario</label>
+          <input type="number" id="ae-costo" class="form-control" min="0" step="0.01" value="0" placeholder="0.00">
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5 flex gap-2">
+      <button type="button" id="btn-confirmar-alta"
+              class="flex-1 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors">
+        Agregar a la entrada
+      </button>
+      <button type="button" id="btn-cancelar-alta"
+              class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium rounded-lg transition-colors">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+
+  /* ---- Estado ---- */
+  let items = [];   // [{tipo, producto_id?, sku, descripcion, unidad_medida, categoria, cantidad, costo_unitario}]
+  let searchTimer = null;
+
+  /* ---- Elementos DOM ---- */
+  const buscador    = document.getElementById('buscador-producto');
+  const dropdown    = document.getElementById('search-dropdown');
+  const tbody       = document.getElementById('items-tbody');
+  const filaVacia   = document.getElementById('fila-vacia');
+  const jsonInput   = document.getElementById('items-json-input');
+  const modal       = document.getElementById('modal-alta-express');
+  const formEntrada = document.getElementById('form-entrada');
+  const btnGuardar  = document.getElementById('btn-guardar');
+  const resumenDiv  = document.getElementById('resumen-totales');
+  const resumenItems = document.getElementById('resumen-items');
+  const resumenTotal = document.getElementById('resumen-total');
+
+  /* ---- Buscador AJAX ---- */
+  buscador.addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { cerrarDropdown(); return; }
+    searchTimer = setTimeout(() => buscarProductos(q), 280);
+  });
+
+  buscador.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') cerrarDropdown();
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!buscador.contains(e.target) && !dropdown.contains(e.target)) cerrarDropdown();
+  });
+
+  function buscarProductos(q) {
+    const url = "{% url 'almacen:api_buscar_producto' %}?q=" + encodeURIComponent(q);
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => mostrarDropdown(q, data.resultados || []))
+      .catch(() => {});
+  }
+
+  function mostrarDropdown(q, resultados) {
+    dropdown.innerHTML = '';
+
+    resultados.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'search-item';
+      div.innerHTML = `
+        <span class="si-sku">${esc(p.sku)}</span>
+        <span class="si-desc">${esc(p.descripcion)}</span>
+        <span class="si-stock">Stock: ${p.cantidad} ${esc(p.unidad_medida)}</span>`;
+      div.addEventListener('click', () => { agregarExistente(p); cerrarDropdown(); });
+      dropdown.appendChild(div);
+    });
+
+    /* Opción alta express siempre visible */
+    const divAE = document.createElement('div');
+    divAE.className = 'search-item alta-express';
+    divAE.innerHTML = `
+      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+      </svg>
+      Alta express: "<strong>${esc(q)}</strong>"`;
+    divAE.addEventListener('click', () => { abrirModalAltaExpress(q); cerrarDropdown(); });
+    dropdown.appendChild(divAE);
+
+    if (resultados.length === 0) {
+      const noRes = document.createElement('div');
+      noRes.className = 'search-item no-result';
+      noRes.textContent = 'Sin resultados en el catálogo';
+      dropdown.insertBefore(noRes, divAE);
+    }
+
+    dropdown.classList.add('open');
+  }
+
+  function cerrarDropdown() {
+    dropdown.classList.remove('open');
+    dropdown.innerHTML = '';
+  }
+
+  /* ---- Agregar producto existente ---- */
+  function agregarExistente(p) {
+    items.push({
+      tipo: 'existente',
+      producto_id: p.id,
+      sku: p.sku,
+      descripcion: p.descripcion,
+      unidad_medida: p.unidad_medida,
+      categoria: '',
+      cantidad: 1,
+      costo_unitario: p.costo_unitario,
+    });
+    buscador.value = '';
+    renderTabla();
+    actualizarJSON();
+  }
+
+  /* ---- Alta Express ---- */
+  let skuParaAltaExpress = '';
+
+  function abrirModalAltaExpress(sku) {
+    skuParaAltaExpress = sku.toUpperCase();
+    document.getElementById('ae-sku').value = skuParaAltaExpress;
+    document.getElementById('ae-descripcion').value = '';
+    document.getElementById('ae-unidad-medida').selectedIndex = 0;
+    document.getElementById('ae-categoria').value = '';
+    document.getElementById('ae-cantidad').value = 1;
+    document.getElementById('ae-costo').value = 0;
+    document.getElementById('ae-sku-error').classList.add('hidden');
+    document.getElementById('ae-desc-error').classList.add('hidden');
+    buscador.value = '';
+    modal.classList.remove('hidden');
+    document.getElementById('ae-descripcion').focus();
+  }
+
+  document.getElementById('btn-cerrar-modal').addEventListener('click', cerrarModal);
+  document.getElementById('btn-cancelar-alta').addEventListener('click', cerrarModal);
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) cerrarModal();
+  });
+
+  function cerrarModal() {
+    modal.classList.add('hidden');
+  }
+
+  document.getElementById('btn-confirmar-alta').addEventListener('click', function () {
+    const sku        = document.getElementById('ae-sku').value.trim().toUpperCase();
+    const desc       = document.getElementById('ae-descripcion').value.trim();
+    const unidad     = document.getElementById('ae-unidad-medida').value;
+    const categoria  = document.getElementById('ae-categoria').value.trim();
+    const cantidad   = parseFloat(document.getElementById('ae-cantidad').value) || 0;
+    const costo      = parseFloat(document.getElementById('ae-costo').value) || 0;
+
+    let valido = true;
+
+    if (!sku) {
+      mostrarError('ae-sku-error', 'El SKU es obligatorio.');
+      valido = false;
+    } else if (items.some(i => i.tipo === 'nuevo' && i.sku === sku)) {
+      mostrarError('ae-sku-error', 'Ya agregaste un producto con ese SKU en esta entrada.');
+      valido = false;
+    } else {
+      ocultarError('ae-sku-error');
+    }
+
+    if (!desc) {
+      mostrarError('ae-desc-error', 'La descripción es obligatoria.');
+      valido = false;
+    } else {
+      ocultarError('ae-desc-error');
+    }
+
+    if (!valido) return;
+
+    items.push({
+      tipo: 'nuevo',
+      producto_id: null,
+      sku, descripcion: desc, unidad_medida: unidad, categoria: categoria || 'General',
+      cantidad, costo_unitario: costo,
+    });
+
+    cerrarModal();
+    renderTabla();
+    actualizarJSON();
+  });
+
+  /* ---- Tabla de productos ---- */
+  function renderTabla() {
+    /* Limpiar filas de datos */
+    Array.from(tbody.querySelectorAll('tr.item-row')).forEach(r => r.remove());
+
+    if (items.length === 0) {
+      filaVacia.style.display = '';
+      resumenDiv.classList.add('hidden');
+      return;
+    }
+    filaVacia.style.display = 'none';
+    resumenDiv.classList.remove('hidden');
+
+    let totalAcum = 0;
+
+    items.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      tr.className = 'item-row border-b border-slate-100';
+      tr.dataset.idx = idx;
+
+      const badgeClass = item.tipo === 'nuevo' ? 'badge-nuevo' : 'badge-existente';
+      const badgeLabel = item.tipo === 'nuevo' ? 'nuevo' : 'catálogo';
+      const subtotal   = (item.cantidad * item.costo_unitario) || 0;
+      totalAcum += subtotal;
+
+      tr.innerHTML = `
+        <td class="px-3 py-2.5">
+          <span class="font-mono text-xs text-slate-700">${esc(item.sku)}</span>
+          <span class="${badgeClass} ml-1">${badgeLabel}</span>
+        </td>
+        <td class="px-3 py-2.5 text-sm text-slate-700 max-w-[200px] truncate" title="${esc(item.descripcion)}">${esc(item.descripcion)}</td>
+        <td class="px-3 py-2.5 text-xs text-slate-500">${esc(item.unidad_medida)}</td>
+        <td class="px-3 py-2.5 text-right">
+          <input type="number" class="qty-input qty-cantidad" data-idx="${idx}"
+                 min="0.01" step="0.01" value="${item.cantidad}">
+        </td>
+        <td class="px-3 py-2.5 text-right">
+          <input type="number" class="qty-input qty-costo" data-idx="${idx}"
+                 min="0" step="0.01" value="${item.costo_unitario}">
+        </td>
+        <td class="px-3 py-2.5 text-center">
+          <button type="button" class="btn-eliminar p-1 text-slate-300 hover:text-red-500 transition-colors" data-idx="${idx}">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+            </svg>
+          </button>
+        </td>`;
+
+      tbody.appendChild(tr);
+    });
+
+    resumenItems.textContent = `${items.length} producto${items.length !== 1 ? 's' : ''}`;
+    resumenTotal.textContent = formatMXN ? formatMXN(totalAcum) : `$${totalAcum.toFixed(2)}`;
+
+    /* Eventos inline */
+    tbody.querySelectorAll('.qty-cantidad').forEach(inp => {
+      inp.addEventListener('change', function () {
+        const i = parseInt(this.dataset.idx);
+        items[i].cantidad = parseFloat(this.value) || 0;
+        actualizarJSON();
+        actualizarTotales();
+      });
+    });
+    tbody.querySelectorAll('.qty-costo').forEach(inp => {
+      inp.addEventListener('change', function () {
+        const i = parseInt(this.dataset.idx);
+        items[i].costo_unitario = parseFloat(this.value) || 0;
+        actualizarJSON();
+        actualizarTotales();
+      });
+    });
+    tbody.querySelectorAll('.btn-eliminar').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const i = parseInt(this.dataset.idx);
+        items.splice(i, 1);
+        renderTabla();
+        actualizarJSON();
+      });
+    });
+  }
+
+  function actualizarTotales() {
+    const total = items.reduce((acc, i) => acc + (i.cantidad * i.costo_unitario || 0), 0);
+    resumenTotal.textContent = formatMXN ? formatMXN(total) : `$${total.toFixed(2)}`;
+    resumenItems.textContent = `${items.length} producto${items.length !== 1 ? 's' : ''}`;
+  }
+
+  function actualizarJSON() {
+    jsonInput.value = JSON.stringify(items);
+  }
+
+  /* ---- Submit guard ---- */
+  formEntrada.addEventListener('submit', function (e) {
+    if (items.length === 0) {
+      e.preventDefault();
+      buscador.focus();
+      buscador.classList.add('is-invalid');
+      setTimeout(() => buscador.classList.remove('is-invalid'), 2000);
+      alert('Debes agregar al menos un producto antes de guardar.');
+      return;
+    }
+    actualizarJSON();
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando…';
+  });
+
+  /* ---- Helpers ---- */
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function mostrarError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+  function ocultarError(id) {
+    document.getElementById(id).classList.add('hidden');
+  }
+})();
+</script>
+{% endblock %}

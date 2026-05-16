@@ -14,14 +14,15 @@ from .models import (
     ProductoAlmacen, EntradaAlmacen, ItemEntradaAlmacen,
     SolicitudSalida, ItemSolicitudSalida, SalidaAlmacen,
     ItemSalidaAlmacen, MovimientoAlmacen, AlertaStock,
-    SalidaRapidaConsumible
+    SalidaRapidaConsumible, AsignacionSalida, ItemAsignacionSalida
 )
 from .forms import (
     ProductoAlmacenForm, EntradaAlmacenForm, ItemEntradaAlmacenForm,
     SolicitudSalidaForm, ItemSolicitudSalidaForm, AutorizarSolicitudForm,
     SalidaAlmacenForm, ItemSalidaAlmacenForm, FiltroProductosForm,
     FiltroEntradasForm, FiltroSolicitudesForm, ResolverAlertaForm,
-    SalidaRapidaConsumibleForm, AsignacionConsumibleUnidadForm
+    SalidaRapidaConsumibleForm, AsignacionConsumibleUnidadForm,
+    EntradaDirectaForm, AltaExpressProductoForm, UNIDADES_MEDIDA_CHOICES
 )
 
 
@@ -295,11 +296,146 @@ class EntradaAlmacenCreateView(LoginRequiredMixin, CreateView):
     form_class = EntradaAlmacenForm
     template_name = 'almacen/entrada_form.html'
     success_url = reverse_lazy('almacen:entrada_list')
-    
+
     def form_valid(self, form):
         form.instance.recibido_por = self.request.user
         messages.success(self.request, f'Entrada {form.instance.folio} creada exitosamente.')
         return super().form_valid(form)
+
+
+@login_required
+def entrada_directa(request):
+    """Entrada directa al almacén sin orden de compra ni de trabajo."""
+    from django.db import transaction
+
+    categorias = list(
+        ProductoAlmacen.objects.values_list('categoria', flat=True)
+        .distinct().order_by('categoria')
+    )
+
+    if request.method == 'POST':
+        form = EntradaDirectaForm(request.POST)
+        items_raw = request.POST.get('items_json', '[]')
+
+        try:
+            items = json.loads(items_raw)
+        except (ValueError, TypeError):
+            items = []
+
+        errores_items = []
+
+        if form.is_valid():
+            if not items:
+                form.add_error(None, 'Debes agregar al menos un producto.')
+            else:
+                # Validar alta express inline antes de guardar nada
+                for idx, item in enumerate(items):
+                    if item.get('tipo') == 'nuevo':
+                        sku = (item.get('sku') or '').upper()
+                        if not sku:
+                            errores_items.append(f'Fila {idx + 1}: el SKU es obligatorio.')
+                        elif ProductoAlmacen.objects.filter(sku=sku).exists():
+                            errores_items.append(
+                                f'Fila {idx + 1}: el SKU "{sku}" ya existe, búscalo en el catálogo.'
+                            )
+                        if not item.get('descripcion'):
+                            errores_items.append(f'Fila {idx + 1}: la descripción es obligatoria.')
+                        if not item.get('unidad_medida'):
+                            errores_items.append(f'Fila {idx + 1}: la unidad de medida es obligatoria.')
+                        if not item.get('categoria'):
+                            errores_items.append(f'Fila {idx + 1}: la categoría es obligatoria.')
+
+                    try:
+                        cantidad = float(item.get('cantidad', 0))
+                    except (ValueError, TypeError):
+                        cantidad = 0
+                    if cantidad <= 0:
+                        errores_items.append(f'Fila {idx + 1}: la cantidad debe ser mayor a 0.')
+
+        if form.is_valid() and not errores_items and items:
+            try:
+                with transaction.atomic():
+                    entrada = EntradaAlmacen.objects.create(
+                        tipo='ENTRADA_DIRECTA',
+                        fecha_entrada=form.cleaned_data['fecha_entrada'],
+                        observaciones=form.cleaned_data.get('observaciones', ''),
+                        recibido_por=request.user,
+                    )
+
+                    for item in items:
+                        if item.get('tipo') == 'nuevo':
+                            sku = (item.get('sku') or '').upper()
+                            producto = ProductoAlmacen.objects.create(
+                                sku=sku,
+                                descripcion=item.get('descripcion', ''),
+                                unidad_medida=item.get('unidad_medida', 'Pieza'),
+                                categoria=item.get('categoria', 'General'),
+                                localidad='Por asignar',
+                                cantidad=0,
+                                stock_minimo=0,
+                                stock_maximo=0,
+                                costo_unitario=float(item.get('costo_unitario') or 0),
+                                activo=True,
+                            )
+                        else:
+                            producto = get_object_or_404(ProductoAlmacen, pk=item.get('producto_id'))
+
+                        ItemEntradaAlmacen.objects.create(
+                            entrada=entrada,
+                            producto_almacen=producto,
+                            cantidad=float(item.get('cantidad', 1)),
+                            costo_unitario=float(item.get('costo_unitario') or 0),
+                        )
+
+                messages.success(
+                    request,
+                    f'Entrada directa {entrada.folio} registrada con {len(items)} producto(s).'
+                )
+                return redirect('almacen:entrada_detail', pk=entrada.pk)
+
+            except Exception as exc:
+                messages.error(request, f'Error al guardar la entrada: {exc}')
+
+    else:
+        from django.utils import timezone as tz
+        form = EntradaDirectaForm(initial={'fecha_entrada': tz.localtime().strftime('%Y-%m-%dT%H:%M')})
+        items = []
+        errores_items = []
+
+    return render(request, 'almacen/entrada_directa.html', {
+        'form': form,
+        'items_json': json.dumps(items) if items else '[]',
+        'errores_items': errores_items,
+        'categorias': categorias,
+        'unidades_medida': UNIDADES_MEDIDA_CHOICES,
+    })
+
+
+@login_required
+def api_buscar_producto_almacen(request):
+    """Busca productos en el catálogo por SKU o descripción (para entrada directa)."""
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'resultados': []})
+
+    productos = ProductoAlmacen.objects.filter(
+        activo=True
+    ).filter(
+        Q(sku__icontains=q) | Q(descripcion__icontains=q)
+    ).order_by('descripcion')[:10]
+
+    resultados = [
+        {
+            'id': p.pk,
+            'sku': p.sku,
+            'descripcion': p.descripcion,
+            'unidad_medida': p.unidad_medida,
+            'cantidad': float(p.cantidad),
+            'costo_unitario': float(p.costo_unitario),
+        }
+        for p in productos
+    ]
+    return JsonResponse({'resultados': resultados})
 
 
 # ========== SolicitudSalida Views ==========
@@ -857,3 +993,159 @@ def reporte_proximos_caducar(request):
         'fecha_limite': fecha_limite,
     }
     return render(request, 'almacen/reporte_caducidad.html', context)
+
+
+# ========== Asignación de Salida ==========
+
+@login_required
+def asignacion_salida_create(request):
+    from modulos.unidades.models import Unidad
+    from modulos.equipos.models import Equipo
+    from modulos.dollys.models import Dolly
+    from modulos.caja_seca.models import CajaSeca
+
+    if request.method == 'POST':
+        fecha = request.POST.get('fecha')
+        solicitante = request.POST.get('solicitante', '').strip()
+        tipo_destino = request.POST.get('tipo_destino', '')
+        unidad_id = request.POST.get('unidad') or None
+        equipo_id = request.POST.get('equipo') or None
+        dolly_id = request.POST.get('dolly') or None
+        caja_seca_id = request.POST.get('caja_seca') or None
+        otro_destino = request.POST.get('otro_destino', '').strip()
+        justificacion = request.POST.get('justificacion', '').strip()
+        items_raw = request.POST.get('items_json', '[]')
+
+        try:
+            items = json.loads(items_raw)
+        except (json.JSONDecodeError, ValueError):
+            items = []
+
+        errors = []
+        if not solicitante:
+            errors.append('El solicitante es requerido.')
+        if not tipo_destino:
+            errors.append('El tipo de destino es requerido.')
+        if not justificacion:
+            errors.append('La justificación es requerida.')
+        if not items:
+            errors.append('Agrega al menos un producto.')
+
+        if not errors:
+            asignacion = AsignacionSalida(
+                fecha=fecha,
+                solicitante=solicitante,
+                tipo_destino=tipo_destino,
+                otro_destino=otro_destino,
+                justificacion=justificacion,
+                entregado_por=request.user,
+            )
+            if tipo_destino == 'UNIDAD' and unidad_id:
+                asignacion.unidad_id = unidad_id
+            elif tipo_destino == 'EQUIPO' and equipo_id:
+                asignacion.equipo_id = equipo_id
+            elif tipo_destino == 'DOLLY' and dolly_id:
+                asignacion.dolly_id = dolly_id
+            elif tipo_destino == 'CAJA_SECA' and caja_seca_id:
+                asignacion.caja_seca_id = caja_seca_id
+            asignacion.save()
+
+            for it in items:
+                try:
+                    producto = ProductoAlmacen.objects.get(pk=it['id'])
+                    ItemAsignacionSalida.objects.create(
+                        asignacion=asignacion,
+                        producto=producto,
+                        cantidad=it['cantidad'],
+                        observaciones=it.get('observaciones', ''),
+                    )
+                except (ProductoAlmacen.DoesNotExist, KeyError):
+                    pass
+
+            messages.success(request, f'Asignación {asignacion.folio} registrada correctamente.')
+            return redirect('almacen:asignacion_salida_list')
+
+        context = {
+            'errors': errors,
+            'post': request.POST,
+            'unidades': Unidad.objects.filter(activa=True).order_by('numero_economico'),
+            'equipos': Equipo.objects.filter(activo=True).order_by('numero_economico'),
+            'dollys': Dolly.objects.filter(activo=True).order_by('numero_economico'),
+            'cajas': CajaSeca.objects.filter(activo=True).order_by('numero_economico'),
+            'tipo_choices': AsignacionSalida.TIPO_CHOICES,
+        }
+        return render(request, 'almacen/asignacion_salida_form.html', context)
+
+    from modulos.unidades.models import Unidad
+    from modulos.equipos.models import Equipo
+    from modulos.dollys.models import Dolly
+    from modulos.caja_seca.models import CajaSeca
+
+    context = {
+        'unidades': Unidad.objects.filter(activa=True).order_by('numero_economico'),
+        'equipos': Equipo.objects.filter(activo=True).order_by('numero_economico'),
+        'dollys': Dolly.objects.filter(activo=True).order_by('numero_economico'),
+        'cajas': CajaSeca.objects.filter(activo=True).order_by('numero_economico'),
+        'tipo_choices': AsignacionSalida.TIPO_CHOICES,
+    }
+    return render(request, 'almacen/asignacion_salida_form.html', context)
+
+
+class AsignacionSalidaListView(LoginRequiredMixin, ListView):
+    model = AsignacionSalida
+    template_name = 'almacen/asignacion_salida_list.html'
+    context_object_name = 'asignaciones'
+    paginate_by = 25
+
+    def get_queryset(self):
+        qs = AsignacionSalida.objects.select_related(
+            'unidad', 'equipo', 'dolly', 'caja_seca', 'entregado_por'
+        )
+        tipo = self.request.GET.get('tipo', '')
+        buscar = self.request.GET.get('buscar', '').strip()
+        if tipo:
+            qs = qs.filter(tipo_destino=tipo)
+        if buscar:
+            qs = qs.filter(
+                Q(folio__icontains=buscar) |
+                Q(solicitante__icontains=buscar) |
+                Q(otro_destino__icontains=buscar)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['tipo_choices'] = AsignacionSalida.TIPO_CHOICES
+        ctx['tipo_sel'] = self.request.GET.get('tipo', '')
+        ctx['buscar'] = self.request.GET.get('buscar', '')
+        return ctx
+
+
+class AsignacionSalidaDetailView(LoginRequiredMixin, DetailView):
+    model = AsignacionSalida
+    template_name = 'almacen/asignacion_salida_detail.html'
+    context_object_name = 'asignacion'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['items'] = self.object.items.select_related('producto')
+        return ctx
+
+
+@login_required
+def api_activos_por_tipo(request):
+    tipo = request.GET.get('tipo', '')
+    data = []
+    if tipo == 'UNIDAD':
+        from modulos.unidades.models import Unidad
+        data = list(Unidad.objects.filter(activa=True).order_by('numero_economico').values('id', 'numero_economico'))
+    elif tipo == 'EQUIPO':
+        from modulos.equipos.models import Equipo
+        data = list(Equipo.objects.filter(activo=True).order_by('numero_economico').values('id', 'numero_economico'))
+    elif tipo == 'DOLLY':
+        from modulos.dollys.models import Dolly
+        data = list(Dolly.objects.filter(activo=True).order_by('numero_economico').values('id', 'numero_economico'))
+    elif tipo == 'CAJA_SECA':
+        from modulos.caja_seca.models import CajaSeca
+        data = list(CajaSeca.objects.filter(activo=True).order_by('numero_economico').values('id', 'numero_economico'))
+    return JsonResponse({'activos': data})

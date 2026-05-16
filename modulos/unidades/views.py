@@ -199,6 +199,12 @@ class UnidadDetailView(LoginRequiredMixin, DetailView):
         }
         context['productos_json'] = json.dumps(productos_data)
 
+        # Asignaciones de salida ASG desde almacén
+        from modulos.almacen.models import AsignacionSalida
+        context['asignaciones_salida'] = AsignacionSalida.objects.filter(
+            tipo_destino='UNIDAD', unidad=unidad
+        ).prefetch_related('items').order_by('-creado_en')[:20]
+
         return context
 
 

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Asignaciones de Salida{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-xl font-bold text-slate-900">Asignaciones de Salida</h1>
+    <p class="text-sm text-slate-500 mt-0.5">Historial de materiales asignados a activos</p>
+  </div>
+  <a href="{% url 'almacen:asignacion_salida_create' %}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors">
+    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+    Nueva asignación
+  </a>
+</div>
+
+<!-- Filtros -->
+<form method="get" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-end">
+  <div>
+    <label class="block text-xs font-medium text-slate-600 mb-1">Tipo de destino</label>
+    <select name="tipo" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400">
+      <option value="">Todos</option>
+      {% for val, label in tipo_choices %}
+      <option value="{{ val }}" {% if tipo_sel == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs font-medium text-slate-600 mb-1">Buscar</label>
+    <input type="text" name="buscar" value="{{ buscar }}" placeholder="Folio o solicitante…" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 w-52">
+  </div>
+  <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Filtrar</button>
+  {% if tipo_sel or buscar %}
+  <a href="{% url 'almacen:asignacion_salida_list' %}" class="text-sm text-slate-500 hover:text-slate-700 py-2">Limpiar</a>
+  {% endif %}
+</form>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200">
+      <tr>
+        <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Folio</th>
+        <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
+        <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Destino</th>
+        <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Solicitante</th>
+        <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Productos</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for a in asignaciones %}
+      <tr class="hover:bg-slate-50 transition-colors">
+        <td class="px-4 py-3 font-mono text-xs font-medium text-slate-700">{{ a.folio }}</td>
+        <td class="px-4 py-3 text-slate-600">{{ a.fecha|date:"d/m/Y" }}</td>
+        <td class="px-4 py-3">
+          <span class="inline-flex items-center gap-1">
+            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{{ a.get_tipo_destino_display }}</span>
+            <span class="text-slate-700">{{ a.destino_display }}</span>
+          </span>
+        </td>
+        <td class="px-4 py-3 text-slate-700">{{ a.solicitante }}</td>
+        <td class="px-4 py-3 text-slate-500">{{ a.items.count }}</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{% url 'almacen:asignacion_salida_detail' a.pk %}" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Ver detalle</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400 text-sm">Sin asignaciones registradas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+<div class="flex justify-center mt-6 gap-2">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}{% if tipo_sel %}&tipo={{ tipo_sel }}{% endif %}{% if buscar %}&buscar={{ buscar }}{% endif %}" class="px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50">Anterior</a>
+  {% endif %}
+  <span class="px-3 py-1.5 text-sm text-slate-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}{% if tipo_sel %}&tipo={{ tipo_sel }}{% endif %}{% if buscar %}&buscar={{ buscar }}{% endif %}" class="px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50">Siguiente</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

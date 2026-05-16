@@ -16,10 +16,12 @@ urlpatterns = [
     
     # API
     path('api/subcategorias/', views.api_subcategorias, name='api_subcategorias'),
+    path('api/buscar-producto/', views.api_buscar_producto_almacen, name='api_buscar_producto'),
 
     # Entradas
     path('entradas/', views.EntradaAlmacenListView.as_view(), name='entrada_list'),
     path('entradas/crear/', views.EntradaAlmacenCreateView.as_view(), name='entrada_create'),
+    path('entradas/directa/', views.entrada_directa, name='entrada_directa'),
     path('entradas/<int:pk>/', views.EntradaAlmacenDetailView.as_view(), name='entrada_detail'),
     
     # Solicitudes de Salida
@@ -51,4 +53,12 @@ urlpatterns = [
     path('reportes/inventario/', views.reporte_inventario, name='reporte_inventario'),
     path('reportes/stock-critico/', views.reporte_stock_critico, name='reporte_stock_critico'),
     path('reportes/proximos-caducar/', views.reporte_proximos_caducar, name='reporte_caducidad'),
+
+    # Asignación de salida
+    path('asignaciones/', views.AsignacionSalidaListView.as_view(), name='asignacion_salida_list'),
+    path('asignaciones/nueva/', views.asignacion_salida_create, name='asignacion_salida_create'),
+    path('asignaciones/<int:pk>/', views.AsignacionSalidaDetailView.as_view(), name='asignacion_salida_detail'),
+
+    # API activos por tipo
+    path('api/activos-por-tipo/', views.api_activos_por_tipo, name='api_activos_por_tipo'),
 ]

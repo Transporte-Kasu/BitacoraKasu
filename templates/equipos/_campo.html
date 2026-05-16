@@ -1,0 +1,4 @@
+<div class="flex items-center justify-between py-2 border-b border-slate-100">
+  <span class="text-xs text-slate-500">{{ label }}</span>
+  <span class="text-sm {% if mono %}font-mono{% else %}font-medium{% endif %} text-slate-800">{{ value|default:"—" }}</span>
+</div>

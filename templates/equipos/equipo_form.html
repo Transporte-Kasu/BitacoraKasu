@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Editar {{ object.numero_economico }}{% else %}Nuevo Equipo{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-control{width:100%;padding:.5rem .75rem;border:1px solid #cbd5e1;border-radius:.5rem;font-size:.875rem;color:#1e293b;background:#fff;transition:border-color .15s,box-shadow .15s}
+.form-control:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.form-control.is-invalid{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.1)}
+select.form-control{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .5rem center;background-size:1.25rem;padding-right:2rem}
+.form-section-label{display:flex;align-items:center;gap:.375rem;font-size:.6875rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8;margin-bottom:1rem}
+.form-section-label::after{content:'';flex:1;height:1px;background:#e2e8f0}
+.toggle-switch{position:relative;display:inline-flex;align-items:center;cursor:pointer;gap:.5rem}
+.toggle-switch input{position:absolute;opacity:0;width:0;height:0}
+.toggle-track{width:2.75rem;height:1.5rem;background:#cbd5e1;border-radius:9999px;transition:background .2s;position:relative}
+.toggle-switch input:checked+.toggle-track{background:#22c55e}
+.toggle-track::after{content:'';position:absolute;top:.25rem;left:.25rem;width:1rem;height:1rem;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-switch input:checked+.toggle-track::after{transform:translateX(1.25rem)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'equipos:list' %}" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+  </a>
+  <div>
+    <h1 class="text-xl font-bold text-slate-900">{% if object %}Editar {{ object.numero_economico }}{% else %}Nuevo Equipo{% endif %}</h1>
+    <nav class="mt-0.5"><ol class="flex items-center gap-1.5 text-xs text-slate-400">
+      <li><a href="{% url 'equipos:list' %}" class="hover:text-slate-600">Equipos</a></li>
+      <li>/</li><li class="text-slate-600 font-medium">{% if object %}Editar{% else %}Nuevo{% endif %}</li>
+    </ol></nav>
+  </div>
+</div>
+
+<form method="post" class="grid xl:grid-cols-3 gap-6">
+  {% csrf_token %}
+  <div class="xl:col-span-2 space-y-6">
+    {% if form.non_field_errors %}
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+      {% for e in form.non_field_errors %}<p>{{ e }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <p class="form-section-label">
+        <svg class="h-3.5 w-3.5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+        Identificación
+      </p>
+      <div class="grid sm:grid-cols-2 gap-4">
+        {% for field in form %}
+          {% if field.name in 'numero_economico,tipo,placas,numero_serie,color' %}
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">{{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}</label>
+            <div class="form-control-wrapper">{{ field }}</div>
+            {% if field.errors %}<p role="alert" class="mt-1 text-xs text-red-600">{{ field.errors.0 }}</p>{% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <p class="form-section-label">
+        <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"/></svg>
+        Datos técnicos
+      </p>
+      <div class="grid sm:grid-cols-2 gap-4">
+        {% for field in form %}
+          {% if field.name in 'marca,modelo,vigencia_doble_articulado' %}
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">{{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}</label>
+            {{ field }}
+            {% if field.errors %}<p role="alert" class="mt-1 text-xs text-red-600">{{ field.errors.0 }}</p>{% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-4">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="form-section-label">Estado</p>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-slate-600">Verificación</span>
+          <label class="toggle-switch" for="{{ form.verificacion.id_for_label }}">
+            {{ form.verificacion }}
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-slate-600">Activo</span>
+          <label class="toggle-switch" for="{{ form.activo.id_for_label }}">
+            {{ form.activo }}
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="form-section-label">Acciones</p>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors">
+        {% if object %}Guardar cambios{% else %}Crear equipo{% endif %}
+      </button>
+      <a href="{% if request.GET.next %}{{ request.GET.next }}{% else %}{% url 'equipos:list' %}{% endif %}"
+         class="mt-2 w-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+        Cancelar
+      </a>
+    </div>
+  </div>
+</form>
+
+<script>
+document.querySelectorAll('input[type="text"],input[type="date"],select,textarea').forEach(el=>{
+  if(!el.closest('.toggle-switch')) el.classList.add('form-control');
+});
+document.querySelectorAll('p[role="alert"]').forEach(p=>{
+  const f=p.closest('div')?.querySelector('.form-control');
+  if(f) f.classList.add('is-invalid');
+});
+</script>
+{% endblock %}

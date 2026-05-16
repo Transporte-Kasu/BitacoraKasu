@@ -3,7 +3,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from .models import (
     ProductoAlmacen, ItemEntradaAlmacen, ItemSalidaAlmacen,
-    MovimientoAlmacen, AlertaStock
+    MovimientoAlmacen, AlertaStock, ItemAsignacionSalida
 )
 
 
@@ -149,6 +149,26 @@ def verificar_alertas_producto(sender, instance, **kwargs):
                             f"Fecha de caducidad: {instance.fecha_caducidad.strftime('%d/%m/%Y')} "
                             f"({dias_restantes} días restantes)"
                 )
+
+
+@receiver(post_save, sender=ItemAsignacionSalida)
+def reducir_stock_asignacion_salida(sender, instance, created, **kwargs):
+    if not created:
+        return
+    producto = instance.producto
+    cantidad_anterior = producto.cantidad
+    producto.reducir_stock(instance.cantidad)
+
+    if instance.asignacion.entregado_por:
+        MovimientoAlmacen.objects.create(
+            tipo='SALIDA',
+            producto_almacen=producto,
+            cantidad=-instance.cantidad,
+            cantidad_anterior=cantidad_anterior,
+            cantidad_posterior=producto.cantidad,
+            usuario=instance.asignacion.entregado_por,
+            observaciones=f"Asignación {instance.asignacion.folio} → {instance.asignacion.destino_display}",
+        )
 
 
 @receiver(post_save, sender='almacen.SalidaAlmacen')
