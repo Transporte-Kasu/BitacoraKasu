@@ -171,6 +171,10 @@ def _analizar_anomalias_ia(carga):
     y el campo score_riesgo.
     """
     try:
+        # Refresca la instancia desde BD para evitar valores stale cuando el
+        # wizard guarda con update_fields (cada paso solo persiste sus propios campos).
+        carga.refresh_from_db()
+
         from modulos.combustible.ia_service import AnalizadorCombustible
         from modulos.combustible.notificaciones import (
             enviar_alerta_ia_combustible,
