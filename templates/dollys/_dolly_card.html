@@ -1,0 +1,80 @@
+{% comment %}
+  Partial: tarjeta de dolly
+  Variables requeridas:
+    - dolly : instancia de Dolly
+{% endcomment %}
+
+<div class="fleet-card{% if not dolly.activo %} inactiva{% endif %}"
+     role="button"
+     tabindex="0"
+     data-href="{% url 'dollys:detail' dolly.slug %}"
+     aria-label="Dolly {{ dolly.numero_economico }}{% if not dolly.activo %}, inactivo{% endif %}">
+
+  <!-- Ícono SVG de dolly -->
+  <span aria-hidden="true">
+    <svg class="fleet-truck-icon" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+      {% if dolly.activo %}<g style="color:#f59e0b;">{% else %}<g style="color:#9ca3af;">{% endif %}
+        <!-- Marco principal -->
+        <rect x="20" y="25" width="60" height="7" rx="2.5" fill="currentColor"/>
+        <!-- Acoplamiento delantero (king pin) -->
+        <circle cx="24" cy="28.5" r="9" fill="currentColor"/>
+        <circle cx="24" cy="28.5" r="4.5" fill="white" opacity="0.3"/>
+        <!-- Acoplamiento trasero (anillo) -->
+        <rect x="72" y="22" width="13" height="13" rx="3" fill="currentColor"/>
+        <rect x="75.5" y="25.5" width="6" height="6" rx="1.5" fill="white" opacity="0.3"/>
+        <!-- Eje -->
+        <rect x="34" y="32" width="32" height="3.5" rx="1" fill="currentColor" opacity="0.6"/>
+        <!-- Ruedas -->
+        <circle cx="40" cy="46" r="9.5" fill="currentColor"/>
+        <circle cx="40" cy="46" r="4.5" fill="white" opacity="0.25"/>
+        <circle cx="62" cy="46" r="9.5" fill="currentColor"/>
+        <circle cx="62" cy="46" r="4.5" fill="white" opacity="0.25"/>
+      </g>
+    </svg>
+  </span>
+
+  <!-- Número económico -->
+  <span class="fleet-numero">{{ dolly.numero_economico }}</span>
+  <!-- Marca -->
+  <span style="font-size:0.68rem;color:#6b7280;font-weight:500;text-align:center;line-height:1.2;">
+    {{ dolly.marca|default:"—" }}
+  </span>
+
+  <!-- Badge de estado -->
+  <span class="badge-fila" aria-hidden="true">
+    <span class="badge-hist {% if dolly.activo %}badge-viajes activo{% else %}badge-alerta activo{% endif %}"
+          title="{% if dolly.activo %}Activo{% else %}Inactivo{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 {% if dolly.activo %}text-green-600{% else %}text-red-500{% endif %}" viewBox="0 0 20 20" fill="currentColor">
+        {% if dolly.activo %}
+        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        {% else %}
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        {% endif %}
+      </svg>
+    </span>
+  </span>
+
+  <!-- TOOLTIP -->
+  <div class="fleet-tooltip" role="tooltip" aria-hidden="true">
+    <div style="margin-bottom:0.5rem;">
+      <div style="font-size:0.85rem;font-weight:800;color:#111827;">{{ dolly.numero_economico }}</div>
+      <div style="margin-top:2px;">
+        <span class="tt-tipo-badge" style="background:#fef3c7;color:#92400e;">Dolly</span>
+        {% if not dolly.activo %}
+        <span class="tt-tipo-badge" style="background:#f3f4f6;color:#6b7280;margin-left:4px;">Inactivo</span>
+        {% endif %}
+      </div>
+    </div>
+    <hr class="tt-divider">
+    {% if dolly.marca %}
+    <div class="tt-row"><span class="tt-label">Marca</span><span class="tt-val">{{ dolly.marca }}</span></div>
+    {% endif %}
+    {% if dolly.color %}
+    <div class="tt-row"><span class="tt-label">Color</span><span class="tt-val">{{ dolly.color }}</span></div>
+    {% endif %}
+    <div class="tt-row"><span class="tt-label">No. serie</span><span class="tt-val" style="font-family:monospace;font-size:0.65rem;">{{ dolly.numero_serie }}</span></div>
+    <hr class="tt-divider">
+    <div style="font-size:0.65rem;color:#9ca3af;text-align:center;">Clic para ver detalle</div>
+  </div>
+
+</div>

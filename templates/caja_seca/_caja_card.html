@@ -1,0 +1,92 @@
+{% comment %}
+  Partial: tarjeta de caja seca
+  Variables requeridas:
+    - caja : instancia de CajaSeca
+{% endcomment %}
+
+<div class="fleet-card{% if not caja.activo %} inactiva{% endif %}"
+     role="button"
+     tabindex="0"
+     data-href="{% url 'caja_seca:detail' caja.slug %}"
+     aria-label="Caja Seca {{ caja.numero_economico }}{% if not caja.activo %}, inactiva{% endif %}">
+
+  <!-- Ícono SVG de caja seca (caja cerrada / dry van) -->
+  <span aria-hidden="true">
+    <svg class="fleet-truck-icon" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+      {% if caja.activo %}<g style="color:#7c3aed;">{% else %}<g style="color:#9ca3af;">{% endif %}
+        <!-- Cuerpo de la caja -->
+        <rect x="6" y="10" width="86" height="32" rx="3" fill="currentColor" opacity="0.88"/>
+        <!-- Línea de techo -->
+        <rect x="6" y="10" width="86" height="3" rx="2" fill="white" opacity="0.12"/>
+        <!-- Juntura central de puertas -->
+        <rect x="49" y="10" width="2" height="32" fill="white" opacity="0.18"/>
+        <!-- Bisagras izquierda -->
+        <rect x="18" y="17" width="2.5" height="5" rx="0.5" fill="white" opacity="0.3"/>
+        <rect x="18" y="29" width="2.5" height="5" rx="0.5" fill="white" opacity="0.3"/>
+        <!-- Bisagras derecha -->
+        <rect x="79" y="17" width="2.5" height="5" rx="0.5" fill="white" opacity="0.3"/>
+        <rect x="79" y="29" width="2.5" height="5" rx="0.5" fill="white" opacity="0.3"/>
+        <!-- Chasis -->
+        <rect x="6" y="42" width="86" height="4" rx="1" fill="currentColor" opacity="0.45"/>
+        <!-- Rey (kingpin) -->
+        <circle cx="15" cy="44" r="4" fill="currentColor" opacity="0.7"/>
+        <!-- Ruedas traseras tándem -->
+        <circle cx="72" cy="51" r="7" fill="currentColor"/>
+        <circle cx="72" cy="51" r="3.5" fill="white" opacity="0.25"/>
+        <circle cx="85" cy="51" r="7" fill="currentColor"/>
+        <circle cx="85" cy="51" r="3.5" fill="white" opacity="0.25"/>
+      </g>
+    </svg>
+  </span>
+
+  <!-- Número económico -->
+  <span class="fleet-numero">{{ caja.numero_economico }}</span>
+  <!-- Marca / Año -->
+  <span style="font-size:0.68rem;color:#6b7280;font-weight:500;text-align:center;line-height:1.2;">
+    {{ caja.marca|default:"—" }}{% if caja.anio %} · {{ caja.anio }}{% endif %}
+  </span>
+
+  <!-- Badge de estado -->
+  <span class="badge-fila" aria-hidden="true">
+    <span class="badge-hist {% if caja.activo %}badge-viajes activo{% else %}badge-alerta activo{% endif %}"
+          title="{% if caja.activo %}Activa{% else %}Inactiva{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 {% if caja.activo %}text-green-600{% else %}text-red-500{% endif %}" viewBox="0 0 20 20" fill="currentColor">
+        {% if caja.activo %}
+        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        {% else %}
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        {% endif %}
+      </svg>
+    </span>
+  </span>
+
+  <!-- TOOLTIP -->
+  <div class="fleet-tooltip" role="tooltip" aria-hidden="true">
+    <div style="margin-bottom:0.5rem;">
+      <div style="font-size:0.85rem;font-weight:800;color:#111827;">{{ caja.numero_economico }}</div>
+      <div style="margin-top:2px;">
+        <span class="tt-tipo-badge" style="background:#ede9fe;color:#5b21b6;">Caja Seca</span>
+        {% if not caja.activo %}
+        <span class="tt-tipo-badge" style="background:#f3f4f6;color:#6b7280;margin-left:4px;">Inactiva</span>
+        {% endif %}
+      </div>
+    </div>
+    <hr class="tt-divider">
+    {% if caja.placas %}
+    <div class="tt-row"><span class="tt-label">Placas</span><span class="tt-val">{{ caja.placas }}</span></div>
+    {% endif %}
+    {% if caja.marca %}
+    <div class="tt-row">
+      <span class="tt-label">Vehículo</span>
+      <span class="tt-val">{{ caja.marca }}{% if caja.modelo %} {{ caja.modelo }}{% endif %}{% if caja.anio %}<br><span style="font-weight:500;color:#6b7280;">{{ caja.anio }}</span>{% endif %}</span>
+    </div>
+    {% endif %}
+    {% if caja.color %}
+    <div class="tt-row"><span class="tt-label">Color</span><span class="tt-val">{{ caja.color }}</span></div>
+    {% endif %}
+    <div class="tt-row"><span class="tt-label">No. serie</span><span class="tt-val" style="font-family:monospace;font-size:0.65rem;">{{ caja.numero_serie }}</span></div>
+    <hr class="tt-divider">
+    <div style="font-size:0.65rem;color:#9ca3af;text-align:center;">Clic para ver detalle</div>
+  </div>
+
+</div>

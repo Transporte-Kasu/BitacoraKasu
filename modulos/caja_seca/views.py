@@ -12,12 +12,11 @@ class CajaSecaListView(LoginRequiredMixin, ListView):
     model = CajaSeca
     template_name = 'caja_seca/caja_list.html'
     context_object_name = 'cajas'
-    paginate_by = 25
+    paginate_by = None
 
     def get_queryset(self):
         qs = CajaSeca.objects.all()
         buscar = self.request.GET.get('buscar', '').strip()
-        marca = self.request.GET.get('marca', '').strip()
         activo = self.request.GET.get('activo', '')
 
         if buscar:
@@ -27,8 +26,6 @@ class CajaSecaListView(LoginRequiredMixin, ListView):
                 Q(numero_serie__icontains=buscar) |
                 Q(marca__icontains=buscar)
             )
-        if marca:
-            qs = qs.filter(marca__icontains=marca)
         if activo in ('1', '0'):
             qs = qs.filter(activo=(activo == '1'))
 
@@ -36,12 +33,12 @@ class CajaSecaListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['filtro_form'] = FiltroCajaSecaForm(self.request.GET)
         ctx['total'] = CajaSeca.objects.count()
         ctx['activos'] = CajaSeca.objects.filter(activo=True).count()
-        params = self.request.GET.copy()
-        params.pop('page', None)
-        ctx['filtro_params'] = params.urlencode()
+
+        cajas_qs = ctx['cajas']
+        ctx['cajas_activas'] = [c for c in cajas_qs if c.activo]
+        ctx['cajas_inactivas'] = [c for c in cajas_qs if not c.activo]
         return ctx
 
 
@@ -54,17 +51,8 @@ class CajaSecaDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        c = self.object
-        ctx['campos'] = [
-            ('Número económico', c.numero_economico, False),
-            ('Placas', c.placas, False),
-            ('No. de serie', c.numero_serie, True),
-            ('Marca', c.marca, False),
-            ('Modelo', c.modelo, False),
-            ('Año', c.anio, False),
-            ('Color', c.color, False),
-        ]
         ctx['asignaciones_salida'] = self.object.asignaciones_salida.prefetch_related('items').order_by('-creado_en')[:20]
+        ctx['total_asignaciones'] = self.object.asignaciones_salida.count()
         return ctx
 
 

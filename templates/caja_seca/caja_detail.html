@@ -1,63 +1,181 @@
 {% extends 'base.html' %}
 {% block title %}{{ caja.numero_economico }}{% endblock %}
+
 {% block content %}
+<!-- Encabezado -->
 <div class="flex items-center gap-3 mb-6">
   <a href="{% url 'caja_seca:list' %}" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
   </a>
   <div>
-    <h1 class="text-xl font-bold text-slate-900">{{ caja.numero_economico }}</h1>
+    <div class="flex items-center gap-2 flex-wrap">
+      <h1 class="text-xl font-bold text-slate-900">{{ caja.numero_economico }}</h1>
+      <span class="text-xs font-semibold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">Caja Seca</span>
+      {% if caja.activo %}
+        <span class="text-xs font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">Activa</span>
+      {% else %}
+        <span class="text-xs font-semibold bg-red-50 text-red-600 px-2 py-0.5 rounded-full">Inactiva</span>
+      {% endif %}
+    </div>
     <nav class="mt-0.5"><ol class="flex items-center gap-1.5 text-xs text-slate-400">
       <li><a href="{% url 'caja_seca:list' %}" class="hover:text-slate-600">Cajas Secas</a></li>
       <li>/</li><li class="text-slate-600 font-medium">{{ caja.numero_economico }}</li>
     </ol></nav>
   </div>
   <div class="ml-auto flex gap-2">
-    <a href="{% url 'caja_seca:update' caja.slug %}" class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">Editar</a>
+    <a href="{% url 'caja_seca:update' caja.slug %}" class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+      Editar
+    </a>
     <a href="{% url 'caja_seca:delete' caja.slug %}" class="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">Eliminar</a>
   </div>
 </div>
-<div class="max-w-lg bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-1">
-  {% for label, value, mono in campos %}
-  <div class="flex items-center justify-between py-2 border-b border-slate-100">
-    <span class="text-xs text-slate-500">{{ label }}</span>
-    <span class="text-sm {% if mono %}font-mono{% else %}font-medium{% endif %} text-slate-800">{{ value|default:"—" }}</span>
+
+<!-- Tarjetas de información -->
+<div class="grid lg:grid-cols-2 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Identificación</p>
+    <div class="flex items-center justify-between py-2 border-b border-slate-100">
+      <span class="text-xs text-slate-500">Número económico</span>
+      <span class="text-sm font-semibold text-slate-800">{{ caja.numero_economico }}</span>
+    </div>
+    <div class="flex items-center justify-between py-2 border-b border-slate-100">
+      <span class="text-xs text-slate-500">Placas</span>
+      <span class="text-sm font-medium text-slate-800">{{ caja.placas|default:"—" }}</span>
+    </div>
+    <div class="flex items-center justify-between py-2 border-b border-slate-100">
+      <span class="text-xs text-slate-500">No. de serie</span>
+      <span class="text-sm font-mono text-slate-800">{{ caja.numero_serie|default:"—" }}</span>
+    </div>
+    <div class="flex items-center justify-between py-2">
+      <span class="text-xs text-slate-500">Color</span>
+      <span class="text-sm font-medium text-slate-800">{{ caja.color|default:"—" }}</span>
+    </div>
   </div>
-  {% endfor %}
-  <div class="flex items-center justify-between py-2">
-    <span class="text-xs text-slate-500">Estado</span>
-    {% if caja.activo %}<span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Activo</span>
-    {% else %}<span class="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded">Inactivo</span>{% endif %}
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Datos técnicos</p>
+    <div class="flex items-center justify-between py-2 border-b border-slate-100">
+      <span class="text-xs text-slate-500">Marca</span>
+      <span class="text-sm font-medium text-slate-800">{{ caja.marca|default:"—" }}</span>
+    </div>
+    <div class="flex items-center justify-between py-2 border-b border-slate-100">
+      <span class="text-xs text-slate-500">Modelo</span>
+      <span class="text-sm font-medium text-slate-800">{{ caja.modelo|default:"—" }}</span>
+    </div>
+    <div class="flex items-center justify-between py-2 border-b border-slate-100">
+      <span class="text-xs text-slate-500">Año</span>
+      <span class="text-sm font-medium text-slate-800">{{ caja.anio|default:"—" }}</span>
+    </div>
+    <div class="flex items-center justify-between py-2">
+      <span class="text-xs text-slate-500">Estado</span>
+      {% if caja.activo %}
+        <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Activa</span>
+      {% else %}
+        <span class="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded">Inactiva</span>
+      {% endif %}
+    </div>
   </div>
 </div>
 
-{% if asignaciones_salida %}
-<div class="mt-8">
-  <h2 class="text-base font-bold text-slate-800 mb-3">Asignaciones de almacén (ASG)</h2>
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+<!-- Historial con pestañas -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="border-b border-slate-200">
+    <nav class="flex -mb-px px-2" aria-label="Historial">
+      <button id="tab-viajes" type="button" onclick="showTab('viajes')"
+              class="tab-btn whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors cursor-pointer border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+        <svg class="inline h-4 w-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+        Viajes
+        <span class="ml-1.5 text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-normal">0</span>
+      </button>
+      <button id="tab-taller" type="button" onclick="showTab('taller')"
+              class="tab-btn whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors cursor-pointer border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+        <svg class="inline h-4 w-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Taller
+        <span class="ml-1.5 text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-normal">0</span>
+      </button>
+      <button id="tab-almacen" type="button" onclick="showTab('almacen')"
+              class="tab-btn whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors cursor-pointer border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+        <svg class="inline h-4 w-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Almacén
+        <span class="ml-1.5 text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-normal">{{ total_asignaciones }}</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Pestaña: Viajes -->
+  <div id="content-viajes" class="hidden p-8 text-center">
+    <svg class="h-10 w-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+    <p class="text-sm font-medium text-slate-500">Sin viajes registrados</p>
+    <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">Los viajes se vinculan a la unidad tractora. Próximamente se podrán asociar cajas secas en las bitácoras.</p>
+  </div>
+
+  <!-- Pestaña: Taller -->
+  <div id="content-taller" class="hidden p-8 text-center">
+    <svg class="h-10 w-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    <p class="text-sm font-medium text-slate-500">Sin órdenes de taller</p>
+    <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">Las órdenes de taller están vinculadas a unidades tractoras. Próximamente se podrán registrar órdenes para cajas secas.</p>
+  </div>
+
+  <!-- Pestaña: Almacén -->
+  <div id="content-almacen" class="hidden">
+    {% if asignaciones_salida %}
     <table class="w-full text-sm">
       <thead class="bg-slate-50 border-b border-slate-100">
         <tr>
-          <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500">Folio</th>
-          <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500">Fecha</th>
-          <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500">Solicitante</th>
-          <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500">Productos</th>
-          <th class="px-4 py-2"></th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Folio</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Solicitante</th>
+          <th class="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Productos</th>
+          <th class="px-4 py-3"></th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-50">
         {% for a in asignaciones_salida %}
-        <tr>
-          <td class="px-4 py-3 font-mono text-xs font-medium text-slate-700">{{ a.folio }}</td>
-          <td class="px-4 py-3 text-slate-600">{{ a.fecha|date:"d/m/Y" }}</td>
-          <td class="px-4 py-3 text-slate-700">{{ a.solicitante }}</td>
-          <td class="px-4 py-3 text-slate-500">{{ a.items.count }}</td>
-          <td class="px-4 py-3 text-right"><a href="{% url 'almacen:asignacion_salida_detail' a.pk %}" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Ver</a></td>
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 font-mono text-xs font-semibold text-violet-700">{{ a.folio }}</td>
+          <td class="px-4 py-3 text-xs text-slate-600">{{ a.fecha|date:"d/m/Y" }}</td>
+          <td class="px-4 py-3 text-xs text-slate-700 hidden md:table-cell">{{ a.solicitante }}</td>
+          <td class="px-4 py-3 text-center">
+            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{{ a.items.count }}</span>
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'almacen:asignacion_salida_detail' a.pk %}" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Ver →</a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    {% if total_asignaciones > 20 %}
+    <div class="px-4 py-3 border-t border-slate-100 text-xs text-slate-400 text-center">
+      Mostrando las 20 asignaciones más recientes de {{ total_asignaciones }} en total
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="p-8 text-center">
+      <svg class="h-10 w-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      <p class="text-sm font-medium text-slate-500">Sin asignaciones de almacén</p>
+      <p class="text-xs text-slate-400 mt-1">Esta caja seca no tiene materiales asignados aún.</p>
+    </div>
+    {% endif %}
   </div>
 </div>
-{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showTab(name) {
+  document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('border-blue-500', 'text-blue-600');
+    btn.classList.add('border-transparent', 'text-gray-500');
+  });
+  document.getElementById('content-' + name).classList.remove('hidden');
+  const btn = document.getElementById('tab-' + name);
+  btn.classList.remove('border-transparent', 'text-gray-500');
+  btn.classList.add('border-blue-500', 'text-blue-600');
+}
+const params = new URLSearchParams(window.location.search);
+showTab(params.get('tab') || 'almacen');
+</script>
 {% endblock %}

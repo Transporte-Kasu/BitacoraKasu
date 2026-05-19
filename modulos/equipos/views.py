@@ -12,13 +12,12 @@ class EquipoListView(LoginRequiredMixin, ListView):
     model = Equipo
     template_name = 'equipos/equipo_list.html'
     context_object_name = 'equipos'
-    paginate_by = 25
+    paginate_by = None
 
     def get_queryset(self):
         qs = Equipo.objects.all()
         buscar = self.request.GET.get('buscar', '').strip()
         tipo = self.request.GET.get('tipo', '')
-        marca = self.request.GET.get('marca', '').strip()
         activo = self.request.GET.get('activo', '')
 
         if buscar:
@@ -30,8 +29,6 @@ class EquipoListView(LoginRequiredMixin, ListView):
             )
         if tipo:
             qs = qs.filter(tipo=tipo)
-        if marca:
-            qs = qs.filter(marca__icontains=marca)
         if activo in ('1', '0'):
             qs = qs.filter(activo=(activo == '1'))
 
@@ -39,12 +36,16 @@ class EquipoListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['filtro_form'] = FiltroEquiposForm(self.request.GET)
         ctx['total'] = Equipo.objects.count()
         ctx['activos'] = Equipo.objects.filter(activo=True).count()
-        params = self.request.GET.copy()
-        params.pop('page', None)
-        ctx['filtro_params'] = params.urlencode()
+
+        equipos_qs = ctx['equipos']
+        grupos = {}
+        for tipo_key, tipo_label in [('CHASIS', 'Chasis'), ('PLANA', 'Plana'), ('OTRO', 'Otro')]:
+            items = [e for e in equipos_qs if e.tipo == tipo_key]
+            if items:
+                grupos[tipo_key] = {'label': tipo_label, 'items': items}
+        ctx['grupos_equipos'] = grupos
         return ctx
 
 
@@ -58,6 +59,7 @@ class EquipoDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['asignaciones_salida'] = self.object.asignaciones_salida.prefetch_related('items').order_by('-creado_en')[:20]
+        ctx['total_asignaciones'] = self.object.asignaciones_salida.count()
         return ctx
 
 
