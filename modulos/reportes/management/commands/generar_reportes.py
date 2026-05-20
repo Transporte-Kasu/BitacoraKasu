@@ -219,6 +219,7 @@ class Command(BaseCommand):
                     resumen=datos.get('resumen', {}),
                     periodo_inicio=str(periodo_inicio),
                     periodo_fin=str(periodo_fin),
+                    datos=datos,
                 )
                 if narrativa:
                     self.stdout.write(f"  IA    Narrativa generada para {config.nombre}")

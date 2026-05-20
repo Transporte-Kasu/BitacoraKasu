@@ -40,40 +40,60 @@ _NOMBRES_REPORTE = {
 }
 
 
-def _prompt_almacen_movimientos(resumen: dict, periodo_inicio: str, periodo_fin: str) -> tuple:
+def _prompt_almacen_movimientos(resumen: dict, datos: dict, periodo_inicio: str, periodo_fin: str) -> tuple:
     """Prompt y max_tokens especializados para el reporte de movimientos de almacén."""
     total = resumen.get('total_movimientos', 0)
     entradas = resumen.get('entradas', 0)
     salidas = resumen.get('salidas', 0)
-    top5 = resumen.get('top_5_mas_salidas', 'Sin datos')
+    ajustes = resumen.get('ajustes_traslados', 0)
+    total_activos = resumen.get('total_productos_activos', 0)
+    con_mov = resumen.get('productos_con_movimiento', 0)
     total_sin_mov = resumen.get('total_sin_movimiento', 0)
-    sin_mov_muestra = resumen.get('sin_movimiento_muestra', 'Sin datos')
+
+    top5 = datos.get('top_5_salidas', [])
+    sin_mov = datos.get('sin_movimiento', [])
+
+    top5_texto = '\n'.join(
+        f"  {i+1}. {r['descripcion']} — {r['num_salidas']} salidas"
+        for i, r in enumerate(top5)
+    ) or '  Sin salidas registradas en el período'
+
+    sin_mov_texto = ', '.join(p['descripcion'] for p in sin_mov) or 'Todos con movimiento'
+
+    pct_activos = f"{round(con_mov / total_activos * 100)}%" if total_activos else 'N/D'
 
     prompt = (
         f"Reporte: Movimientos de Almacén\n"
         f"Período: {periodo_inicio} al {periodo_fin}\n\n"
         f"Actividad del período:\n"
-        f"  - Total movimientos: {total} ({entradas} entradas, {salidas} salidas)\n\n"
-        f"Top 5 productos con más salidas:\n"
-        f"  {top5}\n\n"
-        f"Productos activos sin movimiento en el período: {total_sin_mov}\n"
-        f"  Muestra: {sin_mov_muestra}\n\n"
+        f"  - Total movimientos: {total} ({entradas} entradas, {salidas} salidas, {ajustes} ajustes/traslados)\n"
+        f"  - Productos activos: {total_activos} | Con movimiento: {con_mov} ({pct_activos}) | Sin movimiento: {total_sin_mov}\n\n"
+        f"Top 5 productos con más salidas:\n{top5_texto}\n\n"
+        f"Productos sin ningún movimiento en el período ({total_sin_mov} en total):\n"
+        f"  Muestra: {sin_mov_texto}\n\n"
         f"Redacta el análisis ejecutivo del estado del inventario. Menciona los productos "
-        f"de alta rotación, señala si hay productos estancados que requieren atención, "
-        f"y concluye con una valoración general del flujo del almacén:"
+        f"de alta rotación, señala si el volumen de productos estancados es preocupante, "
+        f"y concluye con una valoración general del flujo del almacén en el período:"
     )
     return prompt, 500
 
 
-def generar_narrativa(tipo_reporte: str, resumen: dict, periodo_inicio: str, periodo_fin: str) -> str:
+def generar_narrativa(
+    tipo_reporte: str,
+    resumen: dict,
+    periodo_inicio: str,
+    periodo_fin: str,
+    datos: dict = None,
+) -> str:
     """
     Genera un párrafo ejecutivo en lenguaje natural usando Claude.
 
     Args:
         tipo_reporte:  Clave del tipo de reporte (ej. 'COMBUSTIBLE_ALERTAS').
-        resumen:       Dict con los KPIs del reporte (igual al campo resumen del generador).
+        resumen:       Dict con los KPIs numéricos del reporte.
         periodo_inicio: Fecha de inicio del período en formato 'YYYY-MM-DD'.
         periodo_fin:    Fecha de fin del período en formato 'YYYY-MM-DD'.
+        datos:         Dict completo del generador (necesario para tipos con listas).
 
     Returns:
         Texto de la narrativa, o '' si IA está deshabilitada o la llamada falla.
@@ -93,7 +113,9 @@ def generar_narrativa(tipo_reporte: str, resumen: dict, periodo_inicio: str, per
 
     # Prompt y parámetros según el tipo de reporte
     if tipo_reporte == 'ALMACEN_MOVIMIENTOS':
-        prompt, max_tokens = _prompt_almacen_movimientos(resumen, periodo_inicio, periodo_fin)
+        prompt, max_tokens = _prompt_almacen_movimientos(
+            resumen, datos or {}, periodo_inicio, periodo_fin
+        )
         modelo = Modelo.SONNET
     else:
         nombre = _NOMBRES_REPORTE.get(tipo_reporte, tipo_reporte.replace('_', ' ').title())

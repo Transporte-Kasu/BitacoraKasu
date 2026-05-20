@@ -198,6 +198,7 @@ def generar_movimientos(periodo_inicio: date, periodo_fin: date) -> dict:
         .exclude(id__in=con_movimiento_ids)
         .order_by('descripcion')
     )
+    total_activos = ProductoAlmacen.objects.filter(activo=True).count()
     total_sin_movimiento = sin_mov_qs.count()
     sin_movimiento = [
         {
@@ -207,6 +208,10 @@ def generar_movimientos(periodo_inicio: date, periodo_fin: date) -> dict:
         }
         for p in sin_mov_qs.values('sku', 'descripcion', 'cantidad')[:5]
     ]
+
+    num_entradas = sum(1 for f in filas if f['tipo'] == 'ENTRADA')
+    num_salidas = sum(1 for f in filas if f['tipo'] == 'SALIDA')
+    num_ajustes = len(filas) - num_entradas - num_salidas
 
     return {
         'tipo': 'ALMACEN_MOVIMIENTOS',
@@ -218,15 +223,12 @@ def generar_movimientos(periodo_inicio: date, periodo_fin: date) -> dict:
         'sin_movimiento': sin_movimiento,
         'resumen': {
             'total_movimientos': len(filas),
-            'entradas': sum(1 for f in filas if f['tipo'] == 'ENTRADA'),
-            'salidas': sum(1 for f in filas if f['tipo'] == 'SALIDA'),
-            'top_5_mas_salidas': ', '.join(
-                f"{r['descripcion']} ({r['num_salidas']} salidas)" for r in top_5_salidas
-            ) or 'Sin salidas en el período',
+            'entradas': num_entradas,
+            'salidas': num_salidas,
+            'ajustes_traslados': num_ajustes,
+            'total_productos_activos': total_activos,
+            'productos_con_movimiento': total_activos - total_sin_movimiento,
             'total_sin_movimiento': total_sin_movimiento,
-            'sin_movimiento_muestra': ', '.join(
-                p['descripcion'] for p in sin_movimiento
-            ) or 'Todos los productos tuvieron movimiento',
         },
         'filas': filas,
     }

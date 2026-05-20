@@ -11,17 +11,39 @@
   .header h1 { margin: 0; font-size: 18px; font-weight: 700; }
   .header p { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
   .body { padding: 24px 28px; }
-  .resumen { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
-  .kpi { flex: 1; min-width: 120px; background: #f8fafc; border-radius: 8px; padding: 12px 16px; border-left: 3px solid #3b82f6; }
-  .kpi .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-  .kpi .value { font-size: 22px; font-weight: 700; color: #111827; }
+  /* KPI grid — solo valores numéricos cortos */
+  .resumen { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+  .kpi { flex: 1; min-width: 100px; max-width: 160px; background: #f8fafc; border-radius: 8px; padding: 12px 14px; border-left: 3px solid #3b82f6; }
+  .kpi .label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; line-height: 1.3; }
+  .kpi .value { font-size: 24px; font-weight: 700; color: #111827; }
+  .kpi.green { border-color: #10b981; }
+  .kpi.green .value { color: #065f46; }
+  .kpi.amber { border-color: #f59e0b; }
+  .kpi.amber .value { color: #92400e; }
+  .kpi.red { border-color: #ef4444; }
+  .kpi.red .value { color: #991b1b; }
+  /* Tablas de detalle */
+  .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #374151; margin: 0 0 10px; }
+  .detail-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
+  .detail-table thead tr { color: white; }
+  .detail-table th { padding: 8px 12px; text-align: left; font-weight: 600; }
+  .detail-table td { padding: 7px 12px; border-bottom: 1px solid #e5e7eb; }
+  .detail-table .td-right { text-align: right; }
+  .rank-badge { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; font-size: 11px; font-weight: 700; background: #dbeafe; color: #1e40af; }
+  .rank-badge.gold { background: #fef3c7; color: #92400e; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 9999px; font-size: 12px; font-weight: 700; }
+  .pill-blue { background: #dbeafe; color: #1e40af; }
+  .pill-amber { background: #fef3c7; color: #92400e; }
+  /* Alertas y narrativa */
   .footer { background: #f8fafc; padding: 16px 28px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
   .footer a { color: #3b82f6; }
   .alert { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px; font-size: 13px; color: #92400e; }
   .alert.danger { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+  .alert.info { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
   .narrativa { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 20px; }
   .narrativa .ia-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #7c3aed; margin-bottom: 6px; }
   .narrativa p { font-size: 14px; color: #1f2937; line-height: 1.6; margin: 0; }
+  .divider { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
 </style>
 </head>
 <body>
@@ -42,12 +64,116 @@
     </div>
     {% endif %}
 
-    <!-- Resumen KPIs -->
+    <!-- ============================================================ -->
+    <!-- KPI Grid — layout diferenciado por tipo de reporte         -->
+    <!-- ============================================================ -->
+
+    {% if datos.tipo == 'ALMACEN_MOVIMIENTOS' %}
+
+    <!-- KPIs numéricos de movimientos -->
+    <div class="resumen">
+      <div class="kpi">
+        <div class="label">Total Movimientos</div>
+        <div class="value">{{ datos.resumen.total_movimientos }}</div>
+      </div>
+      <div class="kpi green">
+        <div class="label">Entradas</div>
+        <div class="value">{{ datos.resumen.entradas }}</div>
+      </div>
+      <div class="kpi blue">
+        <div class="label">Salidas</div>
+        <div class="value">{{ datos.resumen.salidas }}</div>
+      </div>
+      {% if datos.resumen.ajustes_traslados %}
+      <div class="kpi">
+        <div class="label">Ajustes / Traslados</div>
+        <div class="value">{{ datos.resumen.ajustes_traslados }}</div>
+      </div>
+      {% endif %}
+      <div class="kpi green">
+        <div class="label">Con Movimiento</div>
+        <div class="value">{{ datos.resumen.productos_con_movimiento }}</div>
+      </div>
+      <div class="kpi {% if datos.resumen.total_sin_movimiento > 0 %}amber{% else %}green{% endif %}">
+        <div class="label">Sin Movimiento</div>
+        <div class="value">{{ datos.resumen.total_sin_movimiento }}</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Top 5 productos con más salidas -->
+    {% if datos.top_5_salidas %}
+    <p class="section-title">🏆 Top 5 Productos con Más Salidas</p>
+    <table class="detail-table">
+      <thead>
+        <tr style="background: #1e40af;">
+          <th style="width:36px;">#</th>
+          <th>SKU</th>
+          <th>Producto</th>
+          <th class="td-right">Salidas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in datos.top_5_salidas %}
+        <tr style="background: {% if forloop.counter|divisibleby:2 %}#f8fafc{% else %}#ffffff{% endif %};">
+          <td>
+            <span class="rank-badge {% if forloop.first %}gold{% endif %}">{{ forloop.counter }}</span>
+          </td>
+          <td style="font-family: monospace; font-size: 12px; color: #6b7280;">{{ item.sku }}</td>
+          <td style="color: #111827; font-weight: 500;">{{ item.descripcion }}</td>
+          <td class="td-right">
+            <span class="pill pill-blue">{{ item.num_salidas }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="alert info">Sin registros de salidas en el período.</div>
+    {% endif %}
+
+    <hr class="divider">
+
+    <!-- Productos sin movimiento -->
+    {% if datos.resumen.total_sin_movimiento > 0 %}
+    <div class="alert {% if datos.resumen.total_sin_movimiento > 20 %}danger{% else %}{% endif %}" style="margin-bottom: 12px;">
+      ⚠️ <strong>{{ datos.resumen.total_sin_movimiento }}</strong> producto(s) activo(s) sin ningún movimiento en el período
+      de {{ datos.resumen.total_productos_activos }} en total.
+      {% if datos.resumen.total_sin_movimiento > 5 %} Se muestra muestra de 5.{% endif %}
+    </div>
+    {% if datos.sin_movimiento %}
+    <table class="detail-table" style="margin-top: 0;">
+      <thead>
+        <tr style="background: #b45309;">
+          <th>SKU</th>
+          <th>Producto</th>
+          <th class="td-right">Stock Actual</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in datos.sin_movimiento %}
+        <tr style="background: {% if forloop.counter|divisibleby:2 %}#fef3c7{% else %}#fffbeb{% endif %};">
+          <td style="font-family: monospace; font-size: 12px; color: #92400e;">{{ item.sku }}</td>
+          <td style="color: #78350f;">{{ item.descripcion }}</td>
+          <td class="td-right" style="color: #92400e; font-weight: 600;">{{ item.cantidad }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    {% else %}
+    <div class="alert info">✅ Todos los productos activos tuvieron movimiento en el período.</div>
+    {% endif %}
+
+    {% else %}
+
+    <!-- KPI genérico para otros tipos de reporte -->
     {% if datos.resumen %}
     <div class="resumen">
       {% for key, value in datos.resumen.items %}
       <div class="kpi">
-        <div class="label">{{ key|title }}</div>
+        <div class="label">{{ key|cut:"_"|title }}</div>
         <div class="value">{{ value }}</div>
       </div>
       {% endfor %}
@@ -68,28 +194,30 @@
 
     <!-- Tabla de unidades (reporte UNIDADES_KILOMETRAJE) -->
     {% if datos.tipo == 'UNIDADES_KILOMETRAJE' and datos.filas %}
-    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:24px;">
+    <table class="detail-table">
       <thead>
-        <tr style="background:#1e40af; color:white;">
-          <th style="padding:8px 10px; text-align:left; font-weight:600;">No. Económico</th>
-          <th style="padding:8px 10px; text-align:left; font-weight:600;">Placa</th>
-          <th style="padding:8px 10px; text-align:left; font-weight:600;">Marca</th>
-          <th style="padding:8px 10px; text-align:left; font-weight:600;">Modelo</th>
-          <th style="padding:8px 10px; text-align:right; font-weight:600;">Kilometraje</th>
+        <tr style="background:#1e40af;">
+          <th>No. Económico</th>
+          <th>Placa</th>
+          <th>Marca</th>
+          <th>Modelo</th>
+          <th class="td-right">Kilometraje</th>
         </tr>
       </thead>
       <tbody>
         {% for fila in datos.filas %}
-        <tr style="background:{% cycle '#ffffff' '#f8fafc' %}; border-bottom:1px solid #e5e7eb;">
-          <td style="padding:7px 10px; font-weight:600; color:#1e40af;">{{ fila.numero_economico }}</td>
-          <td style="padding:7px 10px; color:#374151;">{{ fila.placa }}</td>
-          <td style="padding:7px 10px; color:#374151;">{{ fila.marca }}</td>
-          <td style="padding:7px 10px; color:#374151;">{{ fila.modelo }}</td>
-          <td style="padding:7px 10px; text-align:right; color:#111827; font-weight:500;">{{ fila.kilometraje_km|floatformat:"0" }} km</td>
+        <tr style="background:{% if forloop.counter|divisibleby:2 %}#f8fafc{% else %}#ffffff{% endif %}; border-bottom:1px solid #e5e7eb;">
+          <td style="font-weight:600; color:#1e40af;">{{ fila.numero_economico }}</td>
+          <td style="color:#374151;">{{ fila.placa }}</td>
+          <td style="color:#374151;">{{ fila.marca }}</td>
+          <td style="color:#374151;">{{ fila.modelo }}</td>
+          <td class="td-right" style="color:#111827; font-weight:500;">{{ fila.kilometraje_km|floatformat:"0" }} km</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    {% endif %}
+
     {% endif %}
 
     <p style="font-size:13px; color:#6b7280;">
