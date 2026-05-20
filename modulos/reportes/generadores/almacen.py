@@ -142,22 +142,22 @@ def generar_movimientos(periodo_inicio: date, periodo_fin: date) -> dict:
 
     movimientos = (
         MovimientoAlmacen.objects
-        .filter(fecha__date__gte=periodo_inicio, fecha__date__lte=periodo_fin)
-        .select_related('producto', 'usuario')
-        .order_by('-fecha')
+        .filter(fecha_movimiento__date__gte=periodo_inicio, fecha_movimiento__date__lte=periodo_fin)
+        .select_related('producto_almacen', 'usuario')
+        .order_by('-fecha_movimiento')
     )
 
     filas = []
     for m in movimientos:
         filas.append({
-            'fecha': m.fecha.strftime('%d/%m/%Y %H:%M'),
+            'fecha': m.fecha_movimiento.strftime('%d/%m/%Y %H:%M'),
             'tipo': m.tipo,
-            'tipo_display': m.get_tipo_display() if hasattr(m, 'get_tipo_display') else m.tipo,
-            'producto_sku': m.producto.sku if m.producto else '',
-            'producto_desc': m.producto.descripcion if m.producto else '',
+            'tipo_display': m.get_tipo_display(),
+            'producto_sku': m.producto_almacen.sku if m.producto_almacen_id else '',
+            'producto_desc': m.producto_almacen.descripcion if m.producto_almacen_id else '',
             'cantidad': float(m.cantidad),
-            'usuario': m.usuario.get_full_name() or m.usuario.username if m.usuario else '',
-            'referencia': m.referencia if hasattr(m, 'referencia') else '',
+            'usuario': m.usuario.get_full_name() or m.usuario.username if m.usuario_id else '',
+            'referencia': m.observaciones,
         })
 
     return {
