@@ -138,7 +138,8 @@ def generar_proximos_caducar(periodo_inicio: date, periodo_fin: date) -> dict:
 
 def generar_movimientos(periodo_inicio: date, periodo_fin: date) -> dict:
     """Reporte de movimientos (entradas y salidas) en el período."""
-    from modulos.almacen.models import MovimientoAlmacen
+    from django.db.models import Count
+    from modulos.almacen.models import MovimientoAlmacen, ProductoAlmacen
 
     movimientos = (
         MovimientoAlmacen.objects
@@ -160,16 +161,72 @@ def generar_movimientos(periodo_inicio: date, periodo_fin: date) -> dict:
             'referencia': m.observaciones,
         })
 
+    # Top 5 productos con más registros de salida en el período
+    top_salidas_qs = (
+        MovimientoAlmacen.objects
+        .filter(
+            tipo='SALIDA',
+            fecha_movimiento__date__gte=periodo_inicio,
+            fecha_movimiento__date__lte=periodo_fin,
+        )
+        .values('producto_almacen__sku', 'producto_almacen__descripcion')
+        .annotate(num_salidas=Count('id'))
+        .order_by('-num_salidas')[:5]
+    )
+    top_5_salidas = [
+        {
+            'sku': r['producto_almacen__sku'],
+            'descripcion': r['producto_almacen__descripcion'],
+            'num_salidas': r['num_salidas'],
+        }
+        for r in top_salidas_qs
+    ]
+
+    # Productos activos sin ningún movimiento en el período
+    con_movimiento_ids = list(
+        MovimientoAlmacen.objects
+        .filter(
+            fecha_movimiento__date__gte=periodo_inicio,
+            fecha_movimiento__date__lte=periodo_fin,
+        )
+        .values_list('producto_almacen_id', flat=True)
+        .distinct()
+    )
+    sin_mov_qs = (
+        ProductoAlmacen.objects
+        .filter(activo=True)
+        .exclude(id__in=con_movimiento_ids)
+        .order_by('descripcion')
+    )
+    total_sin_movimiento = sin_mov_qs.count()
+    sin_movimiento = [
+        {
+            'sku': p['sku'],
+            'descripcion': p['descripcion'],
+            'cantidad': float(p['cantidad']),
+        }
+        for p in sin_mov_qs.values('sku', 'descripcion', 'cantidad')[:5]
+    ]
+
     return {
         'tipo': 'ALMACEN_MOVIMIENTOS',
         'titulo': f'Movimientos de Almacén — {periodo_inicio.strftime("%d/%m/%Y")} al {periodo_fin.strftime("%d/%m/%Y")}',
         'periodo_inicio': str(periodo_inicio),
         'periodo_fin': str(periodo_fin),
         'generado_en': timezone.now().isoformat(),
+        'top_5_salidas': top_5_salidas,
+        'sin_movimiento': sin_movimiento,
         'resumen': {
             'total_movimientos': len(filas),
-            'entradas': sum(1 for f in filas if 'ENT' in f.get('tipo', '') or 'ENTRADA' in f.get('tipo', '')),
-            'salidas': sum(1 for f in filas if 'SAL' in f.get('tipo', '') or 'SALIDA' in f.get('tipo', '')),
+            'entradas': sum(1 for f in filas if f['tipo'] == 'ENTRADA'),
+            'salidas': sum(1 for f in filas if f['tipo'] == 'SALIDA'),
+            'top_5_mas_salidas': ', '.join(
+                f"{r['descripcion']} ({r['num_salidas']} salidas)" for r in top_5_salidas
+            ) or 'Sin salidas en el período',
+            'total_sin_movimiento': total_sin_movimiento,
+            'sin_movimiento_muestra': ', '.join(
+                p['descripcion'] for p in sin_movimiento
+            ) or 'Todos los productos tuvieron movimiento',
         },
         'filas': filas,
     }
