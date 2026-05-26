@@ -27,6 +27,7 @@ from django.conf import settings
 
 from modulos.reportes.models import ConfiguracionReporte, ReporteGenerado
 from modulos.reportes.generadores import almacen as gen_almacen
+from config.services.whatsapp_service import enviar_mensaje as _wa_enviar
 from modulos.reportes.generadores import combustible as gen_combustible
 from modulos.reportes.generadores import unidades as gen_unidades
 from modulos.reportes.generadores.narrativa import generar_narrativa
@@ -168,6 +169,51 @@ def _enviar_email(config: ConfiguracionReporte, datos: dict, dry_run: bool,
     return destinatarios
 
 
+def _enviar_whatsapp_reporte(config: ConfiguracionReporte, datos: dict,
+                             narrativa: str = '', dry_run: bool = False) -> None:
+    """Envía un resumen de texto del reporte a WA_ALLOWED_NUMBERS."""
+    if not getattr(settings, 'WA_REPORTES_ENABLED', False):
+        return
+    if not getattr(settings, 'WA_ALLOWED_NUMBERS', []):
+        return
+    if dry_run:
+        logger.info("[DRY-RUN] WhatsApp: enviaría reporte '%s'", config.nombre)
+        return
+
+    try:
+        frecuencia_label = {
+            'DIARIO': 'Diario', 'SEMANAL': 'Semanal', 'MENSUAL': 'Mensual',
+        }.get(config.frecuencia, config.frecuencia)
+
+        lineas = [
+            f"📊 *Reporte {frecuencia_label} — BitacoraKasu*",
+            f"*{datos.get('titulo', config.nombre)}*",
+            f"Período: {datos.get('periodo_inicio', '')} → {datos.get('periodo_fin', '')}",
+            "",
+        ]
+
+        resumen = datos.get('resumen', {})
+        if resumen:
+            lineas.append("*Resumen:*")
+            for k, v in resumen.items():
+                etiqueta = k.replace('_', ' ').title()
+                lineas.append(f"  • {etiqueta}: {v}")
+            lineas.append("")
+
+        if narrativa:
+            # Truncar a 600 chars para no saturar el mensaje
+            narrativa_corta = narrativa[:600] + ('…' if len(narrativa) > 600 else '')
+            lineas += ["*Análisis IAKasu:*", narrativa_corta, ""]
+
+        lineas.append("_BitacoraKasu — Sistema de Gestión de Flota_")
+
+        _wa_enviar('\n'.join(lineas))
+        logger.info("WhatsApp: reporte '%s' enviado.", config.nombre)
+
+    except Exception as exc:
+        logger.exception("WhatsApp: error enviando reporte '%s' — %s", config.nombre, exc)
+
+
 class Command(BaseCommand):
     help = 'Ejecuta los reportes programados pendientes y los envía por correo.'
 
@@ -230,6 +276,7 @@ class Command(BaseCommand):
                     excel_bytes=excel_bytes,
                     narrativa=narrativa,
                 )
+                _enviar_whatsapp_reporte(config, datos, narrativa=narrativa, dry_run=dry_run)
 
                 if not dry_run:
                     ReporteGenerado.objects.create(

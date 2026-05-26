@@ -219,6 +219,7 @@ WA_SESSION_ID = env.str('WA_SESSION_ID', default='')
 WA_ADMIN_CHAT = env.str('WA_ADMIN_CHAT', default='')
 WA_WEBHOOK_SECRET = env.str('WA_WEBHOOK_SECRET', default='')
 WA_ALLOWED_NUMBERS = env.list('WA_ALLOWED_NUMBERS', default=[])
+WA_REPORTES_ENABLED = env.bool('WA_REPORTES_ENABLED', default=True)
 
 # Destinatarios de notificaciones de autorización de salidas de almacén.
 # Se puede sobreescribir vía .env: ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com
