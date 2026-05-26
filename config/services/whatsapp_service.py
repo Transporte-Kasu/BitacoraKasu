@@ -25,13 +25,17 @@ def enviar_mensaje(texto: str, numeros: list[str] | None = None) -> bool:
     """
     Envía un mensaje de texto a los números indicados (o a WA_ALLOWED_NUMBERS si None).
 
+    Endpoint: POST /api/sessions/{sessionId}/messages/send-text
+    Body: { "chatId": "521XXXXXXXXX@c.us", "text": "..." }
+
     Returns True si al menos un mensaje fue enviado con éxito.
     """
     api_url = getattr(settings, 'WA_API_URL', '').rstrip('/')
     api_key = getattr(settings, 'WA_API_KEY', '')
+    session_id = getattr(settings, 'WA_SESSION_ID', '')
 
-    if not api_url or not api_key:
-        logger.warning("WhatsApp: WA_API_URL o WA_API_KEY no configurados.")
+    if not api_url or not api_key or not session_id:
+        logger.warning("WhatsApp: WA_API_URL, WA_API_KEY o WA_SESSION_ID no configurados.")
         return False
 
     if numeros is None:
@@ -41,6 +45,7 @@ def enviar_mensaje(texto: str, numeros: list[str] | None = None) -> bool:
         logger.warning("WhatsApp: no hay números destinatarios configurados.")
         return False
 
+    endpoint = f"{api_url}/sessions/{session_id}/messages/send-text"
     headers = {
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json',
@@ -49,14 +54,9 @@ def enviar_mensaje(texto: str, numeros: list[str] | None = None) -> bool:
     enviados = 0
     for numero in numeros:
         chat_id = _construir_chat_id(numero)
-        payload = {'chatId': chat_id, 'message': texto}
+        payload = {'chatId': chat_id, 'text': texto}
         try:
-            resp = requests.post(
-                f"{api_url}/sendText",
-                json=payload,
-                headers=headers,
-                timeout=10,
-            )
+            resp = requests.post(endpoint, json=payload, headers=headers, timeout=10)
             if resp.status_code in (200, 201):
                 enviados += 1
                 logger.info("WhatsApp: mensaje enviado a %s", chat_id)
