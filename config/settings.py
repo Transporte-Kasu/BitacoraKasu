@@ -210,6 +210,16 @@ IA_ALERTAS_COMBUSTIBLE_EMAILS = env.list(
     ]
 )
 
+# ---------------------------------------------------------------------------
+# OpenWA — WhatsApp Business API
+# ---------------------------------------------------------------------------
+WA_API_URL = env.str('WA_API_URL', default='')
+WA_API_KEY = env.str('WA_API_KEY', default='')
+WA_SESSION_ID = env.str('WA_SESSION_ID', default='')
+WA_ADMIN_CHAT = env.str('WA_ADMIN_CHAT', default='')
+WA_WEBHOOK_SECRET = env.str('WA_WEBHOOK_SECRET', default='')
+WA_ALLOWED_NUMBERS = env.list('WA_ALLOWED_NUMBERS', default=[])
+
 # Destinatarios de notificaciones de autorización de salidas de almacén.
 # Se puede sobreescribir vía .env: ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com
 ALMACEN_AUTORIZACION_EMAILS = env.list(

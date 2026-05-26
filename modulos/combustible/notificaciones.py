@@ -14,6 +14,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.urls import reverse
 
+from config.services.whatsapp_service import enviar_mensaje as _wa_enviar
+
 logger = logging.getLogger(__name__)
 
 SCORES_QUE_NOTIFICAN = {'ALTO', 'CRITICO'}
@@ -79,6 +81,9 @@ def enviar_alerta_ia_combustible(carga, anomalias_qs, score_riesgo: str, analisi
             carga.unidad.numero_economico,
         )
 
+        # Envío paralelo por WhatsApp
+        _enviar_alerta_whatsapp(carga, anomalias_lista, score_riesgo, analisis_ia)
+
     except Exception as exc:
         # El email nunca debe romper el flujo principal
         logger.exception(
@@ -95,6 +100,39 @@ def _construir_url_detalle(carga) -> str:
         return f"{base.rstrip('/')}{ruta}"
     except Exception:
         return ''
+
+
+def _enviar_alerta_whatsapp(carga, anomalias, score_riesgo, analisis_ia) -> None:
+    """Envía resumen de alerta IA por WhatsApp a WA_ALLOWED_NUMBERS."""
+    try:
+        emoji = '🔴' if score_riesgo == 'CRITICO' else '🟠'
+        fecha = carga.fecha_hora_inicio.strftime('%d/%m/%Y %H:%M')
+
+        lineas = [
+            f"{emoji} *ALERTA IAKASU — RIESGO {score_riesgo}*",
+            f"Unidad: *{carga.unidad.numero_economico}*",
+            f"Despachador: {carga.despachador.nombre}",
+            f"Litros: {carga.cantidad_litros} L  |  Km: {carga.kilometraje_actual}",
+            f"Fecha: {fecha}",
+            "",
+        ]
+
+        if analisis_ia:
+            lineas += [f"*Análisis IAKasu:*\n{analisis_ia}", ""]
+
+        if anomalias:
+            lineas.append(f"*Anomalías detectadas ({len(anomalias)}):*")
+            for a in anomalias:
+                lineas.append(f"• [{a.get_tipo_alerta_display()}] {a.mensaje}")
+
+        mensaje = '\n'.join(lineas)
+        _wa_enviar(mensaje)
+
+    except Exception as exc:
+        logger.exception(
+            "IAKasu: error enviando alerta WhatsApp para carga #%s — %s",
+            carga.pk, exc,
+        )
 
 
 def _generar_texto_plano(carga, anomalias, score_riesgo, analisis_ia) -> str:
