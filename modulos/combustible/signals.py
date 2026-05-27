@@ -191,8 +191,9 @@ def _analizar_anomalias_ia(carga):
         interpretacion = resultado.get('interpretacion', '')
 
         alertas_creadas = []
+        hay_alertas_nuevas = False
         for anomalia in resultado['anomalias']:
-            alerta, _ = AlertaCombustible.objects.get_or_create(
+            alerta, created = AlertaCombustible.objects.get_or_create(
                 carga=carga,
                 tipo_alerta=anomalia['tipo_alerta'],
                 generada_por_ia=True,
@@ -204,6 +205,8 @@ def _analizar_anomalias_ia(carga):
                 },
             )
             alertas_creadas.append(alerta)
+            if created:
+                hay_alertas_nuevas = True
 
         logger.info(
             "IAKasu — carga #%s unidad %s: %d alerta(s) IA generada(s) [score=%s]",
@@ -213,8 +216,9 @@ def _analizar_anomalias_ia(carga):
             score_riesgo,
         )
 
-        # Enviar email de notificación para scores ALTO y CRITICO
-        if score_riesgo in SCORES_QUE_NOTIFICAN:
+        # Enviar notificación solo si hay alertas recién creadas (evita duplicados
+        # cuando el signal post_save se dispara varias veces sobre la misma carga)
+        if score_riesgo in SCORES_QUE_NOTIFICAN and hay_alertas_nuevas:
             enviar_alerta_ia_combustible(
                 carga=carga,
                 anomalias_qs=alertas_creadas,
