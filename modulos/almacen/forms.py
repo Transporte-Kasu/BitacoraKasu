@@ -9,11 +9,39 @@ from .models import (
 from modulos.unidades.models import Unidad
 
 
+CATEGORIAS_PREDEFINIDAS = [
+    'Carrocería y accesorios',
+    'Consumibles',
+    'Filtros',
+    'Frenos',
+    'Higiene, limpieza y sanitización',
+    'Iluminación y eléctrico',
+    'Motor',
+    'Suspensión y dirección',
+    'Transmisión',
+]
+
+
 class ProductoAlmacenForm(forms.ModelForm):
     """Formulario para ProductoAlmacen"""
 
-    categoria = forms.ChoiceField(choices=[])
-    subcategoria = forms.ChoiceField(choices=[], required=False)
+    categoria = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'list': 'categoria_datalist',
+            'autocomplete': 'off',
+            'placeholder': 'Seleccionar o escribir categoría',
+        })
+    )
+    subcategoria = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'list': 'subcategoria_datalist',
+            'autocomplete': 'off',
+            'placeholder': 'Seleccionar o escribir subcategoría',
+        })
+    )
 
     class Meta:
         model = ProductoAlmacen
@@ -32,30 +60,26 @@ class ProductoAlmacenForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Poblar choices de categoría desde BD
-        categorias = (
+        # Categorías: predefinidas + las ya existentes en BD (sin duplicados)
+        categorias_db = list(
             ProductoAlmacen.objects.values_list('categoria', flat=True)
             .distinct().order_by('categoria')
         )
-        self.fields['categoria'].choices = [('', 'Seleccionar categoría')] + [
-            (c, c) for c in categorias
-        ]
-        # Poblar choices de subcategoría según la categoría actual
+        self.categoria_opciones = sorted(set(CATEGORIAS_PREDEFINIDAS + categorias_db))
+
+        # Subcategorías según la categoría actual
         categoria_actual = self.data.get('categoria') or (
             self.instance.categoria if self.instance.pk else ''
         )
         if categoria_actual:
-            subcategorias = (
+            self.subcategoria_opciones = list(
                 ProductoAlmacen.objects.filter(categoria=categoria_actual)
                 .exclude(subcategoria='')
                 .values_list('subcategoria', flat=True)
                 .distinct().order_by('subcategoria')
             )
-            self.fields['subcategoria'].choices = [('', 'Seleccionar subcategoría')] + [
-                (s, s) for s in subcategorias
-            ]
         else:
-            self.fields['subcategoria'].choices = [('', 'Seleccionar subcategoría')]
+            self.subcategoria_opciones = []
     
     def clean_sku(self):
         """Convertir SKU a mayúsculas"""

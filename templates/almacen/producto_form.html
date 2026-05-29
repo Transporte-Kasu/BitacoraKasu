@@ -97,6 +97,11 @@
                         Categoría <span class="text-red-500">*</span>
                     </label>
                     {{ form.categoria }}
+                    <datalist id="categoria_datalist">
+                        {% for cat in form.categoria_opciones %}
+                        <option value="{{ cat }}">
+                        {% endfor %}
+                    </datalist>
                     {% if form.categoria.errors %}
                     <p class="mt-1 text-sm text-red-600">{{ form.categoria.errors.0 }}</p>
                     {% endif %}
@@ -108,6 +113,11 @@
                         Subcategoría
                     </label>
                     {{ form.subcategoria }}
+                    <datalist id="subcategoria_datalist">
+                        {% for sub in form.subcategoria_opciones %}
+                        <option value="{{ sub }}">
+                        {% endfor %}
+                    </datalist>
                     {% if form.subcategoria.errors %}
                     <p class="mt-1 text-sm text-red-600">{{ form.subcategoria.errors.0 }}</p>
                     {% endif %}
@@ -337,26 +347,34 @@
 
 {% block extra_js %}
 <script>
-    const categoriaSelect = document.getElementById('id_categoria');
-    const subcategoriaSelect = document.getElementById('id_subcategoria');
-    const subcategoriaActual = subcategoriaSelect ? subcategoriaSelect.value : '';
+    const categoriaInput = document.getElementById('id_categoria');
+    const subcategoriaDatalist = document.getElementById('subcategoria_datalist');
+    const subcategoriaInput = document.getElementById('id_subcategoria');
 
-    if (categoriaSelect && subcategoriaSelect) {
-        categoriaSelect.addEventListener('change', function() {
-            const categoria = this.value;
-            subcategoriaSelect.innerHTML = '<option value="">Seleccionar subcategoría</option>';
-            if (!categoria) return;
+    let debounceTimer;
 
-            fetch('{% url "almacen:api_subcategorias" %}?categoria=' + encodeURIComponent(categoria))
-                .then(response => response.json())
-                .then(data => {
-                    data.subcategorias.forEach(function(sub) {
-                        const option = document.createElement('option');
-                        option.value = sub;
-                        option.textContent = sub;
-                        subcategoriaSelect.appendChild(option);
-                    });
+    function actualizarSubcategorias(categoria) {
+        subcategoriaDatalist.innerHTML = '';
+        if (!categoria.trim()) return;
+
+        fetch('{% url "almacen:api_subcategorias" %}?categoria=' + encodeURIComponent(categoria.trim()))
+            .then(response => response.json())
+            .then(data => {
+                data.subcategorias.forEach(function(sub) {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    subcategoriaDatalist.appendChild(option);
                 });
+            });
+    }
+
+    if (categoriaInput && subcategoriaDatalist) {
+        categoriaInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const valor = this.value;
+            debounceTimer = setTimeout(function() {
+                actualizarSubcategorias(valor);
+            }, 350);
         });
     }
 </script>
