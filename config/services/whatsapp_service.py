@@ -16,8 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 def _headers() -> dict:
+    # Incluimos ambos formatos de auth para compatibilidad con distintas versiones de WAHA
     return {
         'X-API-Key': settings.WA_API_KEY,
+        'Authorization': f'Bearer {settings.WA_API_KEY}',
         'Content-Type': 'application/json',
     }
 
@@ -29,41 +31,69 @@ def _session_url() -> str:
 def _session_status() -> str:
     try:
         r = requests.get(_session_url(), headers=_headers(), timeout=8)
-        return r.json().get('status', 'unknown') if r.status_code == 200 else 'unknown'
-    except Exception:
+        if r.status_code == 200:
+            data = r.json()
+            # WAHA devuelve 'status' en minúsculas ('ready') o mayúsculas ('WORKING')
+            status = data.get('status', 'unknown')
+            return status.lower() if isinstance(status, str) else 'unknown'
+        logger.warning("WhatsApp _session_status: HTTP %s — %s", r.status_code, r.text[:200])
+        return 'unknown'
+    except Exception as e:
+        logger.warning("WhatsApp _session_status: no se pudo contactar WAHA — %s", e)
         return 'unknown'
 
 
+# Estados que indican sesión activa (varía según versión de WAHA)
+_ESTADOS_ACTIVOS = {'ready', 'working'}
+# Estados que se pueden reiniciar
+_ESTADOS_REINICIABLES = {'disconnected', 'stopped', 'failed'}
+# Estados transitorios — no tocar
+_ESTADOS_TRANSITORIOS = {'initializing', 'authenticating', 'qr_ready', 'starting', 'scan_qr_code'}
+
+
 def _ensure_session_ready() -> bool:
-    """Verifica que la sesión esté activa; la inicia si está disconnected o stopped."""
+    """Verifica que la sesión esté activa; la inicia si está disconnected/stopped.
+
+    Si el estado es 'unknown' (servidor inalcanzable o error de red), intenta
+    enviar de todas formas — el error real aparecerá en el send_text.
+    """
     status = _session_status()
-    if status == 'ready':
+
+    if status in _ESTADOS_ACTIVOS:
         return True
 
-    if status not in ('disconnected', 'stopped'):
-        # initializing / authenticating / qr_ready / unknown — no tocar
-        logger.warning("Sesión WhatsApp en estado '%s', no se puede enviar.", status)
+    if status == 'unknown':
+        # No podemos determinar el estado; intentamos enviar de todas formas
+        logger.warning("WhatsApp: no se pudo verificar estado de sesión, intentando enviar de todas formas.")
+        return True
+
+    if status in _ESTADOS_TRANSITORIOS:
+        logger.warning("Sesión WhatsApp en estado transitorio '%s', no se puede enviar.", status)
         return False
 
-    logger.warning("Sesión WhatsApp %s — intentando iniciar...", status)
-    try:
-        # start puede bloquear mientras WAHA inicializa; continuamos con polling
-        requests.post(f"{_session_url()}/start", headers=_headers(), timeout=20)
-    except Timeout:
-        pass  # WAHA sigue procesando en background
-    except Exception as e:
-        logger.error("Error al iniciar sesión WhatsApp: %s", e)
+    if status in _ESTADOS_REINICIABLES:
+        logger.warning("Sesión WhatsApp %s — intentando iniciar...", status)
+        try:
+            # start puede bloquear mientras WAHA inicializa; continuamos con polling
+            requests.post(f"{_session_url()}/start", headers=_headers(), timeout=20)
+        except Timeout:
+            pass  # WAHA sigue procesando en background
+        except Exception as e:
+            logger.error("Error al iniciar sesión WhatsApp: %s", e)
+            return False
+
+        # Polling hasta 60s — WAHA puede tardar hasta ~40s en reconectar
+        for _ in range(30):
+            time.sleep(2)
+            if _session_status() in _ESTADOS_ACTIVOS:
+                logger.info("Sesión WhatsApp reconectada OK.")
+                return True
+
+        logger.error("Sesión WhatsApp no alcanzó estado activo tras iniciar.")
         return False
 
-    # Polling hasta 60s — WAHA puede tardar hasta ~40s en reconectar
-    for _ in range(30):
-        time.sleep(2)
-        if _session_status() == 'ready':
-            logger.info("Sesión WhatsApp reconectada OK.")
-            return True
-
-    logger.error("Sesión WhatsApp no alcanzó estado ready tras iniciar.")
-    return False
+    logger.warning("Sesión WhatsApp en estado desconocido '%s', intentando enviar de todas formas.", status)
+    return True
 
 
 def _construir_chat_id(numero: str) -> str:
