@@ -1,1 +1,1 @@
-web: python manage.py runserver 0.0.0.0:8080
+web: gunicorn config.wsgi --workers 1 --threads 4 --timeout 120
