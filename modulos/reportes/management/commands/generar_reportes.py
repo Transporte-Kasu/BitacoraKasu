@@ -21,6 +21,7 @@ from openpyxl.styles.colors import Color
 
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
+from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.conf import settings
@@ -243,17 +244,35 @@ class Command(BaseCommand):
         errores = 0
 
         for config in configs:
-            if not forzar_id and not config.es_debido():
-                self.stdout.write(f"  SKIP  {config.nombre} (no es su momento)")
-                continue
+            # Lock distribuido: solo una instancia/proceso ejecuta cada reporte.
+            # select_for_update() bloquea la fila; la primera instancia en adquirirla
+            # actualiza ultimo_envio y la segunda verá es_debido() == False al releer.
+            try:
+                with transaction.atomic():
+                    config = ConfiguracionReporte.objects.select_for_update().get(pk=config.pk)
 
-            generador = GENERADORES.get(config.tipo_reporte)
-            if not generador:
-                self.stderr.write(f"  ERROR {config.nombre}: sin generador para '{config.tipo_reporte}'")
-                errores += 1
-                continue
+                    if not forzar_id and not config.es_debido():
+                        self.stdout.write(f"  SKIP  {config.nombre} (no es su momento)")
+                        continue
 
-            periodo_inicio, periodo_fin = _periodo(config.frecuencia, config.dia_semana, config.dia_mes)
+                    generador = GENERADORES.get(config.tipo_reporte)
+                    if not generador:
+                        self.stderr.write(f"  ERROR {config.nombre}: sin generador para '{config.tipo_reporte}'")
+                        errores += 1
+                        continue
+
+                    periodo_inicio, periodo_fin = _periodo(
+                        config.frecuencia, config.dia_semana, config.dia_mes
+                    )
+
+                    # Marcar como enviado ANTES de soltar el lock para que otras
+                    # instancias concurrentes ya vean es_debido() == False.
+                    if not dry_run:
+                        config.ultimo_envio = timezone.now()
+                        config.save(update_fields=['ultimo_envio'])
+
+            except ConfiguracionReporte.DoesNotExist:
+                continue
 
             self.stdout.write(f"  RUN   {config.nombre} ({periodo_inicio} → {periodo_fin})")
 
@@ -288,8 +307,6 @@ class Command(BaseCommand):
                         resumen=datos.get('resumen', {}),
                         narrativa_ia=narrativa,
                     )
-                    config.ultimo_envio = timezone.now()
-                    config.save(update_fields=['ultimo_envio'])
 
                 ejecutados += 1
                 self.stdout.write(self.style.SUCCESS(f"  OK    {config.nombre}"))
