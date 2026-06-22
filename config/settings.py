@@ -221,6 +221,12 @@ WA_WEBHOOK_SECRET = env.str('WA_WEBHOOK_SECRET', default='')
 WA_ALLOWED_NUMBERS = env.list('WA_ALLOWED_NUMBERS', default=[])
 WA_REPORTES_ENABLED = env.bool('WA_REPORTES_ENABLED', default=True)
 
+# Twilio — WhatsApp templates y notificaciones a clientes
+TWILIO_ACCOUNT_SID = env.str('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = env.str('TWILIO_AUTH_TOKEN', default='')
+TWILIO_WHATSAPP_FROM = env.str('TWILIO_WHATSAPP_FROM', default='')
+TWILIO_CONTENT_SID_BITACORA = env.str('TWILIO_CONTENT_SID_BITACORA', default='')
+
 # Destinatarios de notificaciones de autorización de salidas de almacén.
 # Se puede sobreescribir vía .env: ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com
 ALMACEN_AUTORIZACION_EMAILS = env.list(

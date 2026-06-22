@@ -4,6 +4,28 @@ from decimal import Decimal
 import os
 
 
+class Cliente(models.Model):
+    """Cliente que recibe notificaciones de programación de contenedores."""
+    nombre = models.CharField(max_length=120, verbose_name="Nombre")
+    email = models.EmailField(blank=True, verbose_name="Correo electrónico")
+    celular = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Con código de país, ej. +5217531234567",
+        verbose_name="Celular (WhatsApp)",
+    )
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class BitacoraViaje(models.Model):
     """
     Modelo para registrar cada viaje realizado
@@ -16,7 +38,17 @@ class BitacoraViaje(models.Model):
         ('LOCAL_FULL', 'Local Full'),
     ]
     
+    TIPO_CONTENEDOR_CHOICES = [('20', '20 pies'), ('40', '40 pies')]
+
     # Relaciones con otras aplicaciones
+    cliente = models.ForeignKey(
+        'Cliente',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bitacoras',
+        verbose_name="Cliente",
+    )
     operador = models.ForeignKey(
         'operadores.Operador',  # Referencia a otra aplicación
         on_delete=models.PROTECT,
@@ -164,7 +196,13 @@ class BitacoraViaje(models.Model):
         blank=True,
         verbose_name="Sellos contenedor 2"
     )
-    
+    tipo_contenedor = models.CharField(
+        max_length=2,
+        choices=[('20', '20 pies'), ('40', '40 pies')],
+        default='40',
+        verbose_name="Tipo de contenedor",
+    )
+
     # Control adicional
     reparto = models.BooleanField(
         default=False,

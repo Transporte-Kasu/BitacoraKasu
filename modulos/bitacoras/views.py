@@ -5,8 +5,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum
 from django.http import JsonResponse
-from .models import BitacoraViaje
-from .forms import BitacoraViajeForm, BitacoraViajeCompletarForm
+from .models import BitacoraViaje, Cliente
+from .forms import BitacoraViajeForm, BitacoraViajeCompletarForm, ClienteForm
 import os
 
 
@@ -284,6 +284,80 @@ def calcular_distancia_preview_ajax(request):
             'destino_formateado': resultado.get('destino_formateado', ''),
         })
     return JsonResponse({'success': False, 'error': resultado.get('error', 'No se pudo calcular la ruta')})
+
+
+# ============================================================================
+# CLIENTES
+# ============================================================================
+
+class ClienteListView(LoginRequiredMixin, ListView):
+    model = Cliente
+    template_name = 'bitacoras/cliente_list.html'
+    context_object_name = 'clientes'
+
+    def get_queryset(self):
+        qs = Cliente.objects.all()
+        q = self.request.GET.get('q')
+        if q:
+            qs = qs.filter(Q(nombre__icontains=q) | Q(email__icontains=q) | Q(celular__icontains=q))
+        return qs
+
+
+class ClienteCreateView(LoginRequiredMixin, CreateView):
+    model = Cliente
+    form_class = ClienteForm
+    template_name = 'bitacoras/cliente_form.html'
+    success_url = reverse_lazy('bitacoras:cliente_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Cliente creado exitosamente.')
+        return super().form_valid(form)
+
+
+class ClienteUpdateView(LoginRequiredMixin, UpdateView):
+    model = Cliente
+    form_class = ClienteForm
+    template_name = 'bitacoras/cliente_form.html'
+    success_url = reverse_lazy('bitacoras:cliente_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Cliente actualizado exitosamente.')
+        return super().form_valid(form)
+
+
+class ClienteDeleteView(LoginRequiredMixin, DeleteView):
+    model = Cliente
+    template_name = 'bitacoras/cliente_confirm_delete.html'
+    success_url = reverse_lazy('bitacoras:cliente_list')
+
+    def post(self, request, *args, **kwargs):
+        messages.success(request, 'Cliente eliminado.')
+        return super().post(request, *args, **kwargs)
+
+
+def enviar_notificacion_cliente(request, pk):
+    """Envía WhatsApp + email al cliente asignado a la bitácora."""
+    bitacora = get_object_or_404(BitacoraViaje, pk=pk)
+
+    if not bitacora.cliente:
+        messages.error(request, 'Esta bitácora no tiene cliente asignado.')
+        return redirect('bitacoras:detail', pk=pk)
+
+    from config.services.twilio_service import enviar_notificacion_bitacora
+    resultado = enviar_notificacion_bitacora(bitacora, bitacora.cliente)
+
+    partes = []
+    if resultado['wa_ok']:
+        partes.append('WhatsApp enviado')
+    if resultado['email_ok']:
+        partes.append('correo enviado')
+
+    if partes:
+        messages.success(request, f"Notificación a {bitacora.cliente.nombre}: {', '.join(partes)}.")
+    else:
+        messages.error(request, f"No se pudo enviar la notificación a {bitacora.cliente.nombre}. Verifica celular, email y configuración de Twilio.")
+
+    return redirect('bitacoras:detail', pk=pk)
 
 
 def unidad_info_ajax(request):

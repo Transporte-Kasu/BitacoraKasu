@@ -1,6 +1,18 @@
 import re
 from django import forms
-from .models import BitacoraViaje
+from .models import BitacoraViaje, Cliente
+
+
+class ClienteForm(forms.ModelForm):
+    class Meta:
+        model = Cliente
+        fields = ['nombre', 'email', 'celular', 'activo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del cliente'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'correo@empresa.com'}),
+            'celular': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+52 753 123 4567'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
 _CONTAINER_RE = re.compile(r'^[A-Z]{3}U\d{7}$')
 
@@ -11,12 +23,13 @@ class BitacoraViajeForm(forms.ModelForm):
     class Meta:
         model = BitacoraViaje
         fields = [
+            'cliente',
             'modalidad',
             'operador', 'unidad',
             'salida_a_ruta',
             'fecha_salida',
             # Contenedor 1
-            'contenedor', 'peso', 'sellos',
+            'contenedor', 'tipo_contenedor', 'peso', 'sellos',
             # Contenedor 2 (solo FULL)
             'contenedor_2', 'peso_2', 'sellos_2',
             'reparto',
@@ -26,6 +39,9 @@ class BitacoraViajeForm(forms.ModelForm):
             'observaciones',
         ]
         widgets = {
+            'cliente': forms.Select(attrs={
+                'class': 'form-control',
+            }),
             'modalidad': forms.Select(attrs={
                 'class': 'form-control',
                 'id': 'id_modalidad',
@@ -56,6 +72,9 @@ class BitacoraViajeForm(forms.ModelForm):
                 'maxlength': '11',
                 'oninput': 'this.value=this.value.toUpperCase()',
                 'title': '4 letras (4ª = U) + 7 dígitos, ej. ABCU1234567',
+            }),
+            'tipo_contenedor': forms.Select(attrs={
+                'class': 'form-control',
             }),
             'peso': forms.NumberInput(attrs={
                 'class': 'form-control',

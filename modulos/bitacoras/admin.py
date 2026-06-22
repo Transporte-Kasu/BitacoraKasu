@@ -1,6 +1,13 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import BitacoraViaje
+from .models import BitacoraViaje, Cliente
+
+
+@admin.register(Cliente)
+class ClienteAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'email', 'celular', 'activo', 'created_at']
+    list_filter = ['activo']
+    search_fields = ['nombre', 'email', 'celular']
 
 
 @admin.register(BitacoraViaje)
