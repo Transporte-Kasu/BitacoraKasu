@@ -38,17 +38,23 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
     unidad = bitacora.unidad
 
     es_full = bitacora.modalidad in ('FULL', 'LOCAL_FULL')
-    tipo = bitacora.tipo_contenedor
+    tipo = bitacora.tipo_contenedor or '-'
 
-    var1 = bitacora.contenedor or '-'
-    var2 = bitacora.contenedor_2 if es_full else '-'
-    var3 = tipo
-    var4 = tipo if es_full else '-'
-    var5 = str(bitacora.peso or '-')
-    var6 = str(bitacora.peso_2 or '-') if es_full else '-'
+    # Para FULL los datos se combinan con " - " en un solo campo
+    if es_full and bitacora.contenedor_2:
+        var1 = f"{bitacora.contenedor or '-'} - {bitacora.contenedor_2}"
+    else:
+        var1 = bitacora.contenedor or '-'
+
+    var3 = f"{tipo} - {tipo}" if es_full else tipo
+
+    if es_full and bitacora.peso_2:
+        var5 = f"{bitacora.peso or '-'} - {bitacora.peso_2}"
+    else:
+        var5 = str(bitacora.peso or '-')
+
     var7 = (bitacora.destino or '-').upper()
-    var8 = var7  # mismo destino; si hay reparto se usa el mismo campo destino
-    var9 = f"{operador.nombre} 📞 {getattr(operador, 'telefono', '')}"
+    var9 = f"{operador.nombre} 📱 {getattr(operador, 'telefono', '')}"
     var10 = f"🚛 {unidad.numero_economico} PLACAS {unidad.placa}"
 
     hora_salida = bitacora.fecha_salida.strftime('%d/%m/%Y %H:%M HRS') if bitacora.fecha_salida else '-'
@@ -57,8 +63,7 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
     var12 = 'REPARTO' if bitacora.reparto else 'DIRECTO'
 
     variables = {
-        '1': var1, '2': var2, '3': var3, '4': var4,
-        '5': var5, '6': var6, '7': var7, '8': var8,
+        '1': var1, '3': var3, '5': var5, '7': var7,
         '9': var9, '10': var10, '11': var11, '12': var12,
     }
 
@@ -105,26 +110,17 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
 
 
 def _cuerpo_email(bitacora, variables: dict) -> str:
-    es_full = bitacora.modalidad in ('FULL', 'LOCAL_FULL')
     lineas = [
         "Sistema de Bitácora Kasu 🚛",
         "",
         "── CONTENEDOR ─────────────────",
-        f"  1: {variables['1']}",
-    ]
-    if es_full:
-        lineas.append(f"  2: {variables['2']}")
-    lineas += [
+        f"  {variables['1']}",
         "",
         "── TIPO ───────────────────────",
         f"  {variables['3']} pies",
         "",
         "── PESO ───────────────────────",
         f"  {variables['5']} t",
-    ]
-    if es_full:
-        lineas.append(f"  {variables['6']} t")
-    lineas += [
         "",
         "── DESTINO ────────────────────",
         f"  {variables['7']}",
