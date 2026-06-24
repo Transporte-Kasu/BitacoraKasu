@@ -27,6 +27,7 @@ class BitacoraViajeForm(forms.ModelForm):
             'modalidad',
             'operador', 'unidad',
             'salida_a_ruta',
+            'fecha_carga',
             'fecha_salida',
             # Contenedor 1
             'contenedor', 'tipo_contenedor', 'peso', 'sellos',
