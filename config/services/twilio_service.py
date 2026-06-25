@@ -25,6 +25,16 @@ def _numero_wa(celular: str) -> str:
     return numero
 
 
+_MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+
+
+def _fecha_es(dt) -> str:
+    """Formatea datetime como '22 jun 2026 17:00'."""
+    if not dt:
+        return '-'
+    return f"{dt.day} {_MESES[dt.month - 1]} {dt.year} {dt.strftime('%H:%M')}"
+
+
 def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
     """
     Envía WhatsApp (template Twilio) + email al cliente con los datos del viaje.
@@ -33,39 +43,36 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
     """
     resultado = {'wa_ok': False, 'email_ok': False}
 
-    # ── Construir variables del template ─────────────────────────────────────
+    # ── Construir variables del template (3 vars) ─────────────────────────────
     operador = bitacora.operador
     unidad = bitacora.unidad
-
     es_full = bitacora.modalidad in ('FULL', 'LOCAL_FULL')
     tipo = bitacora.tipo_contenedor or '-'
+    destino = (bitacora.destino or '-').upper()
 
-    # Para FULL los datos se combinan con " - " en un solo campo
+    # {{1}} — Información de Carga
     if es_full and bitacora.contenedor_2:
-        var1 = f"{bitacora.contenedor or '-'} - {bitacora.contenedor_2}"
+        contenedores = f"{bitacora.contenedor or '-'} / {bitacora.contenedor_2}"
+        especificaciones = f"Tipo {tipo} (ambos) con pesos de {bitacora.peso or '-'} y {bitacora.peso_2 or '-'} respectivamente"
     else:
-        var1 = bitacora.contenedor or '-'
+        contenedores = bitacora.contenedor or '-'
+        especificaciones = f"Tipo {tipo} con peso de {bitacora.peso or '-'}t"
+    var1 = f"• Contenedores: {contenedores}\n• Especificaciones: {especificaciones}\n• Destino Final: {destino}"
 
-    var3 = f"{tipo} - {tipo}" if es_full else tipo
+    # {{2}} — Detalles del Traslado
+    telefono = getattr(operador, 'telefono', '') or ''
+    var2 = (
+        f"• Unidad: {unidad.numero_economico} (Placas {unidad.placa})\n"
+        f"• Operador: {operador.nombre} 📱 {telefono}\n"
+        f"• Salida Programada: {_fecha_es(bitacora.fecha_salida)}"
+    )
 
-    if es_full and bitacora.peso_2:
-        var5 = f"{bitacora.peso or '-'} - {bitacora.peso_2}"
-    else:
-        var5 = str(bitacora.peso or '-')
-
-    var7 = (bitacora.destino or '-').upper()
-    var9 = f"{operador.nombre} 📱 {getattr(operador, 'telefono', '')}"
-    var10 = f"🚛 {unidad.numero_economico} PLACAS {unidad.placa}"
-
-    hora_salida = bitacora.fecha_salida.strftime('%d/%m/%Y %H:%M HRS') if bitacora.fecha_salida else '-'
+    # {{3}} — Notas Adicionales
     obs = bitacora.observaciones or 'SIN CUSTODIA'
-    var11 = f"{obs} 🚩 SALIDA {hora_salida}"
-    var12 = 'REPARTO' if bitacora.reparto else 'DIRECTO'
+    tipo_servicio = 'REPARTO' if bitacora.reparto else 'DIRECTO'
+    var3 = f"Servicio {tipo_servicio} ejecutado {obs}."
 
-    variables = {
-        '1': var1, '3': var3, '5': var5, '7': var7,
-        '9': var9, '10': var10, '11': var11, '12': var12,
-    }
+    variables = {'1': var1, '2': var2, '3': var3}
 
     # ── WhatsApp ──────────────────────────────────────────────────────────────
     if cliente.celular and settings.TWILIO_CONTENT_SID_BITACORA:
@@ -111,30 +118,18 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
 
 def _cuerpo_email(bitacora, variables: dict) -> str:
     lineas = [
-        "Sistema de Bitácora Kasu 🚛",
+        "📋 Resumen de Bitácora - Sistema Kasu 🚛",
         "",
-        "── CONTENEDOR ─────────────────",
-        f"  {variables['1']}",
+        "📦 Información de Carga",
+        variables['1'],
         "",
-        "── TIPO ───────────────────────",
-        f"  {variables['3']} pies",
+        "🚚 Detalles del Traslado",
+        variables['2'],
         "",
-        "── PESO ───────────────────────",
-        f"  {variables['5']} t",
+        "📝 Notas Adicionales",
+        variables['3'],
         "",
-        "── DESTINO ────────────────────",
-        f"  {variables['7']}",
-        "",
-        "── OPERADOR ───────────────────",
-        f"  {variables['9']}",
-        "",
-        "── UNIDAD ─────────────────────",
-        f"  {variables['10']}",
-        "",
-        "── OBSERVACIONES ──────────────",
-        f"  {variables['11']}",
-        f"  {variables['12']}",
-        "",
+        "Gracias por su atención",
         "Transportes y Logística Kasu",
     ]
     return "\n".join(lineas)
