@@ -3,6 +3,7 @@ Twilio Service — envío de mensajes WhatsApp con plantillas Content API
 y correos electrónicos a clientes de bitácoras.
 """
 
+import json
 import logging
 from django.conf import settings
 from django.core.mail import send_mail
@@ -82,7 +83,7 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
                 from_=settings.TWILIO_WHATSAPP_FROM,
                 to=_numero_wa(cliente.celular),
                 content_sid=settings.TWILIO_CONTENT_SID_BITACORA,
-                content_variables=str(variables).replace("'", '"'),
+                content_variables=json.dumps(variables, ensure_ascii=False),
             )
             resultado['wa_ok'] = True
             logger.info("WA enviado a cliente %s (%s)", cliente.nombre, cliente.celular)
