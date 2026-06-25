@@ -51,21 +51,21 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
     tipo = bitacora.tipo_contenedor or '-'
     destino = (bitacora.destino or '-').upper()
 
-    # {{1}} — Información de Carga
+    # {{1}} — Información de Carga (una sola línea; Twilio no acepta \n en variables)
     if es_full and bitacora.contenedor_2:
         contenedores = f"{bitacora.contenedor or '-'} / {bitacora.contenedor_2}"
         especificaciones = f"Tipo {tipo} (ambos) con pesos de {bitacora.peso or '-'} y {bitacora.peso_2 or '-'} respectivamente"
     else:
         contenedores = bitacora.contenedor or '-'
         especificaciones = f"Tipo {tipo} con peso de {bitacora.peso or '-'}t"
-    var1 = f"• Contenedores: {contenedores}\n• Especificaciones: {especificaciones}\n• Destino Final: {destino}"
+    var1 = f"Contenedores: {contenedores} | Especificaciones: {especificaciones} | Destino Final: {destino}"
 
     # {{2}} — Detalles del Traslado
     telefono = getattr(operador, 'telefono', '') or ''
     var2 = (
-        f"• Unidad: {unidad.numero_economico} (Placas {unidad.placa})\n"
-        f"• Operador: {operador.nombre} 📱 {telefono}\n"
-        f"• Salida Programada: {_fecha_es(bitacora.fecha_salida)}"
+        f"Unidad: {unidad.numero_economico} (Placas {unidad.placa}) | "
+        f"Operador: {operador.nombre} {telefono} | "
+        f"Salida: {_fecha_es(bitacora.fecha_salida)}"
     )
 
     # {{3}} — Notas Adicionales
@@ -118,19 +118,22 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
 
 
 def _cuerpo_email(bitacora, variables: dict) -> str:
+    # El email sí puede usar saltos de línea; reemplazamos los separadores pipe
+    def expand(v):
+        return v.replace(' | ', '\n  ')
+
     lineas = [
-        "📋 Resumen de Bitácora - Sistema Kasu 🚛",
+        "Resumen de Bitacora - Sistema Kasu",
         "",
-        "📦 Información de Carga",
-        variables['1'],
+        "INFORMACION DE CARGA",
+        f"  {expand(variables['1'])}",
         "",
-        "🚚 Detalles del Traslado",
-        variables['2'],
+        "DETALLES DEL TRASLADO",
+        f"  {expand(variables['2'])}",
         "",
-        "📝 Notas Adicionales",
-        variables['3'],
+        "NOTAS ADICIONALES",
+        f"  {variables['3']}",
         "",
-        "Gracias por su atención",
-        "Transportes y Logística Kasu",
+        "Transportes y Logistica Kasu",
     ]
     return "\n".join(lineas)
