@@ -25,6 +25,10 @@ urlpatterns = [
     path('clientes/<int:pk>/editar/', views.ClienteUpdateView.as_view(), name='cliente_update'),
     path('clientes/<int:pk>/eliminar/', views.ClienteDeleteView.as_view(), name='cliente_delete'),
 
+    # Carga masiva desde Excel
+    path('carga-masiva/', views.carga_masiva_upload, name='carga_masiva'),
+    path('carga-masiva/preview/', views.carga_masiva_preview, name='carga_masiva_preview'),
+
     # AJAX utilitarios
     path('ajax/unidad-info/', views.unidad_info_ajax, name='unidad_info_ajax'),
     path('ajax/calcular-distancia/', views.calcular_distancia_preview_ajax, name='calcular_distancia_preview'),

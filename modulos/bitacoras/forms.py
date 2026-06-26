@@ -35,7 +35,7 @@ class BitacoraViajeForm(forms.ModelForm):
             'contenedor_2', 'peso_2', 'sellos_2',
             'reparto',
             # Destino
-            'cp_origen', 'cp_destino', 'cp_destino_2', 'destino',
+            'cp_origen', 'cp_destino', 'cp_destino_2', 'destino', 'domicilio_carta_porte',
             # Opcional
             'observaciones',
         ]
@@ -126,7 +126,12 @@ class BitacoraViajeForm(forms.ModelForm):
             'destino': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 2,
-                'placeholder': 'Descripción del destino',
+                'placeholder': 'Dirección de entrega',
+            }),
+            'domicilio_carta_porte': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Domicilio que aparece en la carta porte',
             }),
             'observaciones': forms.Textarea(attrs={
                 'class': 'form-control',

@@ -2,11 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum
 from django.http import JsonResponse
 from .models import BitacoraViaje, Cliente
 from .forms import BitacoraViajeForm, BitacoraViajeCompletarForm, ClienteForm
+from decimal import Decimal
+from datetime import datetime
 import os
 
 
@@ -378,6 +381,126 @@ def enviar_notificacion_cliente(request, pk):
         messages.error(request, f"No se pudo enviar la notificación a {bitacora.cliente.nombre}. Verifica celular, email y configuración de Twilio.")
 
     return redirect('bitacoras:detail', pk=pk)
+
+
+# ============================================================================
+# CARGA MASIVA DESDE EXCEL
+# ============================================================================
+
+@login_required
+def carga_masiva_upload(request):
+    context = {'tipo_contenedor_choices': BitacoraViaje.TIPO_CONTENEDOR_CHOICES}
+
+    if request.method == 'POST':
+        archivo = request.FILES.get('archivo')
+        if not archivo:
+            messages.error(request, 'Selecciona un archivo Excel (.xlsx).')
+            return render(request, 'bitacoras/carga_masiva.html', context)
+
+        hora_salida     = request.POST.get('hora_salida', '06:00')
+        hora_carga      = request.POST.get('hora_carga', '05:00')
+        tipo_contenedor = request.POST.get('tipo_contenedor', '40')
+
+        try:
+            from .excel_parser import parse_confirmacion_excel
+            viajes = parse_confirmacion_excel(archivo, hora_salida, hora_carga, tipo_contenedor)
+        except Exception as e:
+            messages.error(request, f'Error al leer el archivo: {e}')
+            return render(request, 'bitacoras/carga_masiva.html', context)
+
+        if not viajes:
+            messages.warning(request, 'No se encontraron viajes válidos en el archivo.')
+            return render(request, 'bitacoras/carga_masiva.html', context)
+
+        request.session['carga_masiva_viajes'] = viajes
+        return redirect('bitacoras:carga_masiva_preview')
+
+    return render(request, 'bitacoras/carga_masiva.html', context)
+
+
+@login_required
+def carga_masiva_preview(request):
+    from modulos.operadores.models import Operador
+    from modulos.unidades.models import Unidad
+
+    operadores = list(Operador.objects.filter(activo=True).order_by('nombre'))
+    unidades   = list(Unidad.objects.filter(activa=True).order_by('numero_economico'))
+
+    if request.method == 'GET':
+        viajes = request.session.get('carga_masiva_viajes')
+        if not viajes:
+            messages.warning(request, 'No hay datos pendientes. Sube un archivo primero.')
+            return redirect('bitacoras:carga_masiva')
+
+        return render(request, 'bitacoras/carga_masiva_preview.html', {
+            'viajes':       viajes,
+            'total_viajes': len(viajes),
+            'operadores':   operadores,
+            'unidades':     unidades,
+        })
+
+    # POST → crear registros
+    total   = int(request.POST.get('total_viajes', 0))
+    creados = 0
+    errores = []
+
+    for i in range(total):
+        p          = f'v{i}_'
+        contenedor = request.POST.get(f'{p}contenedor', '').strip()
+        try:
+            modalidad     = request.POST.get(f'{p}modalidad', '')
+            contenedor_2  = request.POST.get(f'{p}contenedor_2', '').strip()
+            peso_raw      = request.POST.get(f'{p}peso', '').strip()
+            peso_2_raw    = request.POST.get(f'{p}peso_2', '').strip()
+            destino                = request.POST.get(f'{p}destino', '').strip()
+            domicilio_carta_porte  = request.POST.get(f'{p}domicilio_carta_porte', '').strip()
+            cp_destino             = request.POST.get(f'{p}cp_destino', '').strip()
+            observaciones          = request.POST.get(f'{p}observaciones', '').strip()
+            fecha_sal_str = request.POST.get(f'{p}fecha_salida', '')
+            fecha_car_str = request.POST.get(f'{p}fecha_carga', '')
+            tipo_cont     = request.POST.get(f'{p}tipo_contenedor', '40')
+            operador_id   = request.POST.get(f'{p}operador', '').strip()
+            unidad_id     = request.POST.get(f'{p}unidad', '').strip()
+
+            if not operador_id or not unidad_id:
+                errores.append(f'Viaje {i + 1} ({contenedor}): falta operador o unidad.')
+                continue
+            if not fecha_sal_str or not fecha_car_str:
+                errores.append(f'Viaje {i + 1} ({contenedor}): falta fecha de salida o carga.')
+                continue
+
+            bitacora = BitacoraViaje(
+                modalidad             = modalidad,
+                contenedor            = contenedor,
+                contenedor_2          = contenedor_2,
+                peso                  = Decimal(peso_raw)   if peso_raw   else None,
+                peso_2                = Decimal(peso_2_raw) if peso_2_raw else None,
+                destino               = destino,
+                domicilio_carta_porte = domicilio_carta_porte,
+                cp_destino            = cp_destino,
+                cp_origen             = '40812',
+                observaciones         = observaciones,
+                fecha_salida  = datetime.fromisoformat(fecha_sal_str),
+                fecha_carga   = datetime.fromisoformat(fecha_car_str),
+                tipo_contenedor = tipo_cont,
+                operador_id   = int(operador_id),
+                unidad_id     = int(unidad_id),
+            )
+            bitacora.save()
+            creados += 1
+
+        except Exception as e:
+            errores.append(f'Viaje {i + 1} ({contenedor}): {e}')
+
+    request.session.pop('carga_masiva_viajes', None)
+
+    if creados:
+        s = 's' if creados != 1 else ''
+        messages.success(request, f'{creados} bitácora{s} importada{s} exitosamente.')
+    for err in errores:
+        messages.error(request, err)
+
+    return redirect('bitacoras:list')
 
 
 def unidad_info_ajax(request):

@@ -282,9 +282,15 @@
             <div class="info-card">
                 <h2 class="card-title">Destino</h2>
                 <div class="dato-group">
-                    <div class="dato-label">Descripción</div>
+                    <div class="dato-label">Dirección de entrega</div>
                     <div class="dato-valor">{{ bitacora.destino }}</div>
                 </div>
+                {% if bitacora.domicilio_carta_porte %}
+                <div class="dato-group">
+                    <div class="dato-label">Domicilio carta porte</div>
+                    <div class="dato-valor" style="white-space: pre-line;">{{ bitacora.domicilio_carta_porte }}</div>
+                </div>
+                {% endif %}
                 <div class="grid grid-cols-2 gap-x-4">
                     <div class="dato-group">
                         <div class="dato-label">CP Origen</div>

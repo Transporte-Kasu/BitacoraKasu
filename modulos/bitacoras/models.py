@@ -147,7 +147,11 @@ class BitacoraViaje(models.Model):
         verbose_name="Código postal destino"
     )
     destino = models.TextField(
-        verbose_name="Destino (descripción)"
+        verbose_name="Dirección de entrega"
+    )
+    domicilio_carta_porte = models.TextField(
+        blank=True,
+        verbose_name="Domicilio carta porte"
     )
     
     # Datos calculados de Google Maps

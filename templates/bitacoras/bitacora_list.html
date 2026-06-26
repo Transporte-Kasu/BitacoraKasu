@@ -76,14 +76,24 @@
                 {{ viajes_en_curso }} en curso &nbsp;·&nbsp; {{ viajes_completados }} completados
             </p>
         </div>
-        <a href="{% url 'bitacoras:create' %}"
-           class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
-                  px-5 py-2.5 rounded-lg font-semibold text-sm transition min-h-[44px]">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Nueva Bitácora
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'bitacoras:carga_masiva' %}"
+               class="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300
+                      px-4 py-2.5 rounded-lg font-semibold text-sm transition min-h-[44px]">
+                <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                </svg>
+                Carga Masiva
+            </a>
+            <a href="{% url 'bitacoras:create' %}"
+               class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                      px-5 py-2.5 rounded-lg font-semibold text-sm transition min-h-[44px]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Nueva Bitácora
+            </a>
+        </div>
     </div>
 
     <!-- Filtros -->
