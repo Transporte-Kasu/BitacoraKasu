@@ -222,7 +222,7 @@ textarea.form-control { resize: vertical; min-height: 4.5rem; }
                     </div>
                 </div>
 
-                <!-- Operador y Unidad -->
+                <!-- Asignación -->
                 <div class="space-y-3">
                     <p class="form-section-label">
                         <svg class="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -230,27 +230,57 @@ textarea.form-control { resize: vertical; min-height: 4.5rem; }
                         </svg>
                         Asignación <span class="text-red-400 font-normal normal-case tracking-normal text-[10px]">(requerido)</span>
                     </p>
+
+                    <!-- Cliente (opcional) -->
                     <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1">
-                            Operador <span class="text-red-500">*</span>
+                            Cliente <span class="text-slate-400 font-normal">(opcional)</span>
                         </label>
-                        <select name="v{{ idx }}_operador" class="form-control" required>
-                            <option value="">— Selecciona —</option>
-                            {% for op in operadores %}
-                            <option value="{{ op.id }}">{{ op.nombre }}</option>
+                        <select name="v{{ idx }}_cliente" class="form-control">
+                            <option value="">— Sin cliente —</option>
+                            {% for c in clientes %}
+                            <option value="{{ c.id }}">{{ c.nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>
+
+                    <!-- Unidad (primero) -->
                     <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1">
                             Unidad <span class="text-red-500">*</span>
                         </label>
-                        <select name="v{{ idx }}_unidad" class="form-control" required>
+                        <select name="v{{ idx }}_unidad" id="unidad-{{ idx }}"
+                                class="form-control unidad-select" data-idx="{{ idx }}" required>
                             <option value="">— Selecciona —</option>
                             {% for u in unidades %}
                             <option value="{{ u.id }}">{{ u.numero_economico }} — {{ u.placa }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+
+                    <!-- Operador (se auto-rellena) -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-medium text-slate-500">
+                                Operador <span class="text-red-500">*</span>
+                            </label>
+                            <button type="button"
+                                    id="reasignar-{{ idx }}"
+                                    class="hidden text-[11px] font-semibold text-blue-600 hover:text-blue-800 underline"
+                                    data-idx="{{ idx }}">
+                                Reasignar
+                            </button>
+                        </div>
+                        <select name="v{{ idx }}_operador" id="operador-{{ idx }}"
+                                class="form-control" required>
+                            <option value="">— Selecciona unidad primero —</option>
+                            {% for op in operadores %}
+                            <option value="{{ op.id }}">{{ op.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <p id="op-hint-{{ idx }}" class="hidden mt-1 text-[11px] text-slate-400">
+                            Operador asignado a la unidad.
+                        </p>
                     </div>
 
                     <!-- Fechas calculadas -->
@@ -323,32 +353,55 @@ textarea.form-control { resize: vertical; min-height: 4.5rem; }
 
 {% block extra_js %}
 <script>
-// Toggle observaciones
-document.querySelectorAll('.obs-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const target   = document.getElementById(btn.dataset.target);
-        const chevron  = btn.querySelector('.obs-chevron');
-        const visible  = !target.classList.contains('hidden');
-        target.classList.toggle('hidden', visible);
-        chevron.style.transform = visible ? '' : 'rotate(180deg)';
+const UNIDAD_OP_MAP = {{ unidad_op_map_json|safe }};
+
+// ── Auto-fill operador al seleccionar unidad ──────────────────────────────
+document.querySelectorAll('.unidad-select').forEach(sel => {
+    sel.addEventListener('change', function () {
+        const idx        = this.dataset.idx;
+        const opSel      = document.getElementById(`operador-${idx}`);
+        const reasignar  = document.getElementById(`reasignar-${idx}`);
+        const hint       = document.getElementById(`op-hint-${idx}`);
+        const uid        = this.value;
+        const data       = UNIDAD_OP_MAP[uid];
+
+        if (data) {
+            opSel.value    = data.id;
+            opSel.disabled = true;
+            reasignar.classList.remove('hidden');
+            hint.classList.remove('hidden');
+        } else {
+            opSel.disabled = false;
+            opSel.value    = '';
+            reasignar.classList.add('hidden');
+            hint.classList.add('hidden');
+        }
     });
 });
 
-// Abrir observaciones automáticamente si hay contenido
-document.querySelectorAll('.obs-toggle').forEach(btn => {
-    const target = document.getElementById(btn.dataset.target);
-    const ta     = target.querySelector('textarea');
-    if (ta && ta.value.trim()) {
-        target.classList.remove('hidden');
-        btn.querySelector('.obs-chevron').style.transform = 'rotate(180deg)';
-    }
+// ── Botón Reasignar ───────────────────────────────────────────────────────
+document.querySelectorAll('[id^="reasignar-"]').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const idx   = this.dataset.idx;
+        const opSel = document.getElementById(`operador-${idx}`);
+        const hint  = document.getElementById(`op-hint-${idx}`);
+        opSel.disabled = false;
+        opSel.value    = '';
+        this.classList.add('hidden');
+        hint.classList.add('hidden');
+        opSel.focus();
+    });
 });
 
-// Validar antes de enviar
+// Re-habilitar selects disabled antes del POST (no se envían si están disabled)
 document.getElementById('previewForm').addEventListener('submit', function (e) {
-    const selects = this.querySelectorAll('select[required]');
+    // Habilitar operadores bloqueados para que se envíen
+    this.querySelectorAll('select[disabled]').forEach(s => { s.disabled = false; });
+
+    // Validar que unidad y operador estén seleccionados
+    const required = this.querySelectorAll('select[required]');
     let ok = true;
-    selects.forEach(s => {
+    required.forEach(s => {
         if (!s.value) {
             s.style.borderColor = '#ef4444';
             ok = false;
@@ -359,6 +412,25 @@ document.getElementById('previewForm').addEventListener('submit', function (e) {
     if (!ok) {
         e.preventDefault();
         alert('Debes asignar operador y unidad a todos los viajes.');
+    }
+});
+
+// ── Toggle observaciones ──────────────────────────────────────────────────
+document.querySelectorAll('.obs-toggle').forEach(btn => {
+    const target  = document.getElementById(btn.dataset.target);
+    const chevron = btn.querySelector('.obs-chevron');
+
+    btn.addEventListener('click', () => {
+        const visible = !target.classList.contains('hidden');
+        target.classList.toggle('hidden', visible);
+        chevron.style.transform = visible ? '' : 'rotate(180deg)';
+    });
+
+    // Abrir automáticamente si hay contenido
+    const ta = target.querySelector('textarea');
+    if (ta && ta.value.trim()) {
+        target.classList.remove('hidden');
+        chevron.style.transform = 'rotate(180deg)';
     }
 });
 </script>

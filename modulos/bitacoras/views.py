@@ -420,11 +420,31 @@ def carga_masiva_upload(request):
 
 @login_required
 def carga_masiva_preview(request):
+    import json as _json
     from modulos.operadores.models import Operador
     from modulos.unidades.models import Unidad
 
-    operadores = list(Operador.objects.filter(activo=True).order_by('nombre'))
-    unidades   = list(Unidad.objects.filter(activa=True).order_by('numero_economico'))
+    # Solo unidades foráneas activas sin viaje en curso
+    unidades_en_viaje = set(
+        BitacoraViaje.objects.filter(completado=False).values_list('unidad_id', flat=True)
+    )
+    unidades = list(
+        Unidad.objects.filter(activa=True, tipo__in=['FORANEA', 'ESPERANZA'])
+                      .order_by('numero_economico')
+    )
+    unidades_disponibles = [u for u in unidades if u.id not in unidades_en_viaje]
+
+    # Mapa unidad_id → operador asignado
+    unidad_op_map = {}
+    for u in unidades_disponibles:
+        op = Operador.objects.filter(unidad_asignada=u, activo=True).first()
+        if op:
+            unidad_op_map[str(u.id)] = {'id': str(op.id), 'nombre': op.nombre}
+
+    operadores = list(
+        Operador.objects.filter(activo=True, tipo__in=['FORANEO', 'ESPERANZA']).order_by('nombre')
+    )
+    clientes = list(Cliente.objects.filter(activo=True).order_by('nombre'))
 
     if request.method == 'GET':
         viajes = request.session.get('carga_masiva_viajes')
@@ -433,10 +453,12 @@ def carga_masiva_preview(request):
             return redirect('bitacoras:carga_masiva')
 
         return render(request, 'bitacoras/carga_masiva_preview.html', {
-            'viajes':       viajes,
-            'total_viajes': len(viajes),
-            'operadores':   operadores,
-            'unidades':     unidades,
+            'viajes':            viajes,
+            'total_viajes':      len(viajes),
+            'operadores':        operadores,
+            'unidades':          unidades_disponibles,
+            'clientes':          clientes,
+            'unidad_op_map_json': _json.dumps(unidad_op_map),
         })
 
     # POST → crear registros
@@ -459,6 +481,7 @@ def carga_masiva_preview(request):
             fecha_sal_str = request.POST.get(f'{p}fecha_salida', '')
             fecha_car_str = request.POST.get(f'{p}fecha_carga', '')
             tipo_cont     = request.POST.get(f'{p}tipo_contenedor', '40')
+            cliente_id    = request.POST.get(f'{p}cliente', '').strip()
             operador_id   = request.POST.get(f'{p}operador', '').strip()
             unidad_id     = request.POST.get(f'{p}unidad', '').strip()
 
@@ -470,6 +493,7 @@ def carga_masiva_preview(request):
                 continue
 
             bitacora = BitacoraViaje(
+                cliente_id            = int(cliente_id) if cliente_id else None,
                 modalidad             = modalidad,
                 contenedor            = contenedor,
                 contenedor_2          = contenedor_2,
