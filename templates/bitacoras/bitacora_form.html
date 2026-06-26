@@ -846,5 +846,10 @@ document.querySelectorAll('p[role="alert"]').forEach(function (errMsg) {
     const field = errMsg.closest('div')?.querySelector('.form-control');
     if (field) field.classList.add('is-invalid');
 });
+
+// Los campos disabled no se envían en el POST; re-habilitar antes del submit
+document.getElementById('bitacoraForm').addEventListener('submit', function () {
+    if (operadorSelect.disabled) operadorSelect.disabled = false;
+});
 </script>
 {% endblock %}
