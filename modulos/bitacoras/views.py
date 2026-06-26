@@ -107,7 +107,27 @@ class BitacoraCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        bitacora = form.save()
+        bitacora = form.save(commit=False)
+
+        unidad = bitacora.unidad
+        if unidad:
+            if unidad.kilometraje_actual:
+                bitacora.kilometraje_salida = unidad.kilometraje_actual
+
+            try:
+                from modulos.combustible.models import CargaCombustible
+                ultima_carga = (
+                    CargaCombustible.objects
+                    .filter(unidad=unidad, estado='COMPLETADO')
+                    .order_by('-fecha_hora_fin')
+                    .first()
+                )
+                if ultima_carga and ultima_carga.cantidad_litros:
+                    bitacora.diesel_cargado = ultima_carga.cantidad_litros
+            except Exception:
+                pass
+
+        bitacora.save()
 
         if bitacora.cp_destino:
             api_key = os.environ.get('GOOGLE_MAPS_API_KEY')

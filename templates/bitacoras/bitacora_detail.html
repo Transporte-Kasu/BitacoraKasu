@@ -212,11 +212,11 @@
                     {% endif %}
                     <div class="dato-group">
                         <div class="dato-label">Diesel Cargado</div>
-                        <div class="dato-valor">{{ bitacora.diesel_cargado }} lt</div>
+                        <div class="dato-valor">{% if bitacora.diesel_cargado %}{{ bitacora.diesel_cargado }} lt{% else %}—{% endif %}</div>
                     </div>
                     <div class="dato-group">
                         <div class="dato-label">Km Salida</div>
-                        <div class="dato-valor">{{ bitacora.kilometraje_salida|floatformat:"0" }} km</div>
+                        <div class="dato-valor">{% if bitacora.kilometraje_salida %}{{ bitacora.kilometraje_salida|floatformat:"0" }} km{% else %}—{% endif %}</div>
                     </div>
                     {% if bitacora.kilometraje_llegada %}
                     <div class="dato-group">
