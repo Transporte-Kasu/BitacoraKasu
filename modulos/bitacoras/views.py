@@ -389,7 +389,11 @@ def enviar_notificacion_cliente(request, pk):
 
 @login_required
 def carga_masiva_upload(request):
-    context = {'tipo_contenedor_choices': BitacoraViaje.TIPO_CONTENEDOR_CHOICES}
+    clientes = list(Cliente.objects.filter(activo=True).order_by('nombre'))
+    context  = {
+        'tipo_contenedor_choices': BitacoraViaje.TIPO_CONTENEDOR_CHOICES,
+        'clientes': clientes,
+    }
 
     if request.method == 'POST':
         archivo = request.FILES.get('archivo')
@@ -400,6 +404,7 @@ def carga_masiva_upload(request):
         hora_salida     = request.POST.get('hora_salida', '06:00')
         hora_carga      = request.POST.get('hora_carga', '05:00')
         tipo_contenedor = request.POST.get('tipo_contenedor', '40')
+        cliente_id      = request.POST.get('cliente', '').strip()
 
         try:
             from .excel_parser import parse_confirmacion_excel
@@ -412,7 +417,8 @@ def carga_masiva_upload(request):
             messages.warning(request, 'No se encontraron viajes válidos en el archivo.')
             return render(request, 'bitacoras/carga_masiva.html', context)
 
-        request.session['carga_masiva_viajes'] = viajes
+        request.session['carga_masiva_viajes']    = viajes
+        request.session['carga_masiva_cliente_id'] = cliente_id
         return redirect('bitacoras:carga_masiva_preview')
 
     return render(request, 'bitacoras/carga_masiva.html', context)
@@ -452,19 +458,28 @@ def carga_masiva_preview(request):
             messages.warning(request, 'No hay datos pendientes. Sube un archivo primero.')
             return redirect('bitacoras:carga_masiva')
 
+        cliente_id  = request.session.get('carga_masiva_cliente_id', '')
+        cliente_obj = None
+        if cliente_id:
+            try:
+                cliente_obj = Cliente.objects.get(pk=cliente_id)
+            except Cliente.DoesNotExist:
+                pass
+
         return render(request, 'bitacoras/carga_masiva_preview.html', {
-            'viajes':            viajes,
-            'total_viajes':      len(viajes),
-            'operadores':        operadores,
-            'unidades':          unidades_disponibles,
-            'clientes':          clientes,
+            'viajes':             viajes,
+            'total_viajes':       len(viajes),
+            'operadores':         operadores,
+            'unidades':           unidades_disponibles,
+            'cliente':            cliente_obj,
             'unidad_op_map_json': _json.dumps(unidad_op_map),
         })
 
     # POST → crear registros
-    total   = int(request.POST.get('total_viajes', 0))
-    creados = 0
-    errores = []
+    total      = int(request.POST.get('total_viajes', 0))
+    cliente_id = request.session.get('carga_masiva_cliente_id', '')
+    creados    = 0
+    errores    = []
 
     for i in range(total):
         p          = f'v{i}_'
@@ -474,14 +489,13 @@ def carga_masiva_preview(request):
             contenedor_2  = request.POST.get(f'{p}contenedor_2', '').strip()
             peso_raw      = request.POST.get(f'{p}peso', '').strip()
             peso_2_raw    = request.POST.get(f'{p}peso_2', '').strip()
-            destino                = request.POST.get(f'{p}destino', '').strip()
-            domicilio_carta_porte  = request.POST.get(f'{p}domicilio_carta_porte', '').strip()
-            cp_destino             = request.POST.get(f'{p}cp_destino', '').strip()
-            observaciones          = request.POST.get(f'{p}observaciones', '').strip()
+            destino               = request.POST.get(f'{p}destino', '').strip()
+            domicilio_carta_porte = request.POST.get(f'{p}domicilio_carta_porte', '').strip()
+            cp_destino            = request.POST.get(f'{p}cp_destino', '').strip()
+            observaciones         = request.POST.get(f'{p}observaciones', '').strip()
             fecha_sal_str = request.POST.get(f'{p}fecha_salida', '')
             fecha_car_str = request.POST.get(f'{p}fecha_carga', '')
             tipo_cont     = request.POST.get(f'{p}tipo_contenedor', '40')
-            cliente_id    = request.POST.get(f'{p}cliente', '').strip()
             operador_id   = request.POST.get(f'{p}operador', '').strip()
             unidad_id     = request.POST.get(f'{p}unidad', '').strip()
 
@@ -517,6 +531,7 @@ def carga_masiva_preview(request):
             errores.append(f'Viaje {i + 1} ({contenedor}): {e}')
 
     request.session.pop('carga_masiva_viajes', None)
+    request.session.pop('carga_masiva_cliente_id', None)
 
     if creados:
         s = 's' if creados != 1 else ''

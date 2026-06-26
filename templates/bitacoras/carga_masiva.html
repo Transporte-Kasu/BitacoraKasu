@@ -145,6 +145,19 @@ select.form-control {
                 </p>
 
                 <div>
+                    <label for="cliente" class="block text-sm font-medium text-slate-700 mb-1.5">
+                        Cliente
+                        <span class="text-slate-400 font-normal text-xs">(aplica a todos los viajes)</span>
+                    </label>
+                    <select name="cliente" id="cliente" class="form-control">
+                        <option value="">— Sin cliente —</option>
+                        {% for c in clientes %}
+                        <option value="{{ c.id }}">{{ c.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
                     <label for="tipo_contenedor" class="block text-sm font-medium text-slate-700 mb-1.5">
                         Tipo de contenedor por defecto
                     </label>
