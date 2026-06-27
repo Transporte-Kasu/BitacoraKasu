@@ -309,19 +309,43 @@
                     </div>
                     {% endif %}
                 </div>
+                <!-- Distancia Google Maps -->
+                <div id="distancia-box" class="mt-2">
                 {% if tiene_distancia %}
-                <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-                    <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                    <div>
-                        <p class="text-sm font-bold text-green-800">
-                            {{ bitacora.distancia_calculada }} km{% if bitacora.cp_destino_2 %} (CP Destino 1){% endif %} — Google Maps
-                        </p>
-                        {% if bitacora.duracion_estimada %}
-                        <p class="text-xs text-green-600">Duración estimada: {{ bitacora.duracion_estimada }} min</p>
+                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                            <div>
+                                <p class="text-sm font-bold text-green-800">
+                                    {{ bitacora.distancia_calculada }} km{% if bitacora.cp_destino_2 %} (CP Destino 1){% endif %} — Google Maps
+                                </p>
+                                {% if bitacora.duracion_estimada %}
+                                <p class="text-xs text-green-600">Duración estimada: {{ bitacora.duracion_estimada }} min</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if bitacora.cp_destino %}
+                        <button type="button" id="btn-recalcular"
+                                title="Recalcular"
+                                class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                            </svg>
+                        </button>
                         {% endif %}
                     </div>
-                </div>
+                {% elif bitacora.cp_destino %}
+                    <div id="calc-estado" class="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-3">
+                        <svg id="calc-spinner" class="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                        <span id="calc-status" class="text-sm text-slate-500">Calculando distancia con Google Maps…</span>
+                    </div>
                 {% endif %}
+                <p id="calc-error" class="hidden mt-2 text-xs text-red-600 font-medium"></p>
+                </div>
+
                 {% if tiene_distancia_2 %}
                 <div class="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-3">
                     <svg class="w-5 h-5 text-orange-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
@@ -337,15 +361,6 @@
                         {% endif %}
                     </div>
                 </div>
-                {% endif %}
-                {% if not tiene_distancia %}
-                <form method="post" action="{% url 'bitacoras:calcular_distancia' bitacora.pk %}" class="mt-2">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="text-sm text-blue-600 hover:text-blue-800 font-semibold underline">
-                        Calcular distancia con Google Maps
-                    </button>
-                </form>
                 {% endif %}
             </div>
         </div>
@@ -365,4 +380,83 @@
     </p>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if bitacora.cp_destino %}
+<script>
+const CALCULAR_URL  = "{% url 'bitacoras:calcular_distancia' bitacora.pk %}";
+const CSRF_TOKEN    = "{{ csrf_token }}";
+const YA_CALCULADA  = {{ tiene_distancia|yesno:"true,false" }};
+
+async function calcularDistancia() {
+    const box     = document.getElementById('distancia-box');
+    const spinner = document.getElementById('calc-spinner');
+    const status  = document.getElementById('calc-status');
+    const errorEl = document.getElementById('calc-error');
+    const btnRec  = document.getElementById('btn-recalcular');
+
+    // Mostrar spinner si no viene del estado inicial
+    if (spinner) spinner.style.display = 'inline-block';
+    if (status)  status.textContent = 'Calculando distancia con Google Maps…';
+    if (errorEl) errorEl.classList.add('hidden');
+    if (btnRec)  btnRec.disabled = true;
+
+    try {
+        const resp = await fetch(CALCULAR_URL, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' },
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            const durMin = Math.round(data.duracion_min);
+            box.innerHTML = `
+                <div class="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-bold text-green-800">${data.distancia_texto} — Google Maps</p>
+                            <p class="text-xs text-green-600">Duración estimada: ${durMin} min</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="calcularDistancia()"
+                            title="Recalcular"
+                            class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                        </svg>
+                    </button>
+                </div>
+                <p id="calc-error" class="hidden mt-2 text-xs text-red-600 font-medium"></p>`;
+        } else {
+            if (status)  status.textContent = 'No se pudo calcular la distancia.';
+            if (spinner) spinner.style.display = 'none';
+            if (errorEl) { errorEl.textContent = data.error || 'Error desconocido.'; errorEl.classList.remove('hidden'); }
+            if (btnRec)  btnRec.disabled = false;
+        }
+    } catch (e) {
+        if (status)  status.textContent = 'Error de conexión.';
+        if (spinner) spinner.style.display = 'none';
+        if (errorEl) { errorEl.textContent = 'No se pudo conectar al servidor.'; errorEl.classList.remove('hidden'); }
+        if (btnRec)  btnRec.disabled = false;
+    }
+}
+
+// Auto-calcular al cargar si no hay distancia aún
+if (!YA_CALCULADA) {
+    document.addEventListener('DOMContentLoaded', calcularDistancia);
+}
+
+// Botón recalcular (cuando ya existe distancia)
+document.addEventListener('DOMContentLoaded', () => {
+    const btnRec = document.getElementById('btn-recalcular');
+    if (btnRec) btnRec.addEventListener('click', calcularDistancia);
+});
+</script>
+{% endif %}
 {% endblock %}
