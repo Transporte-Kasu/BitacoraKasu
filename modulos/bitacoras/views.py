@@ -21,7 +21,7 @@ class BitacoraListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         queryset = BitacoraViaje.objects.select_related(
-            'operador', 'unidad'
+            'operador', 'unidad', 'cliente'
         ).order_by('-fecha_salida')
 
         search = self.request.GET.get('search')
@@ -60,6 +60,10 @@ class BitacoraListView(LoginRequiredMixin, ListView):
         if fecha_hasta:
             queryset = queryset.filter(fecha_salida__date__lte=fecha_hasta)
 
+        cliente_id = self.request.GET.get('cliente')
+        if cliente_id:
+            queryset = queryset.filter(cliente_id=cliente_id)
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -72,6 +76,7 @@ class BitacoraListView(LoginRequiredMixin, ListView):
         context['modalidad_choices'] = BitacoraViaje.MODALIDAD_CHOICES
         context['operadores_list'] = Operador.objects.filter(activo=True).order_by('nombre')
         context['unidades_list'] = Unidad.objects.filter(activa=True).order_by('numero_economico')
+        context['clientes_list'] = Cliente.objects.filter(activo=True).order_by('nombre')
         return context
 
 
