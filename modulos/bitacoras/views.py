@@ -5,7 +5,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
 from .models import BitacoraViaje, Cliente
 from .forms import BitacoraViajeForm, BitacoraViajeCompletarForm, ClienteForm
 from decimal import Decimal
@@ -545,6 +546,178 @@ def carga_masiva_preview(request):
         messages.error(request, err)
 
     return redirect('bitacoras:list')
+
+
+@login_required
+def exportar_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    queryset = BitacoraViaje.objects.select_related(
+        'operador', 'unidad', 'cliente'
+    ).order_by('fecha_salida', 'cliente__nombre')
+
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+    if fecha_desde:
+        queryset = queryset.filter(fecha_salida__date__gte=fecha_desde)
+    if fecha_hasta:
+        queryset = queryset.filter(fecha_salida__date__lte=fecha_hasta)
+
+    cliente_id = request.GET.get('cliente')
+    if cliente_id:
+        queryset = queryset.filter(cliente_id=cliente_id)
+
+    search = request.GET.get('search')
+    if search:
+        queryset = queryset.filter(
+            Q(contenedor__icontains=search) | Q(contenedor_2__icontains=search) |
+            Q(destino__icontains=search) | Q(operador__nombre__icontains=search)
+        )
+
+    modalidad = request.GET.get('modalidad')
+    if modalidad:
+        queryset = queryset.filter(modalidad=modalidad)
+
+    completado = request.GET.get('completado')
+    if completado == 'true':
+        queryset = queryset.filter(completado=True)
+    elif completado == 'false':
+        queryset = queryset.filter(completado=False)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Bitácoras"
+
+    # ── Estilos ──────────────────────────────────────────────────────
+    header_fill = PatternFill("solid", fgColor="1E3A5F")
+    header_font = Font(bold=True, color="FFFFFF", size=9)
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    data_font = Font(size=9)
+    bold_font = Font(bold=True, size=9)
+    center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    vert_align = Alignment(horizontal="center", vertical="center",
+                           wrap_text=True, text_rotation=90)
+
+    thin = Side(style="thin", color="BBBBBB")
+    thin_border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    reparto_fill = PatternFill("solid", fgColor="E8F5E9")
+    directo_fill = PatternFill("solid", fgColor="E3F2FD")
+
+    # ── Encabezados ──────────────────────────────────────────────────
+    headers = ["CLIENTE", "TIPO", "PESO", "CONTENEDOR", "DESTINO", "OPERADOR", "OBSERVACIONES", ""]
+    ws.append(headers)
+    for col, _ in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+        cell.border = thin_border
+
+    ws.row_dimensions[1].height = 22
+
+    # ── Anchos de columna ─────────────────────────────────────────────
+    col_widths = [12, 6, 8, 16, 22, 32, 20, 10]
+    for i, w in enumerate(col_widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # ── Filas de datos ────────────────────────────────────────────────
+    for bitacora in queryset:
+        is_full = bitacora.modalidad in ('FULL', 'LOCAL_FULL')
+        tipo_viaje = "REPARTO" if bitacora.reparto else "DIRECTO"
+        group_fill = reparto_fill if bitacora.reparto else directo_fill
+
+        op = bitacora.operador
+        uni = bitacora.unidad
+        cliente_nombre = (bitacora.cliente.nombre if bitacora.cliente else "").upper()
+        op_nombre = op.nombre.upper() if op else ""
+        op_eco = f"ECO {uni.numero_economico} PLACAS {uni.placa}" if uni else ""
+        op_cel = f"CEL: {op.telefono}" if op and op.telefono else ""
+        op_empresa = "TRANSPORTES Y LOGISTICA KASU"
+
+        fecha_local = timezone.localtime(bitacora.fecha_salida) if bitacora.fecha_salida else None
+        hora_str = fecha_local.strftime("%-I:%M %p") if fecha_local else ""
+        salida_texto = f"SALIDA {hora_str}" if hora_str else ""
+        obs = (bitacora.observaciones or "").upper()
+
+        row_start = ws.max_row + 1
+
+        # Fila 1 (contenedor principal)
+        ws.append([
+            cliente_nombre,
+            bitacora.tipo_contenedor,
+            float(bitacora.peso) if bitacora.peso else "",
+            bitacora.contenedor.upper() if bitacora.contenedor else "",
+            bitacora.destino.upper() if bitacora.destino else "",
+            op_nombre,
+            obs,
+            tipo_viaje,
+        ])
+
+        # Fila 2 (segundo contenedor si FULL, o ECO+placas si SENCILLO)
+        if is_full:
+            ws.append([
+                cliente_nombre,
+                bitacora.tipo_contenedor,
+                float(bitacora.peso_2) if bitacora.peso_2 else "",
+                bitacora.contenedor_2.upper() if bitacora.contenedor_2 else "",
+                bitacora.destino.upper() if bitacora.destino else "",
+                op_eco,
+                "",
+                "",
+            ])
+        else:
+            ws.append(["", "", "", "", "", op_eco, "", ""])
+
+        # Fila 3 (CEL + SALIDA)
+        ws.append(["", "", "", "", "", op_cel, salida_texto, ""])
+
+        # Fila 4 (empresa)
+        ws.append(["", "", "", "", "", op_empresa, "", ""])
+
+        row_end = ws.max_row
+
+        # Aplicar estilos al grupo
+        for r in range(row_start, row_end + 1):
+            ws.row_dimensions[r].height = 14
+            for c in range(1, 9):
+                cell = ws.cell(row=r, column=c)
+                cell.border = thin_border
+                cell.font = bold_font if c == 6 and r == row_start else data_font
+                if c in (1, 2, 3, 4, 5):
+                    cell.alignment = center_align
+                elif c == 8:
+                    cell.alignment = vert_align
+                    cell.fill = group_fill
+                    cell.font = Font(bold=True, size=9,
+                                     color="2E7D32" if bitacora.reparto else "1565C0")
+                else:
+                    cell.alignment = left_align
+
+        # Merge columna H (tipo de viaje) para todo el grupo
+        ws.merge_cells(f"H{row_start}:H{row_end}")
+
+        # Fila separadora en blanco
+        ws.append([""] * 8)
+        ws.row_dimensions[ws.max_row].height = 6
+
+    # Congelar encabezado
+    ws.freeze_panes = "A2"
+
+    # ── Respuesta HTTP ────────────────────────────────────────────────
+    fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+    suffix = f"_{fecha_desde}_al_{fecha_hasta}" if fecha_desde and fecha_hasta else f"_{fecha_hoy}"
+    filename = f"bitacoras{suffix}.xlsx"
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
 
 
 def unidad_info_ajax(request):

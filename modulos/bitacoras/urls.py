@@ -29,6 +29,9 @@ urlpatterns = [
     path('carga-masiva/', views.carga_masiva_upload, name='carga_masiva'),
     path('carga-masiva/preview/', views.carga_masiva_preview, name='carga_masiva_preview'),
 
+    # Exportar Excel
+    path('exportar-excel/', views.exportar_excel, name='exportar_excel'),
+
     # AJAX utilitarios
     path('ajax/unidad-info/', views.unidad_info_ajax, name='unidad_info_ajax'),
     path('ajax/calcular-distancia/', views.calcular_distancia_preview_ajax, name='calcular_distancia_preview'),
