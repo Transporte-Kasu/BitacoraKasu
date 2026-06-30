@@ -58,6 +58,7 @@ urlpatterns = [
     path('asignaciones/', views.AsignacionSalidaListView.as_view(), name='asignacion_salida_list'),
     path('asignaciones/nueva/', views.asignacion_salida_create, name='asignacion_salida_create'),
     path('asignaciones/<int:pk>/', views.AsignacionSalidaDetailView.as_view(), name='asignacion_salida_detail'),
+    path('asignaciones/<int:pk>/editar/', views.asignacion_salida_update, name='asignacion_salida_update'),
 
     # API activos por tipo
     path('api/activos-por-tipo/', views.api_activos_por_tipo, name='api_activos_por_tipo'),

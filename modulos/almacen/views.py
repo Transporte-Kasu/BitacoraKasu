@@ -1133,6 +1133,133 @@ class AsignacionSalidaDetailView(LoginRequiredMixin, DetailView):
 
 
 @login_required
+def asignacion_salida_update(request, pk):
+    from modulos.unidades.models import Unidad
+    from modulos.equipos.models import Equipo
+    from modulos.dollys.models import Dolly
+    from modulos.caja_seca.models import CajaSeca
+
+    asignacion = get_object_or_404(AsignacionSalida, pk=pk)
+
+    if request.method == 'POST':
+        fecha = request.POST.get('fecha')
+        solicitante = request.POST.get('solicitante', '').strip()
+        tipo_destino = request.POST.get('tipo_destino', '')
+        unidad_id = request.POST.get('unidad') or None
+        equipo_id = request.POST.get('equipo') or None
+        dolly_id = request.POST.get('dolly') or None
+        caja_seca_id = request.POST.get('caja_seca') or None
+        otro_destino = request.POST.get('otro_destino', '').strip()
+        justificacion = request.POST.get('justificacion', '').strip()
+        items_raw = request.POST.get('items_json', '[]')
+
+        try:
+            items = json.loads(items_raw)
+        except (json.JSONDecodeError, ValueError):
+            items = []
+
+        errors = []
+        if not solicitante:
+            errors.append('El solicitante es requerido.')
+        if not tipo_destino:
+            errors.append('El tipo de destino es requerido.')
+        if not justificacion:
+            errors.append('La justificación es requerida.')
+        if not items:
+            errors.append('Agrega al menos un producto.')
+
+        if not errors:
+            # Restaurar stock de ítems anteriores antes de eliminarlos
+            for item in asignacion.items.select_related('producto').all():
+                item.producto.agregar_stock(item.cantidad)
+            asignacion.items.all().delete()
+
+            # Actualizar campos de la asignación
+            asignacion.fecha = fecha
+            asignacion.solicitante = solicitante
+            asignacion.tipo_destino = tipo_destino
+            asignacion.otro_destino = otro_destino
+            asignacion.justificacion = justificacion
+            asignacion.unidad_id = None
+            asignacion.equipo_id = None
+            asignacion.dolly_id = None
+            asignacion.caja_seca_id = None
+
+            if tipo_destino == 'UNIDAD' and unidad_id:
+                asignacion.unidad_id = unidad_id
+            elif tipo_destino == 'EQUIPO' and equipo_id:
+                asignacion.equipo_id = equipo_id
+            elif tipo_destino == 'DOLLY' and dolly_id:
+                asignacion.dolly_id = dolly_id
+            elif tipo_destino == 'CAJA_SECA' and caja_seca_id:
+                asignacion.caja_seca_id = caja_seca_id
+
+            asignacion.save()
+
+            # Crear nuevos ítems (la señal reduce el stock automáticamente)
+            for it in items:
+                try:
+                    producto = ProductoAlmacen.objects.get(pk=it['id'])
+                    ItemAsignacionSalida.objects.create(
+                        asignacion=asignacion,
+                        producto=producto,
+                        cantidad=it['cantidad'],
+                        observaciones=it.get('observaciones', ''),
+                    )
+                except (ProductoAlmacen.DoesNotExist, KeyError):
+                    pass
+
+            messages.success(request, f'Asignación {asignacion.folio} actualizada correctamente.')
+            return redirect('almacen:asignacion_salida_detail', pk=asignacion.pk)
+
+        items_iniciales = json.dumps([
+            {
+                'id': it['id'] if isinstance(it, dict) else it,
+                'sku': '',
+                'descripcion': '',
+                'cantidad': it.get('cantidad', 1) if isinstance(it, dict) else 1,
+                'observaciones': it.get('observaciones', '') if isinstance(it, dict) else '',
+            }
+            for it in items
+        ])
+        context = {
+            'asignacion': asignacion,
+            'errors': errors,
+            'post': request.POST,
+            'items_iniciales': items_iniciales,
+            'unidades': Unidad.objects.filter(activa=True).order_by('numero_economico'),
+            'equipos': Equipo.objects.filter(activo=True).order_by('numero_economico'),
+            'dollys': Dolly.objects.filter(activo=True).order_by('numero_economico'),
+            'cajas': CajaSeca.objects.filter(activo=True).order_by('numero_economico'),
+            'tipo_choices': AsignacionSalida.TIPO_CHOICES,
+        }
+        return render(request, 'almacen/asignacion_salida_edit.html', context)
+
+    # GET — pre-poblar con datos actuales
+    items_iniciales = json.dumps([
+        {
+            'id': item.producto.pk,
+            'sku': item.producto.sku,
+            'descripcion': item.producto.descripcion,
+            'cantidad': float(item.cantidad),
+            'observaciones': item.observaciones,
+        }
+        for item in asignacion.items.select_related('producto').all()
+    ])
+
+    context = {
+        'asignacion': asignacion,
+        'items_iniciales': items_iniciales,
+        'unidades': Unidad.objects.filter(activa=True).order_by('numero_economico'),
+        'equipos': Equipo.objects.filter(activo=True).order_by('numero_economico'),
+        'dollys': Dolly.objects.filter(activo=True).order_by('numero_economico'),
+        'cajas': CajaSeca.objects.filter(activo=True).order_by('numero_economico'),
+        'tipo_choices': AsignacionSalida.TIPO_CHOICES,
+    }
+    return render(request, 'almacen/asignacion_salida_edit.html', context)
+
+
+@login_required
 def api_activos_por_tipo(request):
     tipo = request.GET.get('tipo', '')
     data = []

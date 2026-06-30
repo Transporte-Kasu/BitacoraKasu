@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% block title %}Editar {{ asignacion.folio }}{% endblock %}
+{% block extra_css %}
+<style>
+.form-control{width:100%;padding:.5rem .75rem;border:1px solid #cbd5e1;border-radius:.5rem;font-size:.875rem;color:#1e293b;background:#fff;transition:border-color .15s,box-shadow .15s}
+.form-control:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+#buscador-producto{position:relative}
+#resultado-busqueda{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:.5rem;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:50;max-height:240px;overflow-y:auto}
+.resultado-item{padding:.5rem .75rem;font-size:.85rem;cursor:pointer;border-bottom:1px solid #f1f5f9}
+.resultado-item:hover{background:#f8fafc}
+</style>
+{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'almacen:asignacion_salida_detail' asignacion.pk %}" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+  </a>
+  <div>
+    <h1 class="text-xl font-bold text-slate-900">Editar <span class="font-mono">{{ asignacion.folio }}</span></h1>
+    <p class="text-sm text-slate-500">Los cambios en productos ajustan el inventario automáticamente.</p>
+  </div>
+</div>
+
+{% if errors %}
+<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 mb-4 space-y-1">
+  {% for e in errors %}<p>{{ e }}</p>{% endfor %}
+</div>
+{% endif %}
+
+<form method="post" id="form-asignacion">
+  {% csrf_token %}
+  <input type="hidden" name="items_json" id="items_json" value="[]">
+
+  <div class="grid xl:grid-cols-3 gap-6">
+    <!-- Columna principal -->
+    <div class="xl:col-span-2 space-y-6">
+
+      <!-- Datos generales -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Datos generales</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Fecha <span class="text-red-500">*</span></label>
+            <input type="date" name="fecha" class="form-control"
+              value="{{ post.fecha|default:asignacion.fecha|date:'Y-m-d' }}" required>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Solicitante <span class="text-red-500">*</span></label>
+            <input type="text" name="solicitante" class="form-control" placeholder="Nombre del solicitante"
+              value="{{ post.solicitante|default:asignacion.solicitante }}" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Destino -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Destino</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Tipo de destino <span class="text-red-500">*</span></label>
+            <select name="tipo_destino" id="tipo_destino" class="form-control" required>
+              <option value="">— Seleccionar —</option>
+              {% for val, label in tipo_choices %}
+              <option value="{{ val }}"
+                {% if post.tipo_destino == val %}selected
+                {% elif not post and asignacion.tipo_destino == val %}selected
+                {% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div id="dest-unidad" class="hidden">
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Unidad</label>
+            <select name="unidad" id="sel-unidad" class="form-control">
+              <option value="">— Seleccionar —</option>
+              {% for u in unidades %}
+              <option value="{{ u.pk }}"
+                {% if post.unidad == u.pk|stringformat:"s" %}selected
+                {% elif not post and asignacion.unidad_id == u.pk %}selected
+                {% endif %}>{{ u.numero_economico }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div id="dest-equipo" class="hidden">
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Equipo</label>
+            <select name="equipo" id="sel-equipo" class="form-control">
+              <option value="">— Seleccionar —</option>
+              {% for e in equipos %}
+              <option value="{{ e.pk }}"
+                {% if post.equipo == e.pk|stringformat:"s" %}selected
+                {% elif not post and asignacion.equipo_id == e.pk %}selected
+                {% endif %}>{{ e.numero_economico }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div id="dest-dolly" class="hidden">
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Dolly</label>
+            <select name="dolly" id="sel-dolly" class="form-control">
+              <option value="">— Seleccionar —</option>
+              {% for d in dollys %}
+              <option value="{{ d.pk }}"
+                {% if post.dolly == d.pk|stringformat:"s" %}selected
+                {% elif not post and asignacion.dolly_id == d.pk %}selected
+                {% endif %}>{{ d.numero_economico }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div id="dest-caja" class="hidden">
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Caja Seca</label>
+            <select name="caja_seca" id="sel-caja" class="form-control">
+              <option value="">— Seleccionar —</option>
+              {% for c in cajas %}
+              <option value="{{ c.pk }}"
+                {% if post.caja_seca == c.pk|stringformat:"s" %}selected
+                {% elif not post and asignacion.caja_seca_id == c.pk %}selected
+                {% endif %}>{{ c.numero_economico }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div id="dest-otro" class="hidden">
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Descripción del destino</label>
+            <input type="text" name="otro_destino" class="form-control" placeholder="Ej: Área de mantenimiento"
+              value="{{ post.otro_destino|default:asignacion.otro_destino }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Productos -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Productos asignados</p>
+
+        <!-- Buscador -->
+        <div id="buscador-producto" class="mb-4">
+          <input type="text" id="inp-buscar" class="form-control" placeholder="Buscar producto por SKU o descripción…" autocomplete="off">
+          <div id="resultado-busqueda" class="hidden"></div>
+        </div>
+
+        <!-- Tabla de ítems -->
+        <table class="w-full text-sm" id="tabla-items">
+          <thead>
+            <tr class="text-xs text-slate-500 border-b border-slate-100">
+              <th class="text-left pb-2 font-medium">SKU</th>
+              <th class="text-left pb-2 font-medium">Descripción</th>
+              <th class="text-left pb-2 font-medium w-24">Cantidad</th>
+              <th class="text-left pb-2 font-medium">Observaciones</th>
+              <th class="pb-2 w-8"></th>
+            </tr>
+          </thead>
+          <tbody id="cuerpo-items">
+            <tr id="fila-vacia" class="text-slate-400 text-xs">
+              <td colspan="5" class="py-4 text-center">Sin productos. Busca arriba para agregar.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Justificación -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Justificación / motivo</p>
+        <textarea name="justificacion" rows="3" class="form-control"
+          placeholder="Describe el motivo de la asignación…" required>{{ post.justificacion|default:asignacion.justificacion }}</textarea>
+      </div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Resumen</p>
+        <p class="text-sm text-slate-500 mb-1">Productos: <span id="resumen-count" class="font-semibold text-slate-900">0</span></p>
+        <p class="text-sm text-slate-500">Total unidades: <span id="resumen-total" class="font-semibold text-slate-900">0</span></p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-2">
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors">
+          Guardar cambios
+        </button>
+        <a href="{% url 'almacen:asignacion_salida_detail' asignacion.pk %}" class="w-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium px-4 py-2.5 rounded-lg">Cancelar</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_BUSCAR = "{% url 'almacen:api_buscar_producto' %}";
+const items = {{ items_iniciales|safe }};
+
+// Selector de destino
+const tipoSel = document.getElementById('tipo_destino');
+const destDivs = {
+  UNIDAD:    document.getElementById('dest-unidad'),
+  EQUIPO:    document.getElementById('dest-equipo'),
+  DOLLY:     document.getElementById('dest-dolly'),
+  CAJA_SECA: document.getElementById('dest-caja'),
+  OTRO:      document.getElementById('dest-otro'),
+};
+function actualizarDestino() {
+  Object.values(destDivs).forEach(d => d.classList.add('hidden'));
+  const v = tipoSel.value;
+  if (destDivs[v]) destDivs[v].classList.remove('hidden');
+}
+tipoSel.addEventListener('change', actualizarDestino);
+actualizarDestino();
+
+// Buscador de productos
+const inp = document.getElementById('inp-buscar');
+const resultadoBox = document.getElementById('resultado-busqueda');
+let timer;
+inp.addEventListener('input', () => {
+  clearTimeout(timer);
+  const q = inp.value.trim();
+  if (q.length < 2) { resultadoBox.classList.add('hidden'); return; }
+  timer = setTimeout(async () => {
+    const res = await fetch(`${API_BUSCAR}?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    resultadoBox.innerHTML = '';
+    if (!data.resultados.length) {
+      resultadoBox.innerHTML = '<div class="resultado-item text-slate-400">Sin resultados</div>';
+    } else {
+      data.resultados.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'resultado-item';
+        div.innerHTML = `<span class="font-medium">${p.sku}</span> — ${p.descripcion} <span class="text-slate-400 text-xs">(${p.cantidad} ${p.unidad_medida})</span>`;
+        div.addEventListener('mousedown', () => agregarItem(p));
+        resultadoBox.appendChild(div);
+      });
+    }
+    resultadoBox.classList.remove('hidden');
+  }, 250);
+});
+document.addEventListener('click', e => {
+  if (!document.getElementById('buscador-producto').contains(e.target))
+    resultadoBox.classList.add('hidden');
+});
+
+function agregarItem(p) {
+  if (items.find(i => i.id === p.id)) { inp.value = ''; resultadoBox.classList.add('hidden'); return; }
+  items.push({ id: p.id, sku: p.sku, descripcion: p.descripcion, cantidad: 1, observaciones: '' });
+  renderTabla();
+  inp.value = '';
+  resultadoBox.classList.add('hidden');
+}
+
+function renderTabla() {
+  const tbody = document.getElementById('cuerpo-items');
+  const vacia = document.getElementById('fila-vacia');
+  if (!items.length) { vacia.style.display = ''; tbody.querySelectorAll('.item-row').forEach(r => r.remove()); actualizarResumen(); return; }
+  vacia.style.display = 'none';
+  tbody.querySelectorAll('.item-row').forEach(r => r.remove());
+  items.forEach((item, idx) => {
+    const tr = document.createElement('tr');
+    tr.className = 'item-row border-b border-slate-50';
+    tr.innerHTML = `
+      <td class="py-2 pr-2 text-xs text-slate-500 font-mono">${item.sku}</td>
+      <td class="py-2 pr-2 text-sm font-medium text-slate-800">${item.descripcion}</td>
+      <td class="py-2 pr-2"><input type="number" min="0.01" step="0.01" value="${item.cantidad}" class="form-control text-sm w-20" data-idx="${idx}" data-field="cantidad"></td>
+      <td class="py-2 pr-2"><input type="text" value="${item.observaciones}" class="form-control text-sm" placeholder="Opcional" data-idx="${idx}" data-field="observaciones"></td>
+      <td class="py-2"><button type="button" class="text-red-400 hover:text-red-600" data-idx="${idx}">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button></td>`;
+    tr.querySelectorAll('input').forEach(i => i.addEventListener('input', e => {
+      const idx = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      items[idx][field] = field === 'cantidad' ? parseFloat(e.target.value) || 0 : e.target.value;
+      actualizarResumen();
+    }));
+    tr.querySelector('button[data-idx]').addEventListener('click', e => {
+      items.splice(parseInt(e.currentTarget.dataset.idx), 1);
+      renderTabla();
+    });
+    tbody.appendChild(tr);
+  });
+  actualizarResumen();
+}
+
+function actualizarResumen() {
+  document.getElementById('resumen-count').textContent = items.length;
+  const total = items.reduce((s, i) => s + (parseFloat(i.cantidad) || 0), 0);
+  document.getElementById('resumen-total').textContent = total % 1 === 0 ? total : total.toFixed(2);
+}
+
+document.getElementById('form-asignacion').addEventListener('submit', () => {
+  document.getElementById('items_json').value = JSON.stringify(items);
+});
+
+// Cargar tabla con ítems existentes al iniciar
+renderTabla();
+</script>
+{% endblock %}

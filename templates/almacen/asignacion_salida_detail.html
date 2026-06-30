@@ -1,14 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}{{ asignacion.folio }}{% endblock %}
 {% block content %}
-<div class="flex items-center gap-3 mb-6">
-  <a href="{% url 'almacen:asignacion_salida_list' %}" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
-  </a>
-  <div>
-    <h1 class="text-xl font-bold text-slate-900 font-mono">{{ asignacion.folio }}</h1>
-    <p class="text-sm text-slate-500">{{ asignacion.fecha|date:"d/m/Y" }} — {{ asignacion.solicitante }}</p>
+<div class="flex items-center justify-between mb-6">
+  <div class="flex items-center gap-3">
+    <a href="{% url 'almacen:asignacion_salida_list' %}" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-slate-900 font-mono">{{ asignacion.folio }}</h1>
+      <p class="text-sm text-slate-500">{{ asignacion.fecha|date:"d/m/Y" }} — {{ asignacion.solicitante }}</p>
+    </div>
   </div>
+  <a href="{% url 'almacen:asignacion_salida_update' asignacion.pk %}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+    Editar
+  </a>
 </div>
 
 <div class="grid xl:grid-cols-3 gap-6">
