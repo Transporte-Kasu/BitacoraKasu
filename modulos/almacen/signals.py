@@ -1,9 +1,13 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
+from decimal import Decimal
 from .models import (
-    ProductoAlmacen, ItemEntradaAlmacen, ItemSalidaAlmacen,
-    MovimientoAlmacen, AlertaStock, ItemAsignacionSalida
+    ProductoAlmacen, EntradaAlmacen, ItemEntradaAlmacen,
+    SolicitudSalida, ItemSolicitudSalida, SalidaAlmacen,
+    ItemSalidaAlmacen, MovimientoAlmacen, AlertaStock,
+    SalidaRapidaConsumible, AsignacionDirectaAlmacen,
+    AsignacionSalida, ItemAsignacionSalida, AuditoriaAlmacen
 )
 
 
@@ -171,19 +175,119 @@ def reducir_stock_asignacion_salida(sender, instance, created, **kwargs):
         )
 
 
-@receiver(post_save, sender='almacen.SalidaAlmacen')
+@receiver(post_save, sender=SalidaAlmacen)
 def actualizar_estado_solicitud(sender, instance, created, **kwargs):
     """
     Actualizar el estado de la solicitud cuando se procesa la salida.
     """
     if created:
         solicitud = instance.solicitud_salida
-        
+
         # Verificar si todos los items fueron entregados completamente
         todos_completos = all(
             item.entrega_completa for item in solicitud.items.all()
         )
-        
+
         if todos_completos:
             solicitud.estado = 'ENTREGADA'
             solicitud.save()
+
+
+# ─── Auditoría ────────────────────────────────────────────────────────────────
+
+MODELOS_AUDITADOS = [
+    ProductoAlmacen, EntradaAlmacen, ItemEntradaAlmacen,
+    SolicitudSalida, ItemSolicitudSalida, SalidaAlmacen,
+    SalidaRapidaConsumible, AsignacionDirectaAlmacen,
+    AsignacionSalida, ItemAsignacionSalida,
+]
+
+
+def _serializar(instance):
+    """Serializa todos los campos del modelo a un dict JSON-compatible."""
+    data = {}
+    for field in instance._meta.fields:
+        try:
+            value = getattr(instance, field.attname)
+            if value is None:
+                data[field.name] = None
+            elif isinstance(value, Decimal):
+                data[field.name] = str(value)
+            elif hasattr(value, 'isoformat'):
+                data[field.name] = value.isoformat()
+            else:
+                data[field.name] = value
+        except Exception:
+            data[field.name] = None
+    return data
+
+
+def _detectar_accion(instance, created):
+    if created:
+        return 'CREAR'
+    if isinstance(instance, SolicitudSalida):
+        anterior = getattr(instance, '_auditoria_anterior', None) or {}
+        estado_ant = anterior.get('estado', '')
+        estado_nuevo = instance.estado
+        if estado_ant != 'AUTORIZADA' and estado_nuevo == 'AUTORIZADA':
+            return 'AUTORIZAR'
+        if estado_ant != 'RECHAZADA' and estado_nuevo == 'RECHAZADA':
+            return 'RECHAZAR'
+        if estado_ant != 'CANCELADA' and estado_nuevo == 'CANCELADA':
+            return 'CANCELAR'
+        if estado_ant != 'ENTREGADA' and estado_nuevo == 'ENTREGADA':
+            return 'ENTREGAR'
+    return 'EDITAR'
+
+
+def _pre_save_auditoria(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            instance._auditoria_anterior = _serializar(sender.objects.get(pk=instance.pk))
+        except sender.DoesNotExist:
+            instance._auditoria_anterior = None
+    else:
+        instance._auditoria_anterior = None
+
+
+def _post_save_auditoria(sender, instance, created, **kwargs):
+    from config.middleware import get_current_user, get_current_ip
+    try:
+        AuditoriaAlmacen.objects.create(
+            usuario=get_current_user(),
+            accion=_detectar_accion(instance, created),
+            modelo=instance.__class__.__name__,
+            objeto_id=str(instance.pk),
+            objeto_str=str(instance)[:300],
+            valores_anteriores=getattr(instance, '_auditoria_anterior', None),
+            valores_nuevos=_serializar(instance),
+            ip_address=get_current_ip(),
+        )
+    except Exception:
+        pass
+
+
+def _post_delete_auditoria(sender, instance, **kwargs):
+    from config.middleware import get_current_user, get_current_ip
+    try:
+        AuditoriaAlmacen.objects.create(
+            usuario=get_current_user(),
+            accion='ELIMINAR',
+            modelo=instance.__class__.__name__,
+            objeto_id=str(instance.pk),
+            objeto_str=str(instance)[:300],
+            valores_anteriores=_serializar(instance),
+            valores_nuevos=None,
+            ip_address=get_current_ip(),
+        )
+    except Exception:
+        pass
+
+
+for _modelo in MODELOS_AUDITADOS:
+    pre_save.connect(_pre_save_auditoria, sender=_modelo, weak=False,
+                     dispatch_uid=f'auditoria_pre_{_modelo.__name__}')
+    post_save.connect(_post_save_auditoria, sender=_modelo, weak=False,
+                      dispatch_uid=f'auditoria_post_{_modelo.__name__}')
+    post_delete.connect(_post_delete_auditoria, sender=_modelo, weak=False,
+                        dispatch_uid=f'auditoria_del_{_modelo.__name__}')

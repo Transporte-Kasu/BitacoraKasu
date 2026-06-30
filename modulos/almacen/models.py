@@ -973,3 +973,46 @@ class ItemAsignacionSalida(models.Model):
 
     def __str__(self):
         return f"{self.producto.descripcion} × {self.cantidad}"
+
+
+class AuditoriaAlmacen(models.Model):
+    """Log de auditoría de todas las acciones de usuario en el módulo de almacén."""
+    ACCION_CHOICES = [
+        ('CREAR',     'Crear'),
+        ('EDITAR',    'Editar'),
+        ('ELIMINAR',  'Eliminar'),
+        ('AUTORIZAR', 'Autorizar'),
+        ('RECHAZAR',  'Rechazar'),
+        ('ENTREGAR',  'Entregar'),
+        ('CANCELAR',  'Cancelar'),
+    ]
+
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='auditorias_almacen',
+    )
+    accion = models.CharField(max_length=20, choices=ACCION_CHOICES)
+    modelo = models.CharField(max_length=100)
+    objeto_id = models.CharField(max_length=100)
+    objeto_str = models.CharField(max_length=300)
+    valores_anteriores = models.JSONField(null=True, blank=True)
+    valores_nuevos = models.JSONField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Auditoría de Almacén"
+        verbose_name_plural = "Auditorías de Almacén"
+        ordering = ['-fecha']
+        indexes = [
+            models.Index(fields=['-fecha']),
+            models.Index(fields=['usuario']),
+            models.Index(fields=['accion']),
+            models.Index(fields=['modelo', '-fecha']),
+        ]
+
+    def __str__(self):
+        usuario_str = self.usuario.username if self.usuario else 'sistema'
+        return f"{self.get_accion_display()} — {self.modelo} {self.objeto_str} ({usuario_str})"

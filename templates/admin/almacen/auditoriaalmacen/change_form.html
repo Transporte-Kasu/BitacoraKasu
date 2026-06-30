@@ -1,0 +1,68 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block after_field_sets %}
+{{ block.super }}
+
+{% with obj=adminform.form.instance %}
+{% if obj.pk %}
+<style>
+.auditoria-tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.auditoria-tabla th { background: #1e3a5f; color: #fff; padding: 6px 12px; text-align: left; font-weight: 600; }
+.auditoria-tabla td { padding: 6px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-all; }
+.auditoria-tabla tr:nth-child(even) td { background: #f8fafc; }
+.val-cambiado { color: #16a34a; font-weight: 600; }
+.val-anterior { color: #dc2626; text-decoration: line-through; opacity: .7; }
+.auditoria-seccion { margin: 20px 0; }
+.auditoria-seccion h3 { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+</style>
+
+<div class="auditoria-seccion">
+  <h3>Comparación de cambios</h3>
+
+  {% if obj.accion == 'ELIMINAR' or obj.accion == 'CREAR' %}
+    <table class="auditoria-tabla">
+      <thead>
+        <tr>
+          <th style="width:30%">Campo</th>
+          <th>{% if obj.accion == 'CREAR' %}Valor creado{% else %}Valor eliminado{% endif %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% with datos=obj.valores_nuevos|default:obj.valores_anteriores %}
+        {% for campo, valor in datos.items %}
+        <tr>
+          <td><code>{{ campo }}</code></td>
+          <td>{{ valor|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+        {% endwith %}
+      </tbody>
+    </table>
+
+  {% else %}
+    <table class="auditoria-tabla">
+      <thead>
+        <tr>
+          <th style="width:30%">Campo</th>
+          <th>Valor anterior</th>
+          <th>Valor nuevo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% with antes=obj.valores_anteriores|default:'' despues=obj.valores_nuevos|default:'' %}
+        {% for campo, valor_nuevo in despues.items %}
+        <tr>
+          <td><code>{{ campo }}</code></td>
+          <td class="{% if antes %}val-anterior{% endif %}">{{ antes|default:''|dictsort:campo }}</td>
+          <td class="val-cambiado">{{ valor_nuevo|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+        {% endwith %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endif %}
+{% endwith %}
+{% endblock %}
