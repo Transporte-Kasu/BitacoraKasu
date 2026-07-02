@@ -192,6 +192,45 @@
     </div>
     {% endif %}
 
+    <!-- Tabla de vigencias (reporte FLOTA_VIGENCIAS) -->
+    {% if datos.tipo == 'FLOTA_VIGENCIAS' and datos.filas %}
+    <p class="section-title">Detalle (vencidos y próximos a vencer primero)</p>
+    <table class="detail-table">
+      <thead>
+        <tr style="background:#1e40af;">
+          <th>Tipo</th>
+          <th>No. Económico</th>
+          <th>Marca / Modelo</th>
+          <th>Vigencia Doble Articulado</th>
+          <th class="td-right">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fila in datos.filas %}
+        <tr style="background:{% if forloop.counter|divisibleby:2 %}#f8fafc{% else %}#ffffff{% endif %}; border-bottom:1px solid #e5e7eb;">
+          <td style="color:#374151;">{{ fila.tipo_equipo }}</td>
+          <td style="font-weight:600; color:#1e40af;">{{ fila.numero_economico }}</td>
+          <td style="color:#374151;">{{ fila.marca }} {{ fila.modelo }}</td>
+          <td style="color:#111827;">{{ fila.vigencia_doble_articulado }}</td>
+          <td class="td-right">
+            {% if fila.estado_vigencia == 'VENCIDO' %}
+            <span class="pill" style="background:#fee2e2; color:#991b1b;">Vencido</span>
+            {% elif fila.estado_vigencia == 'POR_VENCER' %}
+            <span class="pill pill-amber">Por vencer ({{ fila.dias_restantes }}d)</span>
+            {% elif fila.estado_vigencia == 'VIGENTE' %}
+            <span class="pill" style="background:#d1fae5; color:#065f46;">Vigente</span>
+            {% elif fila.estado_vigencia == 'SIN_DATO' %}
+            <span class="pill" style="background:#f3f4f6; color:#6b7280;">Sin dato</span>
+            {% else %}
+            <span class="pill pill-blue">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
     <!-- Tabla de unidades (reporte UNIDADES_KILOMETRAJE) -->
     {% if datos.tipo == 'UNIDADES_KILOMETRAJE' and datos.filas %}
     <table class="detail-table">

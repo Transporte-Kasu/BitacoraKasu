@@ -11,6 +11,7 @@ class ConfiguracionReporte(models.Model):
         ('COMBUSTIBLE', 'Combustible'),
         ('TALLER', 'Taller'),
         ('UNIDADES', 'Unidades'),
+        ('FLOTA', 'Flota (Dollys / Equipos / Cajas Secas)'),
     ]
 
     TIPO_CHOICES = [
@@ -25,6 +26,8 @@ class ConfiguracionReporte(models.Model):
         ('COMBUSTIBLE_ALERTAS',  'Combustible — Alertas de candado'),
         # Unidades
         ('UNIDADES_KILOMETRAJE', 'Unidades — Kilometraje de flota'),
+        # Flota (dollys, equipos, cajas secas)
+        ('FLOTA_VIGENCIAS',      'Flota — Vigencias de dollys, equipos y cajas secas'),
     ]
 
     FRECUENCIA_CHOICES = [
@@ -117,9 +120,14 @@ class ConfiguracionReporte(models.Model):
 
         if self.frecuencia == 'MENSUAL':
             # Ejecutar si estamos en un mes calendario distinto al último envío
+            # Y ya se alcanzó el día del mes configurado (dia_mes, default 1).
+            # Catch-up: si el scheduler estuvo caído y ya se pasó el día, igual dispara.
             ultimo = self.ultimo_envio.date()
             hoy = ahora.date()
-            return (hoy.year, hoy.month) > (ultimo.year, ultimo.month)
+            if (hoy.year, hoy.month) <= (ultimo.year, ultimo.month):
+                return False
+            dia_objetivo = self.dia_mes or 1
+            return hoy.day >= dia_objetivo
 
         return False
 
