@@ -1,3 +1,6 @@
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_ipv46_address
+from django.db import transaction
 from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -250,19 +253,34 @@ def _pre_save_auditoria(sender, instance, **kwargs):
         instance._auditoria_anterior = None
 
 
+def _ip_valida(ip):
+    """Descarta IPs vacías o mal formadas antes de guardarlas en un GenericIPAddressField."""
+    if not ip:
+        return None
+    try:
+        validate_ipv46_address(ip)
+        return ip
+    except ValidationError:
+        return None
+
+
 def _post_save_auditoria(sender, instance, created, **kwargs):
     from config.middleware import get_current_user, get_current_ip
     try:
-        AuditoriaAlmacen.objects.create(
-            usuario=get_current_user(),
-            accion=_detectar_accion(instance, created),
-            modelo=instance.__class__.__name__,
-            objeto_id=str(instance.pk),
-            objeto_str=str(instance)[:300],
-            valores_anteriores=getattr(instance, '_auditoria_anterior', None),
-            valores_nuevos=_serializar(instance),
-            ip_address=get_current_ip(),
-        )
+        # Savepoint propio: si esta escritura de auditoría falla, no debe
+        # abortar la transacción atómica del caller (p.ej. creación de
+        # EntradaAlmacen/ProductoAlmacen en el flujo de Entrada Directa).
+        with transaction.atomic():
+            AuditoriaAlmacen.objects.create(
+                usuario=get_current_user(),
+                accion=_detectar_accion(instance, created),
+                modelo=instance.__class__.__name__,
+                objeto_id=str(instance.pk),
+                objeto_str=str(instance)[:300],
+                valores_anteriores=getattr(instance, '_auditoria_anterior', None),
+                valores_nuevos=_serializar(instance),
+                ip_address=_ip_valida(get_current_ip()),
+            )
     except Exception:
         pass
 
@@ -270,16 +288,17 @@ def _post_save_auditoria(sender, instance, created, **kwargs):
 def _post_delete_auditoria(sender, instance, **kwargs):
     from config.middleware import get_current_user, get_current_ip
     try:
-        AuditoriaAlmacen.objects.create(
-            usuario=get_current_user(),
-            accion='ELIMINAR',
-            modelo=instance.__class__.__name__,
-            objeto_id=str(instance.pk),
-            objeto_str=str(instance)[:300],
-            valores_anteriores=_serializar(instance),
-            valores_nuevos=None,
-            ip_address=get_current_ip(),
-        )
+        with transaction.atomic():
+            AuditoriaAlmacen.objects.create(
+                usuario=get_current_user(),
+                accion='ELIMINAR',
+                modelo=instance.__class__.__name__,
+                objeto_id=str(instance.pk),
+                objeto_str=str(instance)[:300],
+                valores_anteriores=_serializar(instance),
+                valores_nuevos=None,
+                ip_address=_ip_valida(get_current_ip()),
+            )
     except Exception:
         pass
 
