@@ -60,51 +60,62 @@ def _periodo(frecuencia: str, dia_semana, dia_mes):
     return inicio, fin
 
 
+def _escribir_hoja_detalle(ws, filas: list) -> None:
+    """Escribe encabezados y filas de detalle en una hoja, con auto-ajuste de columnas."""
+    if not filas:
+        return
+
+    headers = list(filas[0].keys())
+    fill_azul = PatternFill(start_color='1D4ED8', end_color='1D4ED8', fill_type='solid')
+    font_blanco_bold = Font(bold=True, color='FFFFFF')
+
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header.replace('_', ' ').title())
+        cell.font = font_blanco_bold
+        cell.fill = fill_azul
+        cell.alignment = Alignment(horizontal='center')
+
+    # Detectar qué columnas son de foto (contienen URLs)
+    foto_headers = {h for h in headers if h.startswith('foto_')}
+    font_link = Font(color='1D4ED8', underline='single')
+
+    for row_idx, fila in enumerate(filas, 2):
+        for col_idx, header in enumerate(headers, 1):
+            valor = fila.get(header) or ''
+            cell = ws.cell(row=row_idx, column=col_idx)
+            if header in foto_headers and valor:
+                cell.value = 'Ver foto'
+                cell.hyperlink = valor
+                cell.font = font_link
+            else:
+                cell.value = valor if valor != '' else None
+
+    # Ajustar ancho de columnas (fotos fijas en 12)
+    for col in ws.columns:
+        header_cell = col[0]
+        letter = header_cell.column_letter
+        if header_cell.value and str(header_cell.value).lower().startswith('foto'):
+            ws.column_dimensions[letter].width = 12
+        else:
+            max_len = max((len(str(cell.value or '')) for cell in col), default=8)
+            ws.column_dimensions[letter].width = min(max_len + 4, 40)
+
+
 def _generar_excel(datos: dict) -> bytes:
     """Genera un archivo Excel con el detalle del período reportado."""
     wb = openpyxl.Workbook()
 
-    # --- Hoja de detalle ---
-    ws = wb.active
-    titulo_hoja = datos.get('titulo', 'Reporte').replace('/', '-').replace('\\', '-')[:31]
-    ws.title = titulo_hoja
-
-    filas = datos.get('filas', [])
-    if filas:
-        headers = list(filas[0].keys())
-        fill_azul = PatternFill(start_color='1D4ED8', end_color='1D4ED8', fill_type='solid')
-        font_blanco_bold = Font(bold=True, color='FFFFFF')
-
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col, value=header.replace('_', ' ').title())
-            cell.font = font_blanco_bold
-            cell.fill = fill_azul
-            cell.alignment = Alignment(horizontal='center')
-
-        # Detectar qué columnas son de foto (contienen URLs)
-        foto_headers = {h for h in headers if h.startswith('foto_')}
-        font_link = Font(color='1D4ED8', underline='single')
-
-        for row_idx, fila in enumerate(filas, 2):
-            for col_idx, header in enumerate(headers, 1):
-                valor = fila.get(header) or ''
-                cell = ws.cell(row=row_idx, column=col_idx)
-                if header in foto_headers and valor:
-                    cell.value = 'Ver foto'
-                    cell.hyperlink = valor
-                    cell.font = font_link
-                else:
-                    cell.value = valor if valor != '' else None
-
-        # Ajustar ancho de columnas (fotos fijas en 12)
-        for col in ws.columns:
-            header_cell = col[0]
-            letter = header_cell.column_letter
-            if header_cell.value and str(header_cell.value).lower().startswith('foto'):
-                ws.column_dimensions[letter].width = 12
-            else:
-                max_len = max((len(str(cell.value or '')) for cell in col), default=8)
-                ws.column_dimensions[letter].width = min(max_len + 4, 40)
+    tablas = datos.get('tablas')
+    if tablas:
+        wb.remove(wb.active)
+        for nombre_hoja, filas in tablas.items():
+            ws = wb.create_sheet(nombre_hoja.replace('/', '-').replace('\\', '-')[:31])
+            _escribir_hoja_detalle(ws, filas)
+    else:
+        ws = wb.active
+        titulo_hoja = datos.get('titulo', 'Reporte').replace('/', '-').replace('\\', '-')[:31]
+        ws.title = titulo_hoja
+        _escribir_hoja_detalle(ws, datos.get('filas', []))
 
     # --- Hoja de resumen ---
     ws_res = wb.create_sheet('Resumen')
@@ -114,7 +125,7 @@ def _generar_excel(datos: dict) -> bytes:
     ws_res['B1'].font = Font(bold=True)
     for idx, (k, v) in enumerate(datos.get('resumen', {}).items(), 2):
         ws_res.cell(row=idx, column=1, value=k.replace('_', ' ').title())
-        ws_res.cell(row=idx, column=2, value=v)
+        ws_res.cell(row=idx, column=2, value=str(v) if isinstance(v, (list, dict)) else v)
     ws_res.column_dimensions['A'].width = 30
     ws_res.column_dimensions['B'].width = 20
 

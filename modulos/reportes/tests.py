@@ -208,3 +208,43 @@ class PromptAnalisisIntegralAlmacenTests(TestCase):
         self.assertIn('Juan Perez', prompt)
         self.assertIn('Producto Nuevo desde Factura', prompt)
         self.assertEqual(max_tokens, 600)
+
+
+class GenerarExcelTablasTests(TestCase):
+    def test_genera_una_hoja_por_tabla(self):
+        import openpyxl
+        from io import BytesIO
+        from modulos.reportes.management.commands.generar_reportes import _generar_excel
+
+        datos = {
+            'titulo': 'Análisis Integral de Almacén',
+            'resumen': {
+                'total_entradas': 2,
+                'entradas_por_tipo': {'Producto Nuevo desde Factura': 2},
+                'alertas_auditoria': ['El usuario X concentra actividad.'],
+            },
+            'tablas': {
+                'Asignaciones': [{'folio': 'ADI-1', 'cantidad': 2.0}],
+                'Entradas': [{'folio': 'ENT-1', 'costo_total_entrada': 100.0}],
+                'Auditoria': [{'usuario': 'Juan', 'total_eventos': 3}],
+            },
+        }
+        contenido = _generar_excel(datos)
+        wb = openpyxl.load_workbook(BytesIO(contenido))
+        self.assertEqual(set(wb.sheetnames), {'Asignaciones', 'Entradas', 'Auditoria', 'Resumen'})
+        ws = wb['Asignaciones']
+        self.assertEqual(ws['A1'].value, 'Folio')
+        self.assertEqual(ws['A2'].value, 'ADI-1')
+
+    def test_resumen_con_dict_y_listas_no_lanza_error(self):
+        import openpyxl
+        from io import BytesIO
+        from modulos.reportes.management.commands.generar_reportes import _generar_excel
+
+        datos = {
+            'titulo': 'Reporte', 'filas': [{'sku': 'A1', 'cantidad': 1}],
+            'resumen': {'entradas_por_tipo': {'Factura': 2}, 'alertas_auditoria': ['x']},
+        }
+        contenido = _generar_excel(datos)
+        wb = openpyxl.load_workbook(BytesIO(contenido))
+        self.assertIn('Resumen', wb.sheetnames)
