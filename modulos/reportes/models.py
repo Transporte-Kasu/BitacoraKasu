@@ -20,6 +20,7 @@ class ConfiguracionReporte(models.Model):
         ('ALMACEN_STOCK_CRITICO','Almacén — Stock crítico'),
         ('ALMACEN_CADUCIDAD',    'Almacén — Próximos a caducar'),
         ('ALMACEN_MOVIMIENTOS',  'Almacén — Movimientos del período'),
+        ('ALMACEN_ANALISIS_INTEGRAL', 'Almacén — Análisis integral (asignaciones, entradas, auditoría)'),
         # Combustible
         ('COMBUSTIBLE_CARGAS',   'Combustible — Cargas del período'),
         ('COMBUSTIBLE_CONSUMO',  'Combustible — Consumo por unidad'),
