@@ -166,6 +166,112 @@
     <div class="alert info">✅ Todos los productos activos tuvieron movimiento en el período.</div>
     {% endif %}
 
+    {% elif datos.tipo == 'ALMACEN_ANALISIS_INTEGRAL' %}
+
+    <!-- KPIs generales -->
+    <div class="resumen">
+      <div class="kpi">
+        <div class="label">Asignaciones Directas</div>
+        <div class="value">{{ datos.resumen.total_asignaciones_directas }}</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Asignaciones de Salida</div>
+        <div class="value">{{ datos.resumen.total_asignaciones_salida }}</div>
+      </div>
+      <div class="kpi blue">
+        <div class="label">Total Entradas</div>
+        <div class="value">{{ datos.resumen.total_entradas }}</div>
+      </div>
+      <div class="kpi green">
+        <div class="label">Valor Entradas</div>
+        <div class="value">${{ datos.resumen.valor_total_entradas|floatformat:"0" }}</div>
+      </div>
+      <div class="kpi {% if datos.resumen.alertas_auditoria %}amber{% else %}green{% endif %}">
+        <div class="label">Eventos de Auditoría</div>
+        <div class="value">{{ datos.resumen.total_eventos_auditoria }}</div>
+      </div>
+    </div>
+
+    {% if datos.resumen.alertas_auditoria %}
+    {% for alerta in datos.resumen.alertas_auditoria %}
+    <div class="alert danger">⚠️ {{ alerta }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <hr class="divider">
+
+    {% if datos.top_destinos %}
+    <p class="section-title">🔧 Top Destinos de Asignaciones Directas</p>
+    <table class="detail-table">
+      <thead>
+        <tr style="background: #1e40af;">
+          <th style="width:36px;">#</th>
+          <th>Destino</th>
+          <th class="td-right">Piezas Asignadas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in datos.top_destinos %}
+        <tr style="background: {% if forloop.counter|divisibleby:2 %}#f8fafc{% else %}#ffffff{% endif %};">
+          <td><span class="rank-badge {% if forloop.first %}gold{% endif %}">{{ forloop.counter }}</span></td>
+          <td style="color: #111827; font-weight: 500;">{{ item.destino }}</td>
+          <td class="td-right"><span class="pill pill-blue">{{ item.cantidad_total }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="alert info">Sin asignaciones directas registradas en el período.</div>
+    {% endif %}
+
+    <hr class="divider">
+
+    {% if datos.resumen.entradas_por_tipo %}
+    <p class="section-title">📦 Entradas por Tipo</p>
+    <table class="detail-table">
+      <thead>
+        <tr style="background: #1e40af;">
+          <th>Tipo</th>
+          <th class="td-right">Cantidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tipo, cantidad in datos.resumen.entradas_por_tipo.items %}
+        <tr style="background: {% if forloop.counter|divisibleby:2 %}#f8fafc{% else %}#ffffff{% endif %};">
+          <td style="color: #374151;">{{ tipo }}</td>
+          <td class="td-right"><span class="pill pill-blue">{{ cantidad }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="alert info">Sin entradas registradas en el período.</div>
+    {% endif %}
+
+    <hr class="divider">
+
+    {% if datos.top_usuarios_auditoria %}
+    <p class="section-title">🕵️ Actividad de Auditoría por Usuario</p>
+    <table class="detail-table">
+      <thead>
+        <tr style="background: #1e40af;">
+          <th>Usuario</th>
+          <th class="td-right">Total Eventos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in datos.top_usuarios_auditoria %}
+        <tr style="background: {% if forloop.counter|divisibleby:2 %}#f8fafc{% else %}#ffffff{% endif %};">
+          <td style="color: #111827; font-weight: 500;">{{ item.usuario }}</td>
+          <td class="td-right"><span class="pill pill-blue">{{ item.total_eventos }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="alert info">Sin actividad de auditoría en el período.</div>
+    {% endif %}
+
     {% else %}
 
     <!-- KPI genérico para otros tipos de reporte -->

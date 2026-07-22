@@ -248,3 +248,33 @@ class GenerarExcelTablasTests(TestCase):
         contenido = _generar_excel(datos)
         wb = openpyxl.load_workbook(BytesIO(contenido))
         self.assertIn('Resumen', wb.sheetnames)
+
+
+class EmailTemplateAnalisisIntegralTests(TestCase):
+    def test_render_incluye_secciones_principales(self):
+        from django.template.loader import render_to_string
+
+        datos = {
+            'tipo': 'ALMACEN_ANALISIS_INTEGRAL',
+            'titulo': 'Análisis Integral de Almacén',
+            'periodo_inicio': '2026-07-01', 'periodo_fin': '2026-07-22',
+            'generado_en': '2026-07-22T09:00:00',
+            'resumen': {
+                'total_asignaciones_directas': 3, 'total_asignaciones_salida': 2,
+                'total_entradas': 5, 'valor_total_entradas': 1500.0,
+                'total_eventos_auditoria': 7,
+                'entradas_por_tipo': {'Producto Nuevo desde Factura': 5},
+                'alertas_auditoria': [
+                    'El usuario Juan Perez concentra el 86% de la actividad de auditoría del período.'
+                ],
+            },
+            'top_destinos': [{'destino': 'Unidad U-100', 'cantidad_total': 8.0}],
+            'top_usuarios_auditoria': [{'usuario': 'Juan Perez', 'total_eventos': 6}],
+        }
+        html = render_to_string(
+            'reportes/email/reporte_base.html', {'datos': datos, 'config': None, 'narrativa': ''}
+        )
+        self.assertIn('Unidad U-100', html)
+        self.assertIn('Producto Nuevo desde Factura', html)
+        self.assertIn('Juan Perez', html)
+        self.assertIn('concentra el 86%', html)
