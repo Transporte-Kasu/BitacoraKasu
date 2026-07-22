@@ -181,3 +181,30 @@ class GenerarAnalisisIntegralAlmacenTests(TestCase):
         datos = generar_analisis_integral(self.hoy, self.hoy)
         self.assertEqual(set(datos['tablas'].keys()), {'Asignaciones', 'Entradas', 'Auditoria'})
         self.assertEqual(len(datos['tablas']['Asignaciones']), 2)
+
+
+class PromptAnalisisIntegralAlmacenTests(TestCase):
+    def test_prompt_incluye_kpis_principales(self):
+        from modulos.reportes.generadores.narrativa import _prompt_almacen_analisis_integral
+
+        resumen = {
+            'total_asignaciones_directas': 3, 'total_asignaciones_salida': 2,
+            'total_items_asignados': 12.0, 'total_entradas': 5,
+            'entradas_por_tipo': {'Producto Nuevo desde Factura': 5},
+            'valor_total_entradas': 1500.0, 'total_eventos_auditoria': 4,
+            'auditoria_por_accion': {'Crear': 4},
+            'alertas_auditoria': [
+                'El usuario Juan Perez concentra el 90% de la actividad de auditoría del período.'
+            ],
+        }
+        datos = {
+            'top_destinos': [{'destino': 'Unidad U-100', 'cantidad_total': 8.0}],
+            'top_usuarios_auditoria': [{'usuario': 'Juan Perez', 'total_eventos': 4}],
+        }
+        prompt, max_tokens = _prompt_almacen_analisis_integral(
+            resumen, datos, '2026-07-01', '2026-07-22'
+        )
+        self.assertIn('Unidad U-100', prompt)
+        self.assertIn('Juan Perez', prompt)
+        self.assertIn('Producto Nuevo desde Factura', prompt)
+        self.assertEqual(max_tokens, 600)

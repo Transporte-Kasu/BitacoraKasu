@@ -33,6 +33,7 @@ _NOMBRES_REPORTE = {
     'ALMACEN_STOCK_CRITICO': 'Stock crítico de almacén',
     'ALMACEN_CADUCIDAD':     'Productos próximos a caducar en almacén',
     'ALMACEN_MOVIMIENTOS':   'Movimientos de almacén (entradas y salidas)',
+    'ALMACEN_ANALISIS_INTEGRAL': 'Análisis integral de almacén (asignaciones, entradas, auditoría)',
     'COMBUSTIBLE_CARGAS':    'Cargas de combustible del período',
     'COMBUSTIBLE_CONSUMO':   'Consumo de combustible por unidad',
     'COMBUSTIBLE_ALERTAS':   'Alertas de candado de combustible',
@@ -78,6 +79,58 @@ def _prompt_almacen_movimientos(resumen: dict, datos: dict, periodo_inicio: str,
     return prompt, 500
 
 
+def _prompt_almacen_analisis_integral(resumen: dict, datos: dict, periodo_inicio: str, periodo_fin: str) -> tuple:
+    """Prompt especializado para el reporte de análisis integral de almacén."""
+    total_directas = resumen.get('total_asignaciones_directas', 0)
+    total_salida = resumen.get('total_asignaciones_salida', 0)
+    total_items = resumen.get('total_items_asignados', 0)
+    total_entradas = resumen.get('total_entradas', 0)
+    entradas_por_tipo = resumen.get('entradas_por_tipo', {})
+    valor_entradas = resumen.get('valor_total_entradas', 0)
+    total_eventos_auditoria = resumen.get('total_eventos_auditoria', 0)
+    alertas_auditoria = resumen.get('alertas_auditoria', [])
+
+    top_destinos = datos.get('top_destinos', [])
+    top_usuarios = datos.get('top_usuarios_auditoria', [])
+
+    destinos_texto = '\n'.join(
+        f"  {i+1}. {d['destino']} — {d['cantidad_total']} piezas"
+        for i, d in enumerate(top_destinos)
+    ) or '  Sin asignaciones registradas en el período'
+
+    entradas_texto = '\n'.join(
+        f"  - {tipo}: {cantidad}" for tipo, cantidad in entradas_por_tipo.items()
+    ) or '  Sin entradas registradas en el período'
+
+    usuarios_texto = '\n'.join(
+        f"  {i+1}. {u['usuario']} — {u['total_eventos']} eventos"
+        for i, u in enumerate(top_usuarios)
+    ) or '  Sin actividad de auditoría en el período'
+
+    alertas_texto = '\n'.join(f"  ⚠ {a}" for a in alertas_auditoria) or '  Sin anomalías detectadas'
+
+    prompt = (
+        f"Reporte: Análisis Integral de Almacén\n"
+        f"Período: {periodo_inicio} al {periodo_fin}\n\n"
+        f"Asignaciones directas de piezas:\n"
+        f"  - Asignaciones directas: {total_directas} | Asignaciones de salida: {total_salida} "
+        f"| Total de piezas asignadas: {total_items}\n"
+        f"  Top destinos que más piezas reciben:\n{destinos_texto}\n\n"
+        f"Entradas al almacén:\n"
+        f"  - Total entradas: {total_entradas} | Valor total: ${valor_entradas:,.2f} MXN\n"
+        f"  Desglose por tipo:\n{entradas_texto}\n\n"
+        f"Actividad de auditoría:\n"
+        f"  - Total eventos: {total_eventos_auditoria}\n"
+        f"  Top usuarios por actividad:\n{usuarios_texto}\n"
+        f"  Anomalías detectadas:\n{alertas_texto}\n\n"
+        f"Redacta el análisis ejecutivo correlacionando las tres áreas: señala si alguna unidad o "
+        f"destino concentra asignaciones directas de forma recurrente (posible falla mecánica "
+        f"recurrente), si el volumen de entradas es consistente con la actividad general del "
+        f"almacén, y si las anomalías de auditoría ameritan atención de la gerencia:"
+    )
+    return prompt, 600
+
+
 def generar_narrativa(
     tipo_reporte: str,
     resumen: dict,
@@ -114,6 +167,11 @@ def generar_narrativa(
     # Prompt y parámetros según el tipo de reporte
     if tipo_reporte == 'ALMACEN_MOVIMIENTOS':
         prompt, max_tokens = _prompt_almacen_movimientos(
+            resumen, datos or {}, periodo_inicio, periodo_fin
+        )
+        modelo = Modelo.SONNET
+    elif tipo_reporte == 'ALMACEN_ANALISIS_INTEGRAL':
+        prompt, max_tokens = _prompt_almacen_analisis_integral(
             resumen, datos or {}, periodo_inicio, periodo_fin
         )
         modelo = Modelo.SONNET
