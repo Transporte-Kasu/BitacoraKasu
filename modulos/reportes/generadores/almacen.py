@@ -317,7 +317,7 @@ def generar_analisis_integral(periodo_inicio: date, periodo_fin: date) -> dict:
     # --- Auditoría (AuditoriaAlmacen) ---
     auditoria_qs = (
         AuditoriaAlmacen.objects
-        .filter(fecha__date__gte=periodo_inicio, fecha__date__lte=periodo_fin, usuario__isnull=False)
+        .filter(fecha__date__gte=periodo_inicio, fecha__date__lte=periodo_fin)
         .select_related('usuario')
     )
     accion_a_campo = {

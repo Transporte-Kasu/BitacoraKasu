@@ -138,6 +138,11 @@ class GenerarAnalisisIntegralAlmacenTests(TestCase):
         EntradaAlmacen.objects.create(tipo='FACTURA', recibido_por=self.mecanico2)
         EntradaAlmacen.objects.create(tipo='ENTRADA_DIRECTA', recibido_por=self.mecanico2)
 
+        # Los signals de auditoría generan eventos automáticos (usuario=None) para
+        # los objetos creados arriba; se limpian para que el escenario de auditoría
+        # de este test sea determinista.
+        AuditoriaAlmacen.objects.all().delete()
+
         for _ in range(6):
             AuditoriaAlmacen.objects.create(
                 usuario=self.mecanico1, accion='ELIMINAR', modelo='ProductoAlmacen',
