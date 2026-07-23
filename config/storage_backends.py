@@ -31,8 +31,13 @@ class MediaStorage(S3Boto3Storage):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         new_name = f"{base_name}_{timestamp}{ext}"
 
-        logger.info(f"💾 Guardando archivo media: {new_name}")
-        return super()._save(new_name, content)
+        try:
+            saved_name = super()._save(new_name, content)
+        except Exception:
+            logger.exception(f"❌ Error subiendo archivo a Spaces: {new_name}")
+            raise
+        logger.info(f"💾 Archivo media guardado en Spaces: {saved_name}")
+        return saved_name
 
 class ReportesStorage(S3Boto3Storage):
     """Storage específico para archivos de reportes"""
@@ -221,23 +226,51 @@ class FileUploadMiddleware:
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 
+# Modelos que realmente tienen campos de archivo/imagen. Las señales de
+# limpieza abajo están conectadas de forma global (sin `sender=`) porque
+# Django no permite filtrar por una lista de senders en @receiver, así que
+# se filtra aquí para no tocar modelos ajenos a este mecanismo.
+MODELOS_CON_ARCHIVOS = {
+    ('almacen', 'productoalmacen'),
+    ('almacen', 'entradaalmacen'),
+    ('combustible', 'cargacombustible'),
+    ('combustible', 'fotocandadonuevo'),
+    ('compras', 'ordencompra'),
+    ('compras', 'recepcionalmacen'),
+    ('taller', 'seguimientoorden'),
+    ('taller', 'reportefalla'),
+}
+
+
+def _tiene_archivos(sender):
+    return (sender._meta.app_label, sender._meta.model_name) in MODELOS_CON_ARCHIVOS
+
+
 @receiver(post_delete)
 def delete_file_on_model_delete(sender, instance, **kwargs):
     """
-    Elimina archivos del storage cuando se elimina un modelo
+    Elimina archivos del storage cuando se elimina un modelo.
+    Solo actúa sobre los modelos listados en MODELOS_CON_ARCHIVOS.
     """
-    # Buscar campos de archivo en el modelo
+    if not _tiene_archivos(sender):
+        return
+
     for field in instance._meta.fields:
         if hasattr(field, 'upload_to'):
             file_field = getattr(instance, field.name)
             if file_field:
                 delete_file_from_storage(file_field.name)
 
+
 @receiver(pre_save)
 def delete_old_file_on_change(sender, instance, **kwargs):
     """
-    Elimina archivo anterior cuando se actualiza con uno nuevo
+    Elimina archivo anterior cuando se actualiza con uno nuevo.
+    Solo actúa sobre los modelos listados en MODELOS_CON_ARCHIVOS.
     """
+    if not _tiene_archivos(sender):
+        return
+
     if not instance.pk:
         return  # Es un nuevo objeto, no hay archivo anterior
 
@@ -252,5 +285,5 @@ def delete_old_file_on_change(sender, instance, **kwargs):
             old_file = getattr(old_instance, field.name)
             new_file = getattr(instance, field.name)
 
-            if old_file and old_file != new_file:
+            if old_file and old_file.name != new_file.name:
                 delete_file_from_storage(old_file.name)
