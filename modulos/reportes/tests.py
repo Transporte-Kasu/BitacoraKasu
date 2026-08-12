@@ -407,3 +407,5 @@ class PromptBalanzaUtilidadTests(TestCase):
         self.assertEqual(resultado, 'Narrativa de prueba')
         args, kwargs = instancia.completar.call_args
         self.assertIn('Balanza', kwargs['prompt'] if 'prompt' in kwargs else args[0])
+        self.assertEqual(kwargs['max_tokens'], 500)
+        self.assertIn('salud financiera de la flotilla', kwargs['prompt'] if 'prompt' in kwargs else args[0])

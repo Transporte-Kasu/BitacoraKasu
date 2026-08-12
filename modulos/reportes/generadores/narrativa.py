@@ -115,7 +115,7 @@ def _prompt_almacen_analisis_integral(resumen: dict, datos: dict, periodo_inicio
         f"Período: {periodo_inicio} al {periodo_fin}\n\n"
         f"Asignaciones directas de piezas:\n"
         f"  - Asignaciones directas: {total_directas} | Asignaciones de salida: {total_salida} "
-        f"| Total de piezas asignados: {total_items}\n"
+        f"| Total de piezas asignadas: {total_items}\n"
         f"  Top destinos que más piezas reciben:\n{destinos_texto}\n\n"
         f"Entradas al almacén:\n"
         f"  - Total entradas: {total_entradas} | Valor total: ${valor_entradas:,.2f} MXN\n"
