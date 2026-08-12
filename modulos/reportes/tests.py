@@ -363,3 +363,47 @@ class GenerarBalanzaUtilidadTests(TestCase):
         self.assertEqual(datos['filas'], [])
         self.assertIsNone(datos['unidad_mas_rentable'])
         self.assertIsNone(datos['unidad_mayor_perdida'])
+
+
+class PromptBalanzaUtilidadTests(TestCase):
+    def test_prompt_incluye_unidades_extremas_y_totales(self):
+        from modulos.reportes.generadores.narrativa import _prompt_unidades_balanza_utilidad
+
+        resumen = {
+            'total_unidades': 2, 'unidades_en_utilidad': 1, 'unidades_en_perdida': 1,
+            'ingresos_totales': 5000.0, 'gasto_total': 3500.0, 'utilidad_total': 1500.0,
+            'bitacoras_excluidas': 3, 'cargas_excluidas': 1,
+        }
+        datos = {
+            'unidad_mas_rentable': {'unidad': 'ECO-R', 'utilidad': 4500.0},
+            'unidad_mayor_perdida': {'unidad': 'ECO-P', 'utilidad': -3000.0},
+        }
+        prompt, max_tokens = _prompt_unidades_balanza_utilidad(
+            resumen, datos, '2026-06-01', '2026-06-30'
+        )
+        self.assertIn('ECO-R', prompt)
+        self.assertIn('ECO-P', prompt)
+        self.assertIn('1500.0', prompt)
+        self.assertIn('3', prompt)  # bitácoras excluidas mencionadas
+        self.assertEqual(max_tokens, 500)
+
+    def test_generar_narrativa_despacha_al_prompt_especializado(self):
+        from unittest.mock import patch
+        from modulos.reportes.generadores.narrativa import generar_narrativa
+
+        resumen = {'total_unidades': 0, 'unidades_en_utilidad': 0, 'unidades_en_perdida': 0}
+        datos = {'unidad_mas_rentable': None, 'unidad_mayor_perdida': None}
+
+        with patch('modulos.reportes.generadores.narrativa.settings.IA_HABILITADA', True), \
+             patch('config.services.claude_service.ClaudeService') as MockClaude:
+            instancia = MockClaude.return_value
+            instancia.completar.return_value = 'Narrativa de prueba'
+
+            resultado = generar_narrativa(
+                tipo_reporte='UNIDADES_BALANZA_UTILIDAD', resumen=resumen,
+                periodo_inicio='2026-06-01', periodo_fin='2026-06-30', datos=datos,
+            )
+
+        self.assertEqual(resultado, 'Narrativa de prueba')
+        args, kwargs = instancia.completar.call_args
+        self.assertIn('Balanza', kwargs['prompt'] if 'prompt' in kwargs else args[0])

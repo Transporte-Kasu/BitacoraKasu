@@ -38,6 +38,7 @@ _NOMBRES_REPORTE = {
     'COMBUSTIBLE_CONSUMO':   'Consumo de combustible por unidad',
     'COMBUSTIBLE_ALERTAS':   'Alertas de candado de combustible',
     'UNIDADES_KILOMETRAJE':  'Kilometraje actual de la flota',
+    'UNIDADES_BALANZA_UTILIDAD': 'Balanza de utilidad/pérdida por unidad',
 }
 
 
@@ -114,7 +115,7 @@ def _prompt_almacen_analisis_integral(resumen: dict, datos: dict, periodo_inicio
         f"Período: {periodo_inicio} al {periodo_fin}\n\n"
         f"Asignaciones directas de piezas:\n"
         f"  - Asignaciones directas: {total_directas} | Asignaciones de salida: {total_salida} "
-        f"| Total de piezas asignadas: {total_items}\n"
+        f"| Total de piezas asignados: {total_items}\n"
         f"  Top destinos que más piezas reciben:\n{destinos_texto}\n\n"
         f"Entradas al almacén:\n"
         f"  - Total entradas: {total_entradas} | Valor total: ${valor_entradas:,.2f} MXN\n"
@@ -129,6 +130,56 @@ def _prompt_almacen_analisis_integral(resumen: dict, datos: dict, periodo_inicio
         f"almacén, y si las anomalías de auditoría ameritan atención de la gerencia:"
     )
     return prompt, 600
+
+
+def _prompt_unidades_balanza_utilidad(resumen: dict, datos: dict, periodo_inicio: str, periodo_fin: str) -> tuple:
+    """Prompt especializado para el reporte de balanza de utilidad por unidad."""
+    total = resumen.get('total_unidades', 0)
+    en_utilidad = resumen.get('unidades_en_utilidad', 0)
+    en_perdida = resumen.get('unidades_en_perdida', 0)
+    ingresos_totales = resumen.get('ingresos_totales', 0)
+    gasto_total = resumen.get('gasto_total', 0)
+    utilidad_total = resumen.get('utilidad_total', 0)
+    bitacoras_excluidas = resumen.get('bitacoras_excluidas', 0)
+    cargas_excluidas = resumen.get('cargas_excluidas', 0)
+
+    mas_rentable = datos.get('unidad_mas_rentable')
+    mayor_perdida = datos.get('unidad_mayor_perdida')
+
+    rentable_texto = (
+        f"  {mas_rentable['unidad']} — utilidad de ${mas_rentable['utilidad']:,.2f} MXN"
+        if mas_rentable else '  Sin datos'
+    )
+    perdida_texto = (
+        f"  {mayor_perdida['unidad']} — utilidad de ${mayor_perdida['utilidad']:,.2f} MXN"
+        if mayor_perdida else '  Sin datos'
+    )
+
+    cobertura_texto = ''
+    if bitacoras_excluidas or cargas_excluidas:
+        cobertura_texto = (
+            f"\nAdvertencia de cobertura de datos: {bitacoras_excluidas} bitácora(s) sin tarifa vigente "
+            f"y {cargas_excluidas} carga(s) de combustible sin precio de diésel vigente quedaron fuera "
+            f"de este cálculo (no se contabilizó su ingreso/costo).\n"
+        )
+
+    prompt = (
+        f"Reporte: Balanza de Utilidad por Unidad\n"
+        f"Período: {periodo_inicio} al {periodo_fin}\n\n"
+        f"Resumen de flotilla:\n"
+        f"  - Total de unidades: {total} | En utilidad: {en_utilidad} | En pérdida: {en_perdida}\n"
+        f"  - Ingresos totales: ${ingresos_totales} MXN\n"
+        f"  - Gasto total: ${gasto_total} MXN\n"
+        f"  - Utilidad total de la flotilla: ${utilidad_total} MXN\n\n"
+        f"Unidad más rentable del período:\n{rentable_texto}\n\n"
+        f"Unidad con mayor pérdida del período:\n{perdida_texto}\n"
+        f"{cobertura_texto}\n"
+        f"Redacta el análisis ejecutivo. Menciona primero la unidad con mayor pérdida y la más "
+        f"rentable con sus montos, señala si la advertencia de cobertura de datos (si existe) "
+        f"limita la confiabilidad del resultado, y concluye con una valoración general de la "
+        f"salud financiera de la flotilla en el período:"
+    )
+    return prompt, 500
 
 
 def generar_narrativa(
@@ -172,6 +223,11 @@ def generar_narrativa(
         modelo = Modelo.SONNET
     elif tipo_reporte == 'ALMACEN_ANALISIS_INTEGRAL':
         prompt, max_tokens = _prompt_almacen_analisis_integral(
+            resumen, datos or {}, periodo_inicio, periodo_fin
+        )
+        modelo = Modelo.SONNET
+    elif tipo_reporte == 'UNIDADES_BALANZA_UTILIDAD':
+        prompt, max_tokens = _prompt_unidades_balanza_utilidad(
             resumen, datos or {}, periodo_inicio, periodo_fin
         )
         modelo = Modelo.SONNET
