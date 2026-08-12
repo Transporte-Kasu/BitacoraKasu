@@ -53,7 +53,61 @@ def generar_kilometraje_unidades(periodo_inicio: date, periodo_fin: date) -> dic
     }
 
 
+def generar_balanza_utilidad(periodo_inicio: date, periodo_fin: date) -> dict:
+    """Reporte de utilidad/pérdida por unidad en el período (ingresos vs. gastos).
+
+    Reutiliza el mismo cálculo que la vista bajo demanda del admin de Unidad
+    (modulos.unidades.services.calcular_reporte_utilidad).
+    """
+    from modulos.unidades.services import calcular_reporte_utilidad
+
+    resultado = calcular_reporte_utilidad(periodo_inicio, periodo_fin)
+
+    filas = [
+        {
+            'unidad': f['unidad'].numero_economico,
+            'ingresos': float(f['ingresos']),
+            'gasto_combustible': float(f['gasto_combustible']),
+            'gasto_taller': float(f['gasto_taller']),
+            'gasto_consumibles': float(f['gasto_consumibles']),
+            'gasto_total': float(f['gasto_total']),
+            'utilidad': float(f['utilidad']),
+            'utilidad_pct': round(float(f['utilidad_pct']), 2) if f['utilidad_pct'] is not None else None,
+        }
+        for f in resultado['filas']
+    ]
+
+    unidades_en_utilidad = sum(1 for f in filas if f['utilidad'] >= 0)
+    unidades_en_perdida = len(filas) - unidades_en_utilidad
+
+    ordenadas = sorted(filas, key=lambda f: f['utilidad'])
+    mayor_perdida = ordenadas[0] if ordenadas else None
+    mas_rentable = ordenadas[-1] if ordenadas else None
+
+    return {
+        'tipo': 'UNIDADES_BALANZA_UTILIDAD',
+        'titulo': f'Balanza de Utilidad por Unidad — {periodo_inicio.strftime("%d/%m/%Y")} al {periodo_fin.strftime("%d/%m/%Y")}',
+        'periodo_inicio': str(periodo_inicio),
+        'periodo_fin': str(periodo_fin),
+        'generado_en': timezone.now().isoformat(),
+        'resumen': {
+            'total_unidades': len(filas),
+            'unidades_en_utilidad': unidades_en_utilidad,
+            'unidades_en_perdida': unidades_en_perdida,
+            'ingresos_totales': float(resultado['totales']['ingresos']),
+            'gasto_total': float(resultado['totales']['gasto_total']),
+            'utilidad_total': float(resultado['totales']['utilidad']),
+            'bitacoras_excluidas': resultado['bitacoras_excluidas'],
+            'cargas_excluidas': resultado['cargas_excluidas'],
+        },
+        'filas': filas,
+        'unidad_mas_rentable': mas_rentable,
+        'unidad_mayor_perdida': mayor_perdida,
+    }
+
+
 # Mapa tipo_reporte → función generadora
 GENERADORES = {
     'UNIDADES_KILOMETRAJE': generar_kilometraje_unidades,
+    'UNIDADES_BALANZA_UTILIDAD': generar_balanza_utilidad,
 }

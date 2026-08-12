@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, date
 from decimal import Decimal
 
 from django.contrib.auth.models import User
@@ -7,6 +7,8 @@ from django.utils import timezone
 
 from modulos.reportes.models import ConfiguracionReporte
 from modulos.reportes.generadores.flota import generar_vigencias_flota
+from modulos.reportes.generadores.almacen import generar_analisis_integral
+from modulos.reportes.generadores.unidades import generar_balanza_utilidad
 from modulos.equipos.models import Equipo
 from modulos.dollys.models import Dolly
 from modulos.caja_seca.models import CajaSeca
@@ -15,7 +17,10 @@ from modulos.almacen.models import (
     ItemAsignacionSalida, EntradaAlmacen, AuditoriaAlmacen,
 )
 from modulos.unidades.models import Unidad
-from modulos.reportes.generadores.almacen import generar_analisis_integral
+from modulos.bitacoras.models import BitacoraViaje
+from modulos.combustible.models import Despachador, CargaCombustible
+from modulos.finanzas.models import TarifaKilometro
+from modulos.operadores.models import Operador
 
 
 class EsDebidoMensualTests(TestCase):
@@ -278,3 +283,83 @@ class EmailTemplateAnalisisIntegralTests(TestCase):
         self.assertIn('Producto Nuevo desde Factura', html)
         self.assertIn('Juan Perez', html)
         self.assertIn('concentra el 86%', html)
+
+
+class GenerarBalanzaUtilidadTests(TestCase):
+    def setUp(self):
+        self.unidad_rentable = Unidad.objects.create(
+            numero_economico='ECO-R', placa='RRR-111', tipo='LOCAL', año=2020,
+            capacidad_combustible=Decimal('200.00'), rendimiento_esperado=Decimal('3.00'),
+        )
+        self.unidad_perdida = Unidad.objects.create(
+            numero_economico='ECO-P', placa='PPP-222', tipo='LOCAL', año=2020,
+            capacidad_combustible=Decimal('200.00'), rendimiento_esperado=Decimal('3.00'),
+        )
+        self.operador = Operador.objects.create(nombre='Juan Pérez', tipo='LOCAL')
+        self.despachador = Despachador.objects.create(nombre='Pedro López')
+
+        aware = lambda y, m, d, h=8: timezone.make_aware(timezone.datetime(y, m, d, h))
+
+        # Unidad rentable: ingreso alto, gasto bajo
+        BitacoraViaje.objects.create(
+            operador=self.operador, unidad=self.unidad_rentable, modalidad='LOCAL',
+            fecha_carga=aware(2026, 6, 1), fecha_salida=aware(2026, 6, 1),
+            fecha_llegada=aware(2026, 6, 2), destino='Destino rentable',
+            ingreso_calculado=Decimal('5000.00'),
+        )
+        CargaCombustible.objects.create(
+            despachador=self.despachador, unidad=self.unidad_rentable, cantidad_litros=Decimal('50.00'),
+            kilometraje_actual=1000, nivel_combustible_inicial='MEDIO', estado_candado_anterior='NORMAL',
+            fecha_hora_inicio=aware(2026, 6, 3), tipo_flujo='LOCAL', estado='COMPLETADO',
+            costo_calculado=Decimal('500.00'),
+        )
+
+        # Unidad en pérdida: sin ingreso, solo gasto
+        CargaCombustible.objects.create(
+            despachador=self.despachador, unidad=self.unidad_perdida, cantidad_litros=Decimal('200.00'),
+            kilometraje_actual=1000, nivel_combustible_inicial='MEDIO', estado_candado_anterior='NORMAL',
+            fecha_hora_inicio=aware(2026, 6, 4), tipo_flujo='LOCAL', estado='COMPLETADO',
+            costo_calculado=Decimal('3000.00'),
+        )
+
+        self.periodo_inicio = date(2026, 6, 1)
+        self.periodo_fin = date(2026, 6, 30)
+
+    def test_resumen_cuenta_unidades_en_utilidad_y_perdida(self):
+        datos = generar_balanza_utilidad(self.periodo_inicio, self.periodo_fin)
+        self.assertEqual(datos['resumen']['total_unidades'], 2)
+        self.assertEqual(datos['resumen']['unidades_en_utilidad'], 1)
+        self.assertEqual(datos['resumen']['unidades_en_perdida'], 1)
+
+    def test_resumen_incluye_totales_e_indicadores_de_cobertura(self):
+        datos = generar_balanza_utilidad(self.periodo_inicio, self.periodo_fin)
+        resumen = datos['resumen']
+        self.assertEqual(resumen['ingresos_totales'], 5000.0)
+        self.assertEqual(resumen['gasto_total'], 3500.0)
+        self.assertEqual(resumen['utilidad_total'], 1500.0)
+        self.assertIn('bitacoras_excluidas', resumen)
+        self.assertIn('cargas_excluidas', resumen)
+
+    def test_filas_usa_numero_economico_y_valores_float(self):
+        datos = generar_balanza_utilidad(self.periodo_inicio, self.periodo_fin)
+        fila_rentable = next(f for f in datos['filas'] if f['unidad'] == 'ECO-R')
+        self.assertEqual(fila_rentable['ingresos'], 5000.0)
+        self.assertIsInstance(fila_rentable['ingresos'], float)
+        self.assertEqual(fila_rentable['utilidad'], 4500.0)
+
+    def test_identifica_unidad_mas_rentable_y_de_mayor_perdida(self):
+        datos = generar_balanza_utilidad(self.periodo_inicio, self.periodo_fin)
+        self.assertEqual(datos['unidad_mas_rentable']['unidad'], 'ECO-R')
+        self.assertEqual(datos['unidad_mayor_perdida']['unidad'], 'ECO-P')
+
+    def test_tipo_y_titulo_correctos(self):
+        datos = generar_balanza_utilidad(self.periodo_inicio, self.periodo_fin)
+        self.assertEqual(datos['tipo'], 'UNIDADES_BALANZA_UTILIDAD')
+        self.assertIn('Balanza de Utilidad', datos['titulo'])
+
+    def test_sin_unidades_activas_no_lanza_error(self):
+        Unidad.objects.all().update(activa=False)
+        datos = generar_balanza_utilidad(self.periodo_inicio, self.periodo_fin)
+        self.assertEqual(datos['filas'], [])
+        self.assertIsNone(datos['unidad_mas_rentable'])
+        self.assertIsNone(datos['unidad_mayor_perdida'])
