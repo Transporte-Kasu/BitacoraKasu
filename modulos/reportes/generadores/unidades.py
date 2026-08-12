@@ -77,10 +77,12 @@ def generar_balanza_utilidad(periodo_inicio: date, periodo_fin: date) -> dict:
         for f in resultado['filas']
     ]
 
-    unidades_en_utilidad = sum(1 for f in filas if f['utilidad'] >= 0)
-    unidades_en_perdida = len(filas) - unidades_en_utilidad
+    unidades_en_utilidad = sum(1 for f in filas if f['utilidad'] > 0)
+    unidades_en_perdida = sum(1 for f in filas if f['utilidad'] < 0)
+    unidades_sin_actividad = sum(1 for f in filas if f['utilidad'] == 0.0)
 
-    ordenadas = sorted(filas, key=lambda f: f['utilidad'])
+    con_actividad = [f for f in filas if f['utilidad'] != 0]
+    ordenadas = sorted(con_actividad, key=lambda f: f['utilidad'])
     mayor_perdida = ordenadas[0] if ordenadas else None
     mas_rentable = ordenadas[-1] if ordenadas else None
 
@@ -94,6 +96,7 @@ def generar_balanza_utilidad(periodo_inicio: date, periodo_fin: date) -> dict:
             'total_unidades': len(filas),
             'unidades_en_utilidad': unidades_en_utilidad,
             'unidades_en_perdida': unidades_en_perdida,
+            'unidades_sin_actividad': unidades_sin_actividad,
             'ingresos_totales': float(resultado['totales']['ingresos']),
             'gasto_total': float(resultado['totales']['gasto_total']),
             'utilidad_total': float(resultado['totales']['utilidad']),

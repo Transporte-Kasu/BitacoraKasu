@@ -137,6 +137,7 @@ def _prompt_unidades_balanza_utilidad(resumen: dict, datos: dict, periodo_inicio
     total = resumen.get('total_unidades', 0)
     en_utilidad = resumen.get('unidades_en_utilidad', 0)
     en_perdida = resumen.get('unidades_en_perdida', 0)
+    sin_actividad = resumen.get('unidades_sin_actividad', 0)
     ingresos_totales = resumen.get('ingresos_totales', 0)
     gasto_total = resumen.get('gasto_total', 0)
     utilidad_total = resumen.get('utilidad_total', 0)
@@ -167,10 +168,10 @@ def _prompt_unidades_balanza_utilidad(resumen: dict, datos: dict, periodo_inicio
         f"Reporte: Balanza de Utilidad por Unidad\n"
         f"Período: {periodo_inicio} al {periodo_fin}\n\n"
         f"Resumen de flotilla:\n"
-        f"  - Total de unidades: {total} | En utilidad: {en_utilidad} | En pérdida: {en_perdida}\n"
-        f"  - Ingresos totales: ${ingresos_totales} MXN\n"
-        f"  - Gasto total: ${gasto_total} MXN\n"
-        f"  - Utilidad total de la flotilla: ${utilidad_total} MXN\n\n"
+        f"  - Total de unidades: {total} | En utilidad: {en_utilidad} | En pérdida: {en_perdida} | Sin actividad: {sin_actividad}\n"
+        f"  - Ingresos totales: ${ingresos_totales:,.2f} MXN\n"
+        f"  - Gasto total: ${gasto_total:,.2f} MXN\n"
+        f"  - Utilidad total de la flotilla: ${utilidad_total:,.2f} MXN\n\n"
         f"Unidad más rentable del período:\n{rentable_texto}\n\n"
         f"Unidad con mayor pérdida del período:\n{perdida_texto}\n"
         f"{cobertura_texto}\n"

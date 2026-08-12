@@ -8,7 +8,7 @@ from django.utils import timezone
 from modulos.reportes.models import ConfiguracionReporte
 from modulos.reportes.generadores.flota import generar_vigencias_flota
 from modulos.reportes.generadores.almacen import generar_analisis_integral
-from modulos.reportes.generadores.unidades import generar_balanza_utilidad
+from modulos.reportes.generadores.unidades import generar_balanza_utilidad, GENERADORES
 from modulos.equipos.models import Equipo
 from modulos.dollys.models import Dolly
 from modulos.caja_seca.models import CajaSeca
@@ -19,7 +19,6 @@ from modulos.almacen.models import (
 from modulos.unidades.models import Unidad
 from modulos.bitacoras.models import BitacoraViaje
 from modulos.combustible.models import Despachador, CargaCombustible
-from modulos.finanzas.models import TarifaKilometro
 from modulos.operadores.models import Operador
 
 
@@ -352,6 +351,20 @@ class GenerarBalanzaUtilidadTests(TestCase):
         self.assertEqual(datos['unidad_mas_rentable']['unidad'], 'ECO-R')
         self.assertEqual(datos['unidad_mayor_perdida']['unidad'], 'ECO-P')
 
+    def test_unidad_sin_actividad_no_cuenta_como_utilidad_ni_perdida(self):
+        Unidad.objects.create(
+            numero_economico='ECO-INACTIVA', placa='ZZZ-000', tipo='LOCAL', año=2020,
+            capacidad_combustible=Decimal('200.00'), rendimiento_esperado=Decimal('3.00'),
+        )
+        datos = generar_balanza_utilidad(self.periodo_inicio, self.periodo_fin)
+        self.assertEqual(datos['resumen']['total_unidades'], 3)
+        self.assertEqual(datos['resumen']['unidades_en_utilidad'], 1)
+        self.assertEqual(datos['resumen']['unidades_en_perdida'], 1)
+        self.assertEqual(datos['resumen']['unidades_sin_actividad'], 1)
+        # La unidad inactiva no debe convertirse en "más rentable" ni "mayor pérdida"
+        self.assertEqual(datos['unidad_mas_rentable']['unidad'], 'ECO-R')
+        self.assertEqual(datos['unidad_mayor_perdida']['unidad'], 'ECO-P')
+
     def test_tipo_y_titulo_correctos(self):
         datos = generar_balanza_utilidad(self.periodo_inicio, self.periodo_fin)
         self.assertEqual(datos['tipo'], 'UNIDADES_BALANZA_UTILIDAD')
@@ -363,6 +376,10 @@ class GenerarBalanzaUtilidadTests(TestCase):
         self.assertEqual(datos['filas'], [])
         self.assertIsNone(datos['unidad_mas_rentable'])
         self.assertIsNone(datos['unidad_mayor_perdida'])
+
+    def test_generador_registrado_en_generadores(self):
+        self.assertIn('UNIDADES_BALANZA_UTILIDAD', GENERADORES)
+        self.assertIs(GENERADORES['UNIDADES_BALANZA_UTILIDAD'], generar_balanza_utilidad)
 
 
 class PromptBalanzaUtilidadTests(TestCase):
@@ -383,8 +400,8 @@ class PromptBalanzaUtilidadTests(TestCase):
         )
         self.assertIn('ECO-R', prompt)
         self.assertIn('ECO-P', prompt)
-        self.assertIn('1500.0', prompt)
-        self.assertIn('3', prompt)  # bitácoras excluidas mencionadas
+        self.assertIn('1,500.00', prompt)
+        self.assertIn('3 bitácora(s) sin tarifa vigente', prompt)  # bitácoras excluidas mencionadas
         self.assertEqual(max_tokens, 500)
 
     def test_generar_narrativa_despacha_al_prompt_especializado(self):
