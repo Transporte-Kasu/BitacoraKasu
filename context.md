@@ -16,15 +16,20 @@ BitacoraKasu/
 │   ├── views.py                    # IndexView (dashboard principal)
 │   ├── context_processors.py       # Inyecta alertas en todos los templates
 │   ├── storage_backends.py         # Selector local / DigitalOcean Spaces
+│   ├── middleware.py               # CurrentUserMiddleware (thread-local user/IP para auditoría)
 │   ├── scheduler.py                # Configuración APScheduler
 │   ├── management/commands/
 │   │   ├── runscheduler.py         # Inicia scheduler de reportes (proceso bloqueante)
 │   │   └── test_reportes.py        # Prueba manual de reportes
-│   ├── reportes/
+│   ├── reportes/                   # Sistema legacy vía APScheduler (ver sección de reportes)
 │   │   ├── combustible.py          # enviar_reporte_combustible()
 │   │   └── almacen.py              # enviar_reporte_almacen()
 │   └── services/
-│       └── google_maps.py          # GoogleMapsService (Distance Matrix API)
+│       ├── google_maps.py          # GoogleMapsService (Distance Matrix API)
+│       ├── claude_service.py       # ClaudeService — cliente centralizado Claude API (IAKasu)
+│       ├── ocr_service.py          # OCR de candados (Google Vision / pytesseract)
+│       ├── whatsapp_service.py     # WAHA (self-hosted) — alertas internas al administrador
+│       └── twilio_service.py       # Twilio Content API — WhatsApp + email a clientes de bitácora
 ├── modulos/                        # Apps de dominio de negocio
 │   ├── operadores/
 │   ├── unidades/
@@ -32,8 +37,12 @@ BitacoraKasu/
 │   ├── combustible/
 │   ├── taller/
 │   ├── compras/
-│   └── almacen/
-├── templates/                      # 79 templates HTML (extends base.html)
+│   ├── almacen/
+│   ├── caja_seca/                  # Catálogo de cajas secas (remolques)
+│   ├── dollys/                     # Catálogo de dollys (chasis remolcables)
+│   ├── equipos/                    # Catálogo de equipos de arrastre (chasis/planas)
+│   └── reportes/                   # Módulo de reportes configurables (ver sección 8)
+├── templates/                      # 133 templates HTML (extends base.html)
 ├── static/                         # CSS, JS, imágenes
 └── media/                          # Archivos de usuario (dev local)
 ```
@@ -50,6 +59,8 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 | `forms.py` | `ModelForm` con validaciones |
 | `admin.py` | Configuración del panel Django Admin |
 | `signals.py` | Lógica reactiva automática *(solo combustible, taller, almacen)* |
+
+`caja_seca`, `dollys` y `equipos` son catálogos simples: modelo único con `slug` autogenerado, baja lógica (`activo`), sin `signals.py` propio, con vistas CBV estándar (`List/Create/Detail/Update/Delete`) y comando `management/commands/load_*.py` para carga inicial vía CSV.
 
 ---
 
@@ -141,6 +152,7 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 |-------|------|-------------|
 | `operador` | FK → Operador | Conductor del viaje |
 | `unidad` | FK → Unidad | Vehículo utilizado |
+| `cliente` | FK → `Cliente` (`SET_NULL`, null, `related_name='bitacoras'`) | Cliente destinatario del viaje; opcional |
 | `modalidad` | choices | `SENCILLO` / `FULL` / `LOCAL` |
 | `salida_a_ruta` | CharField(50) | Descripción de la ruta de salida |
 | `contenedor` / `peso` / `sellos` | | Datos de carga del contenedor 1 |
@@ -178,7 +190,19 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 
 **Índices:** `(-fecha_salida)`, `(operador, fecha_salida)`, `(unidad, fecha_salida)`, `(completado)`
 
-**URLs:** 10 patrones
+#### `Cliente`
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `nombre` | CharField(120) | Requerido |
+| `email` | EmailField | Opcional, para el correo de notificación |
+| `celular` | CharField(20) | Opcional, con código de país (`+5217531234567`); usado como número de WhatsApp |
+| `activo` | BooleanField (default `True`) | Filtra clientes disponibles en el selector del formulario |
+| `created_at` | DateTimeField (`auto_now_add`) | |
+
+CRUD dedicado bajo `/bitacoras/clientes/...`; el selector de cliente aparece en `BitacoraViajeForm` y `BitacoraListView`/`exportar_excel` permiten filtrar/agrupar por `cliente_id`.
+
+**URLs:** 18 patrones
 
 | URL | Vista | Nombre |
 |-----|-------|--------|
@@ -190,12 +214,20 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 | `/bitacoras/<pk>/eliminar/` | `BitacoraDeleteView` | `bitacoras:delete` |
 | `/bitacoras/<pk>/completar/` | `completar_viaje` | `bitacoras:completar` |
 | `/bitacoras/<pk>/calcular-distancia/` | `calcular_distancia_ajax` (POST) | `bitacoras:calcular_distancia` |
+| `/bitacoras/<pk>/notificar-cliente/` | `enviar_notificacion_cliente` (POST) | `bitacoras:notificar_cliente` |
+| `/bitacoras/clientes/` | `ClienteListView` | `bitacoras:cliente_list` |
+| `/bitacoras/clientes/nuevo/` | `ClienteCreateView` | `bitacoras:cliente_create` |
+| `/bitacoras/clientes/<pk>/editar/` | `ClienteUpdateView` | `bitacoras:cliente_update` |
+| `/bitacoras/clientes/<pk>/eliminar/` | `ClienteDeleteView` | `bitacoras:cliente_delete` |
+| `/bitacoras/carga-masiva/` | `carga_masiva_upload` | `bitacoras:carga_masiva` |
+| `/bitacoras/carga-masiva/preview/` | `carga_masiva_preview` | `bitacoras:carga_masiva_preview` |
+| `/bitacoras/exportar-excel/` | `exportar_excel` | `bitacoras:exportar_excel` |
 | `/bitacoras/ajax/unidad-info/` | `unidad_info_ajax` (GET) | `bitacoras:unidad_info_ajax` |
 | `/bitacoras/ajax/calcular-distancia/` | `calcular_distancia_preview_ajax` (GET) | `bitacoras:calcular_distancia_preview` |
 
-**Dashboard (`bitacora_dashboard`):** Estadísticas globales — total, completados, en curso, por modalidad, diesel total, km totales, rendimiento promedio y alertas de bajo rendimiento.
+**Dashboard (`bitacora_dashboard`):** Estadísticas globales — total, completados, en curso, por modalidad, diesel total, km totales, rendimiento promedio, alertas de bajo rendimiento, y lista de clientes activos.
 
-**Filtros en `BitacoraListView`:** `search` (contenedor/destino/operador/unidad), `modalidad`, `completado` (true/false), `operador` (id), `unidad` (id), `fecha_desde`, `fecha_hasta`.
+**Filtros en `BitacoraListView`:** `search` (contenedor/destino/operador/unidad), `modalidad`, `completado` (true/false), `operador` (id), `unidad` (id), `cliente` (id), `fecha_desde`, `fecha_hasta`.
 
 **Endpoints AJAX:**
 - `unidad_info_ajax` — GET `?unidad_id=X` → placa, kilometraje, tipo, operador asignado
@@ -203,7 +235,17 @@ Cada app en `modulos/` sigue la misma estructura estándar:
 
 **Patrón `next`:** `BitacoraUpdateView` y `BitacoraDeleteView` leen `request.GET.get('next')` para regresar al listado con filtros preservados.
 
-**Templates:** 6 (`bitacora_dashboard.html`, `bitacora_list.html`, `bitacora_form.html`, `bitacora_detail.html`, `completar_viaje.html`, `bitacora_confirm_delete.html`)
+**Notificación a cliente vía WhatsApp + email (Twilio):** botón manual en `bitacora_detail.html` → `POST /bitacoras/<pk>/notificar-cliente/`; requiere que la bitácora tenga `cliente` asignado. Llama a `enviar_notificacion_bitacora(bitacora, cliente)` en `config/services/twilio_service.py`:
+- **WhatsApp:** usa `twilio.rest.Client` con un **template aprobado de WhatsApp Business Content API** (`TWILIO_CONTENT_SID_BITACORA`), no texto libre — arma 3 variables sin saltos de línea (información de carga, detalles del traslado, notas adicionales).
+- **Email:** `django.core.mail.send_mail` con el mismo contenido en texto plano y saltos de línea.
+- Ambos envíos son independientes; el resultado (`wa_ok`, `email_ok`) se reporta al usuario vía `messages`.
+- **Nota:** esta integración es distinta de OpenWA/WAHA (usada solo para alertas internas al administrador, ver sección de Servicios Externos) — `bitacoras` usa exclusivamente Twilio.
+
+**Carga masiva de viajes desde Excel:** dos vistas encadenadas, `carga_masiva_upload` (sube `.xlsx` tipo `CONFIRMACION_SERVICIOS.xlsx`) → `carga_masiva_preview` (revisa/edita y confirma). Parseo en `modulos/bitacoras/excel_parser.py::parse_confirmacion_excel()`: detecta encabezado, infiere modalidad (`FULL`/`SENCILLO`) y segundo contenedor por fila siguiente, extrae CP del domicilio de entrega por regex, calcula `fecha_salida`/`fecha_carga` como el día anterior a la entrega con horas configurables por el usuario, convierte peso de kg a toneladas. El preview permite elegir operador/unidad (solo unidades foráneas activas sin viaje en curso) por fila; el POST crea un `BitacoraViaje` por fila sin abortar el lote si alguna falla, reportando éxitos y errores por separado.
+
+**Exportación a Excel:** `GET /bitacoras/exportar-excel/`, respeta los filtros activos de la lista. Genera con `openpyxl` una hoja "Bitácoras" en formato de programación de salida (bloques de 4 filas fusionadas por viaje, color verde para `REPARTO` / azul para `DIRECTO`, encabezado congelado).
+
+**Templates:** 11 (`bitacora_dashboard.html`, `bitacora_list.html`, `bitacora_form.html`, `bitacora_detail.html`, `completar_viaje.html`, `bitacora_confirm_delete.html`, `cliente_list.html`, `cliente_form.html`, `cliente_confirm_delete.html`, `carga_masiva_upload.html`, `carga_masiva_preview.html`)
 
 ---
 
@@ -526,7 +568,7 @@ PENDIENTE → ENVIADA → CONFIRMADA → EN_TRANSITO → RECIBIDA
 |-------|-------------|
 | `sku` (unique) | Código interno del producto |
 | `codigo_barras` | Opcional |
-| `categoria` / `subcategoria` | Clasificación |
+| `categoria` / `subcategoria` | Clasificación. En el form (`ProductoAlmacenForm`) son `CharField` con `<input list>` (datalist HTML): permiten elegir un valor existente o escribir uno nuevo. `categoria_opciones` combina 9 categorías predefinidas (Carrocería y accesorios, Consumibles, Filtros, Frenos, Higiene/limpieza/sanitización, Iluminación y eléctrico, Motor, Suspensión y dirección, Transmisión) con las ya usadas en BD; `subcategoria_opciones` se calcula según la categoría actual |
 | `descripcion` | Nombre/descripción del producto |
 | `localidad` | Ubicación física: "Pasillo A, Estante 3" |
 | `cantidad` | Stock actual (actualizado por signals) |
@@ -628,9 +670,59 @@ Método `resolver(usuario)` para cierre de alerta.
 - Asignación directa de piezas/productos a una unidad sin orden de taller
 - Para reparaciones rápidas (focos, válvulas, etc.)
 - Campos: `producto` (FK → ProductoAlmacen), `unidad` (FK → Unidad), `cantidad`, `motivo`, `observacion_interna` (solo superusuarios), `entregado_por`, `fecha_asignacion`
+- Sin vista de edición (solo alta/consulta)
 
-**URLs:** 29 patrones
-**Templates:** 23
+#### `AsignacionSalida` — Asignación multi-ítem a cualquier tipo de destino
+**Folio:** `ASG-YYYYMMDD-XXX`
+
+Generaliza `AsignacionDirectaAlmacen`: permite asignar **varios productos en un solo movimiento** a cualquier tipo de destino de flota, no solo `Unidad`.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `fecha` | DateField | Default `hoy` |
+| `solicitante` | CharField(150) | Quien solicita |
+| `tipo_destino` | choices | `UNIDAD` / `EQUIPO` / `DOLLY` / `CAJA_SECA` / `OTRO` |
+| `unidad` / `equipo` / `dolly` / `caja_seca` | FK (`SET_NULL`, nullable) | Solo uno se llena según `tipo_destino` |
+| `otro_destino` | CharField(200) | Texto libre si `tipo_destino='OTRO'` |
+| `justificacion` | TextField | Motivo de la asignación |
+| `entregado_por` | FK → User | |
+
+**Propiedad `destino_display`:** resuelve al `str()` del FK correspondiente según `tipo_destino`, o `otro_destino`.
+
+**Índices:** `folio`, `-creado_en`, `tipo_destino`
+
+**`ItemAsignacionSalida`:** `asignacion` (FK, `CASCADE`), `producto` (FK → ProductoAlmacen), `cantidad` (DecimalField, mín. 0.01), `observaciones`.
+
+**Signal:** al crear `ItemAsignacionSalida` → reduce `ProductoAlmacen.cantidad` (mismo patrón que `ItemSalidaAlmacen`).
+
+**Vista de edición** (`asignacion_salida_update`, función `@login_required`, no CBV): al guardar, restaura el stock de los ítems previos, los borra, actualiza los campos de la asignación (incluye reasignar el destino) y crea los ítems nuevos desde `items_json`; el signal descuenta el stock de los ítems nuevos automáticamente. URL: `/almacen/asignaciones/<pk>/editar/`.
+
+#### `AuditoriaAlmacen` — Bitácora de auditoría (solo lectura)
+
+Registra automáticamente toda escritura (crear/editar/eliminar/transición de estado) sobre los modelos clave del módulo.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `usuario` | FK → User (`SET_NULL`, null) | Capturado vía `config.middleware.CurrentUserMiddleware` (thread-local); `None` si el cambio lo generó un signal automático |
+| `accion` | choices | `CREAR` / `EDITAR` / `ELIMINAR` / `AUTORIZAR` / `RECHAZAR` / `ENTREGAR` / `CANCELAR` |
+| `modelo` | CharField | Nombre de la clase afectada |
+| `objeto_id` / `objeto_str` | CharField | PK y `str()` del objeto |
+| `valores_anteriores` / `valores_nuevos` | JSONField | Snapshot de campos serializados |
+| `ip_address` | GenericIPAddressField | IP del request (validada antes de guardar) |
+| `fecha` | DateTimeField (`auto_now_add`) | |
+
+**Índices:** `-fecha`, `usuario`, `accion`, `(modelo, -fecha)`
+
+**Modelos auditados** (`modulos/almacen/signals.py`, `MODELOS_AUDITADOS`): `ProductoAlmacen`, `EntradaAlmacen`, `ItemEntradaAlmacen`, `SolicitudSalida`, `ItemSolicitudSalida`, `SalidaAlmacen`, `SalidaRapidaConsumible`, `AsignacionDirectaAlmacen`, `AsignacionSalida`, `ItemAsignacionSalida`. Excluidos: `MovimientoAlmacen` y `AlertaStock` (generados por el propio sistema).
+
+**Mecanismo:** `pre_save` serializa el estado previo en `instance._auditoria_anterior`; `post_save` decide `CREAR`/`EDITAR` (o `AUTORIZAR`/`RECHAZAR`/`CANCELAR`/`ENTREGAR` según transición de `estado` en `SolicitudSalida`) y crea el registro dentro de un `transaction.atomic()` propio (savepoint) para no abortar la transacción del caller si falla el registro de auditoría; `post_delete` registra `ELIMINAR`.
+
+**Admin:** `AuditoriaAlmacenAdmin` — visible solo para `is_superuser` (sin alta/edición/borrado manual), badges de color por acción, filtros (`accion`/`modelo`/`usuario`/`fecha`) y `date_hierarchy`, endpoint propio de exportación a Excel (`almacen_auditoriaalmacen_exportar_excel`, vía `get_urls()`) que respeta los filtros activos de la querystring.
+
+**Spec de diseño:** `docs/superpowers/specs/2026-06-30-auditoria-almacen-design.md`
+
+**URLs:** 35 patrones
+**Templates:** 28
 
 ---
 
@@ -644,7 +736,7 @@ Método `resolver(usuario)` para cierre de alerta.
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | `nombre` | CharField | Nombre descriptivo |
-| `modulo` | choices | `ALMACEN / COMBUSTIBLE / TALLER / UNIDADES` |
+| `modulo` | choices | `ALMACEN / COMBUSTIBLE / TALLER / UNIDADES / FLOTA` |
 | `tipo_reporte` | choices | Tipo específico según módulo |
 | `frecuencia` | choices | `DIARIO / SEMANAL / MENSUAL` |
 | `dia_semana` | choices | Lunes–Domingo (para frecuencia SEMANAL) |
@@ -675,6 +767,7 @@ Método `resolver(usuario)` para cierre de alerta.
 - `ALMACEN_STOCK_CRITICO` — productos con stock bajo o agotado
 - `ALMACEN_CADUCIDAD` — próximos a vencer (≤30 días)
 - `ALMACEN_MOVIMIENTOS` — historial de entradas/salidas del período
+- `ALMACEN_ANALISIS_INTEGRAL` — **reporte con narrativa IA** (ver detalle abajo)
 
 `combustible.py` — dict `GENERADORES` con:
 - `COMBUSTIBLE_CARGAS` — todas las cargas del período
@@ -684,14 +777,35 @@ Método `resolver(usuario)` para cierre de alerta.
 `unidades.py` — dict `GENERADORES` con:
 - `UNIDADES_KILOMETRAJE` — snapshot de kilometraje actual de todas las unidades activas (número económico, placa, kilometraje); KPIs: total unidades, km promedio, km máximo, unidad con mayor km
 
+`flota.py` — dict `GENERADORES` con:
+- `FLOTA_VIGENCIAS` (`generar_vigencias_flota()`) — snapshot (no depende del período) de vigencia de doble articulado de `equipos.Equipo` activos, clasificados en `VENCIDO` / `POR_VENCER` (≤30 días) / `SIN_DATO` / `VIGENTE`; incluye catálogo de `dollys.Dolly` y `caja_seca.CajaSeca` (aún sin campo de vigencia propio, listados sin datos de vencimiento)
+
+`narrativa.py` — `generar_narrativa(tipo_reporte, datos)`: arma el prompt específico por tipo de reporte y llama a `ClaudeService` (`Modelo.SONNET`). Usado por `ALMACEN_ANALISIS_INTEGRAL` y `ALMACEN_MOVIMIENTOS`.
+
+#### `ALMACEN_ANALISIS_INTEGRAL` — Análisis integral de almacén con narrativa IA
+
+`generar_analisis_integral()` correlaciona tres fuentes del período en un solo reporte:
+
+| Sección | Fuente | Contenido de fila |
+|---------|--------|--------------------|
+| `asignaciones` | `AsignacionDirectaAlmacen` + ítems de `AsignacionSalida` | folio, tipo (DIRECTA/SALIDA), destino, producto, cantidad, motivo, entregado_por, fecha |
+| `entradas` | `EntradaAlmacen` | folio, tipo, recibido_por, costo_total, total_items, fecha |
+| `auditoria` | `AuditoriaAlmacen`, agregada por usuario | total_eventos y desglose por acción (crear/editar/eliminar/autorizar/rechazar/entregar/cancelar) |
+
+KPIs calculados: totales de asignaciones/entradas, valor total de entradas, eventos de auditoría por acción, `top_destinos` (top 5 por cantidad recibida), `top_usuarios_auditoria`, y `alertas_auditoria` (reglas de umbral: un usuario concentra >50% de eventos con ≥2 usuarios activos, o `ELIMINAR` supera 20% del total). La narrativa de Claude (`Modelo.SONNET`, `max_tokens=600`) correlaciona las tres fuentes (ej. concentración de asignaciones como señal de falla recurrente). El dict de salida incluye `tablas: {'Asignaciones', 'Entradas', 'Auditoria'}` para exportar Excel multi-hoja, y se refleja en `templates/reportes/email/reporte_base.html` con un bloque de KPIs, alertas y tabla de top destinos.
+
+**Excel multi-hoja (genérico):** `generar_reportes.py::_generar_excel` — si el dict de datos incluye la clave `tablas` (`{nombre_hoja: filas}`), genera una hoja por entrada; si no, conserva el comportamiento previo de una sola hoja basada en `datos['filas']`. No es exclusivo de `ALMACEN_ANALISIS_INTEGRAL`.
+
 **Management command:** `python manage.py generar_reportes [--forzar-id N] [--dry-run]`
 - Itera `ConfiguracionReporte` activas que `es_debido() == True`
 - Llama al generador correspondiente del dict `GENERADORES`
-- Genera Excel con openpyxl (estilos, colores) si `adjuntar_excel=True`
+- Genera Excel con openpyxl (estilos, colores, multi-hoja si aplica) si `adjuntar_excel=True`
 - Envía `EmailMultiAlternatives` (HTML + adjunto) vía SendGrid
 - Registra resultado en `ReporteGenerado`
 - `--forzar-id N`: ejecuta el reporte con id=N sin revisar frecuencia
 - `--dry-run`: simula sin enviar ni guardar
+
+**Management command:** `python manage.py reenviar_reporte_wa [--listar] [--reporte-id N | --config-id N] [--dry-run]` — reenvía un reporte ya generado (o regenera datos frescos) **solo por WhatsApp** (WAHA, vía `config/services/whatsapp_service.py::enviar_mensaje`), sin volver a enviar el email.
 
 **Vistas:**
 - `ConfiguracionListView`, `CreateView`, `UpdateView`, `DeleteView`
@@ -702,6 +816,89 @@ Método `resolver(usuario)` para cierre de alerta.
 - `/reportes/historial/`, `/reportes/historial/<pk>/`
 
 **Template email:** `templates/reportes/email/reporte_base.html` — HTML para emails
+
+---
+
+### 9. `caja_seca` — Catálogo de Cajas Secas
+
+**Propósito:** Catálogo de cajas secas (remolques/cajas de carga sin motor) de la flota: alta, edición, baja lógica y consulta de las asignaciones de material que se les han hecho desde almacén.
+
+**Modelo principal:** `CajaSeca`
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `numero_economico` | CharField(30, unique) | Identificador operativo |
+| `slug` | SlugField(30, unique, blank) | Autogenerado desde `numero_economico`; resuelve colisiones con sufijo incremental |
+| `placas` | CharField(20) | Placas vehiculares |
+| `numero_serie` | CharField(60, unique) | Número de serie del fabricante |
+| `marca` / `modelo` / `color` | | Datos descriptivos |
+| `anio` | PositiveIntegerField | Validado entre 1990 y 2040 |
+| `activo` | BooleanField (default `True`) | Baja lógica |
+| `fecha_registro` / `fecha_actualizacion` | DateTimeField | `auto_now_add` / `auto_now` |
+
+**Índices:** `slug`, `activo`, `marca`
+
+**`save()`:** genera `slug` automáticamente vía `slugify(numero_economico)` si está vacío.
+
+**Relación externa:** `almacen.AsignacionSalida.caja_seca` (FK opcional) — permite asignar salidas de almacén a una caja seca; `CajaSecaDetailView` muestra sus últimas 20 asignaciones (`related_name='asignaciones_salida'`).
+
+**URLs:** 5 patrones (`caja_seca:list/create/detail/update/delete`, ruteo por `slug`)
+**Templates:** 5 (`caja_list.html`, `caja_detail.html`, `caja_form.html`, `caja_confirm_delete.html`, `_caja_card.html`)
+**Comando de carga:** `python manage.py load_caja_seca --csv <ruta> [--dry-run]` (columnas `ECO`, `NUMERO DE SERIE`, `PLACAS`, `MARCA`, `MODELO`, `AÑO`, `COLOR`)
+
+---
+
+### 10. `dollys` — Catálogo de Dollys
+
+**Propósito:** Catálogo de dollys (chasis/ejes remolcables usados para acoplar contenedores o cajas secas al tractocamión): alta, edición, baja lógica y consulta de asignaciones.
+
+**Modelo principal:** `Dolly`
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `numero_economico` | CharField(30, unique) | Identificador operativo |
+| `slug` | SlugField(50, unique, blank) | Autogenerado desde `numero_economico` |
+| `marca` / `color` | | Datos descriptivos |
+| `numero_serie` | CharField(60, unique) | Número de serie |
+| `activo` | BooleanField (default `True`) | Baja lógica |
+| `fecha_registro` / `fecha_actualizacion` | DateTimeField | `auto_now_add` / `auto_now` |
+
+**Índices:** `slug`, `activo`, `marca`
+
+**Relación externa:** `almacen.AsignacionSalida.dolly` (FK opcional, `related_name='asignaciones_salida'`).
+
+**URLs:** 5 patrones (`dollys:list/create/detail/update/delete`, ruteo por `slug`)
+**Templates:** 5 (`dolly_list.html`, `dolly_detail.html`, `dolly_form.html`, `dolly_confirm_delete.html`, `_dolly_card.html`)
+**Comando de carga:** `python manage.py load_dollys`
+
+---
+
+### 11. `equipos` — Catálogo de Equipos de Arrastre
+
+**Propósito:** Catálogo de equipos de arrastre (chasis y planas) de la flota, con seguimiento de vigencia de doble articulado y verificación vehicular.
+
+**Modelo principal:** `Equipo`
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `numero_economico` | CharField(30, unique) | Identificador operativo |
+| `tipo` | choices | `CHASIS` / `PLANA` / `OTRO` (default `CHASIS`; se infiere del prefijo de `numero_economico` en `save()` si no se especifica) |
+| `slug` | SlugField(50, unique, blank) | Autogenerado desde `numero_economico` |
+| `placas` / `marca` / `modelo` / `color` | | Datos descriptivos |
+| `numero_serie` | CharField(60, unique) | Número de serie |
+| `vigencia_doble_articulado` | DateField | Vigencia del permiso de doble articulado |
+| `verificacion` | BooleanField (default `True`) | Estatus de verificación vehicular |
+| `activo` | BooleanField (default `True`) | Baja lógica |
+| `fecha_registro` / `fecha_actualizacion` | DateTimeField | `auto_now_add` / `auto_now` |
+
+**Índices:** `slug`, `(tipo, activo)`, `marca`
+
+**Relación externa:** `almacen.AsignacionSalida.equipo` (FK opcional, `related_name='asignaciones_salida'`).
+
+**URLs:** 5 patrones (`equipos:list/create/detail/update/delete`, ruteo por `slug`)
+**Templates:** 6 (`equipo_list.html`, `equipo_detail.html`, `equipo_form.html`, `equipo_confirm_delete.html`, `_equipo_card.html`, `_campo.html`)
+**Comando de carga:** `python manage.py load_equipos`
+**Reporte relacionado:** `FLOTA_VIGENCIAS` (ver módulo `reportes`) clasifica equipos por vigencia de doble articulado (`VENCIDO` / `POR_VENCER` ≤30 días / `SIN_DATO` / `VIGENTE`); dollys y cajas secas aparecen en el mismo reporte sin datos de vigencia (el modelo aún no tiene ese campo).
 
 ---
 
@@ -827,6 +1024,29 @@ Usado en:
 - `BitacoraViaje.calcular_distancia_google()` — llamado manual desde la vista
 - Endpoint AJAX en `bitacoras/urls.py`
 
+### WhatsApp — dos integraciones independientes
+
+El sistema usa **dos canales de WhatsApp separados y no intercambiables**, cada uno con su propósito:
+
+| Servicio | Archivo | Backend | Uso |
+|----------|---------|---------|-----|
+| **WAHA (self-hosted)** | `config/services/whatsapp_service.py` | HTTP API contra un servidor WAHA propio | Alertas internas al administrador: alertas IA de combustible, reenvío de reportes (`reenviar_reporte_wa`) |
+| **Twilio (Content API)** | `config/services/twilio_service.py` | API oficial de Twilio, templates de WhatsApp Business aprobados | Notificaciones a **clientes** de bitácora (`enviar_notificacion_bitacora`) |
+
+#### `config/services/whatsapp_service.py` — WAHA
+
+- `enviar_mensaje(texto, numeros=None)` → `bool` — envía texto a una lista de números (o `WA_ALLOWED_NUMBERS` por default); normaliza a `chatId` formato `@c.us`
+- `enviar_a_admin(texto)` → `bool` — atajo para `WA_ADMIN_CHAT`
+- Verifica y, si es necesario, reinicia la sesión de WAHA antes de enviar (`_ensure_session_ready`, con polling de hasta 60s)
+- Nunca lanza excepciones — errores se loguean y el caller recibe `False`
+- Variables: `WA_API_URL`, `WA_API_KEY`, `WA_SESSION_ID`, `WA_ADMIN_CHAT`, `WA_WEBHOOK_SECRET`, `WA_ALLOWED_NUMBERS`, `WA_REPORTES_ENABLED`
+
+#### `config/services/twilio_service.py` — Twilio
+
+- `enviar_notificacion_bitacora(bitacora, cliente)` → `dict {wa_ok, email_ok}` — envía WhatsApp (template Content API, 3 variables) + email (texto plano) con los datos del viaje al cliente
+- Usa `twilio.rest.Client`, requiere `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`, `TWILIO_CONTENT_SID_BITACORA`
+- Dependencia: `twilio==9.10.9` en `requirements.txt`
+
 ---
 
 ## Sistema de Reportes Automáticos
@@ -883,6 +1103,8 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 - Top 5 categorías de almacén por valor
 - Órdenes de taller por estado
 
+**Nota:** `caja_seca`, `dollys`, `equipos` y `bitacoras.Cliente` aún no tienen sección propia en este dashboard (verificado en `config/views.py`).
+
 ---
 
 ## Sistema de Signals
@@ -901,7 +1123,9 @@ Agrega métricas de TODOS los módulos en una sola consulta por sección:
 | `post_save ItemEntradaAlmacen` | almacen | Creación | Aumenta stock de ProductoAlmacen |
 | `post_save ItemSalidaAlmacen` | almacen | Creación | Reduce stock de ProductoAlmacen |
 | `post_save SalidaRapidaConsumible` | almacen | Creación | Reduce stock de ProductoAlmacen |
+| `post_save ItemAsignacionSalida` | almacen | Creación | Reduce stock de ProductoAlmacen |
 | `post_save ProductoAlmacen` | almacen | Cambio de cantidad | Genera AlertaStock si aplica; crea MovimientoAlmacen |
+| `pre_save` / `post_save` / `post_delete` (10 modelos, `MODELOS_AUDITADOS`) | almacen | Cualquier escritura | Crea `AuditoriaAlmacen` (usuario/IP vía `CurrentUserMiddleware`, savepoint propio) |
 | `post_delete *` | storage | Eliminación de modelo con archivo | Borra archivo de Spaces/local |
 | `pre_save *` | storage | Actualización de archivo | Borra archivo anterior |
 
@@ -921,6 +1145,7 @@ Todos los folios se generan automáticamente en `save()` con el patrón `PREFIJO
 | `SalidaAlmacen` | `SAL` | `SAL-20260227-001` |
 | `SalidaRapidaConsumible` | `CON` | `CON-20260227-001` |
 | `AsignacionDirectaAlmacen` | `ADI` | `ADI-20260227-001` |
+| `AsignacionSalida` | `ASG` | `ASG-20260227-001` |
 | `ReporteFalla` | `RF` | `RF-20260227-001` |
 
 **Algoritmo:** Busca el `Max(folio)` del día → extrae sufijo numérico → incrementa → formato `{n:03d}`.
@@ -972,9 +1197,9 @@ Todos los folios se generan automáticamente en `save()` con el patrón `PREFIJO
 operadores ──────────────────────────────────────┐
                                                  ▼
 unidades ──── bitacoras ──── combustible         taller
-    │                            │                 │
-    │                        alertas           piezas ──── compras.Requisicion
-    │                        combustible           │           │
+    │              │             │                 │
+    │           cliente      alertas           piezas ──── compras.Requisicion
+    │        (notif. Twilio) combustible           │           │
     │                                          historial   compras.OrdenCompra
     └─── cargas_combustible                                    │
     │                                                     recepciones
@@ -986,6 +1211,12 @@ unidades ──── bitacoras ──── combustible         taller
     │                                                       │
     └─── AsignacionDirectaAlmacen                      MovimientoAlmacen (audit)
                                                        AlertaStock (automática)
+
+equipos / dollys / caja_seca ──► almacen.AsignacionSalida ──► ItemAsignacionSalida ──► ProductoAlmacen.cantidad
+                                        (tipo_destino: UNIDAD/EQUIPO/DOLLY/CAJA_SECA/OTRO)
+
+almacen.{ProductoAlmacen, EntradaAlmacen, SolicitudSalida, SalidaAlmacen,
+         SalidaRapidaConsumible, AsignacionDirectaAlmacen, AsignacionSalida} ──► AuditoriaAlmacen (audit trail)
 ```
 
 ---
@@ -1047,13 +1278,18 @@ python manage.py shell
 
 # Comandos custom — datos iniciales
 python manage.py load_operadores              # operadores: carga inicial desde datos
-python manage.py load_unidades               # unidades: carga inicial desde datos
+python manage.py load_unidades                # unidades: carga inicial desde datos
 python manage.py cargar_productos_csv         # almacen: carga masiva de productos
 python manage.py generar_checklist_default    # taller: crea ítems de checklist por defecto
+python manage.py load_caja_seca --csv <ruta> [--dry-run]   # caja_seca: carga inicial desde CSV
+python manage.py load_dollys                  # dollys: carga inicial
+python manage.py load_equipos                 # equipos: carga inicial
 
 # Reportes automáticos
 python manage.py runscheduler                 # inicia scheduler (proceso bloqueante)
 python manage.py test_reportes                # prueba manual de reportes
+python manage.py generar_reportes [--forzar-id N] [--dry-run]     # módulo reportes: ejecuta reportes programados debidos
+python manage.py reenviar_reporte_wa [--listar] [--reporte-id N | --config-id N] [--dry-run]  # reenvía un reporte solo por WhatsApp (WAHA)
 ```
 
 ---
@@ -1074,10 +1310,25 @@ SPACES_BUCKET_NAME=...
 SPACES_REGION=sfo3
 SPACES_CDN_ENDPOINT=...
 # IAKasu — Inteligencia Artificial
-ANTHROPIC_API_KEY=...                      # Anthropic API para Claude (análisis de anomalías)
+ANTHROPIC_API_KEY=...                      # Anthropic API para Claude (análisis de anomalías + narrativas de reportes)
 IA_HABILITADA=True
 IA_SCORE_MINIMO_CLAUDE=ALTO
-IA_ALERTAS_COMBUSTIBLE_EMAILS=gerencia.general@transporteskasu.com.mx,f.suarez@loginco.com.mx
+IA_ALERTAS_COMBUSTIBLE_EMAILS=gerencia.general@transporteskasu.com.mx,f.suarez@loginco.com.mx,administracion@transporteskasu.com.mx,xoyocl2@gmail.com
+# OpenWA / WAHA — WhatsApp self-hosted (alertas internas al administrador)
+WA_API_URL=...
+WA_API_KEY=...
+WA_SESSION_ID=...
+WA_ADMIN_CHAT=...
+WA_WEBHOOK_SECRET=...
+WA_ALLOWED_NUMBERS=5217531234567,...
+WA_REPORTES_ENABLED=True
+# Twilio — WhatsApp Content API + email a clientes de bitácora
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_WHATSAPP_FROM=whatsapp:+1...
+TWILIO_CONTENT_SID_BITACORA=...
+# Notificaciones de autorización de salidas de almacén (opcional, tiene default)
+ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com
 ```
 
 ---
@@ -1113,9 +1364,12 @@ apscheduler==3.11.2               # Scheduler de tareas
 django-apscheduler==0.7.0         # Integración Django + APScheduler
 anthropic==0.94.1                 # SDK oficial Anthropic — IAKasu (Claude API)
 sendgrid==6.12.5                  # Email transaccional
+twilio==9.10.9                    # WhatsApp Content API + notificaciones a clientes de bitácora
 whitenoise                        # Static files (producción)
 gunicorn                          # WSGI server
 ```
+
+*(WAHA/OpenWA no requiere paquete propio — se consume vía `requests` HTTP directo contra el servidor WAHA autoalojado.)*
 
 ---
 
@@ -1235,4 +1489,12 @@ Los mensajes de error van en `<p role="alert" class="mt-1 text-xs text-red-600 .
 
 ---
 
-*Última actualización: 2026-04-17 (OCR Vision API + AlertaCombustible KILOMETRAJE_MENOR + ReporteFalla módulo taller + ServicioMantenimiento/ReporteTaller services + módulo reportes completo + RF- folio + GOOGLE_VISION_API_KEY + Sistema de Diseño UI)*
+## Pendiente de Implementación
+
+### Reporte de utilidad/pérdida por unidad (`finanzas`)
+
+Spec de diseño aprobada pero **aún no implementada**: `docs/superpowers/specs/2026-08-04-utilidad-por-unidad-design.md`. Diseña una nueva app `modulos/finanzas` con modelos `TarifaKilometro` y `PrecioDiesel` (tarifa/precio único global con vigencia por fecha), snapshots `BitacoraViaje.ingreso_calculado` y `CargaCombustible.costo_calculado`, agregación de costos por unidad (con exclusión explícita de piezas de almacén ya contabilizadas en `OrdenTrabajo.costo_total_real` para evitar doble conteo), y una vista de reporte en `UnidadAdmin` con filtro por fecha, tabla por unidad, totales y export a Excel. El sistema actualmente **no tiene ningún campo monetario de ingreso por viaje ni costo de combustible** — solo litros y kilometraje.
+
+---
+
+*Última actualización: 2026-08-10 (módulos `caja_seca`/`dollys`/`equipos` + `almacen.AsignacionSalida`/`AuditoriaAlmacen` + reporte `ALMACEN_ANALISIS_INTEGRAL` con narrativa IA + reporte `FLOTA_VIGENCIAS` + `bitacoras.Cliente` + notificaciones WhatsApp/email vía Twilio + carga masiva y exportación de bitácoras + Excel multi-hoja genérico + WAHA (`whatsapp_service.py`) + `CurrentUserMiddleware` + datalist de categoría/subcategoría en productos de almacén + spec pendiente de reporte de utilidad por unidad)*

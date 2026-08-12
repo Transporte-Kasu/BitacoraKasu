@@ -190,6 +190,15 @@ class CargaCombustible(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    costo_calculado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="cantidad_litros × precio de diésel mensual vigente al completar la carga",
+        verbose_name="Costo calculado",
+    )
+
     class Meta:
         verbose_name = "Carga de Combustible"
         verbose_name_plural = "Cargas de Combustible"
@@ -213,6 +222,14 @@ class CargaCombustible(models.Model):
         if self.estado == 'COMPLETADO' and self.unidad:
             self.unidad.kilometraje_actual = self.kilometraje_actual
             self.unidad.save(update_fields=['kilometraje_actual'])
+
+        # Calcular costo de la carga según precio de diésel mensual vigente
+        if self.estado == 'COMPLETADO' and self.costo_calculado is None:
+            from modulos.finanzas.models import PrecioDieselMensual
+
+            precio = PrecioDieselMensual.vigente_en(self.fecha_hora_inicio.date())
+            if precio:
+                self.costo_calculado = self.cantidad_litros * precio.precio_promedio_litro
 
         super().save(*args, **kwargs)
 

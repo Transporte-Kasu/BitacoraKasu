@@ -1,0 +1,298 @@
+[
+  {
+    "id": 579,
+    "sku": "KASU-0271",
+    "descripcion": "ALARMA DE REVERSA",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 357,
+    "sku": "KASU-0071",
+    "descripcion": "BATERIA LTH 17 PLACAS DE TORNILLO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 594,
+    "sku": "KASU-0132",
+    "descripcion": "CABLE MACHO NEGRO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 568,
+    "sku": "KASU-0258",
+    "descripcion": "CONECTOR HEMBRA",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 567,
+    "sku": "KASU-0257",
+    "descripcion": "CONECTOR MACHO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 574,
+    "sku": "KASU-0267",
+    "descripcion": "FOCO DE PELLIZCO 3157A",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 570,
+    "sku": "KASU-0261",
+    "descripcion": "FOCO HALÓGENO 9006",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 557,
+    "sku": "KASU-0247",
+    "descripcion": "PLAFON 2.5\" AMBAR",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 556,
+    "sku": "KASU-0246",
+    "descripcion": "PLAFON 2.5\" ROJO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 555,
+    "sku": "KASU-0245",
+    "descripcion": "PLAFON 2\" AMBAR",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 554,
+    "sku": "KASU-0244",
+    "descripcion": "PLAFON 2\" ROJO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 558,
+    "sku": "KASU-0248",
+    "descripcion": "PLAFON 4\" AMBAR",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 520,
+    "sku": "KASU-0243",
+    "descripcion": "PLAFÓN 4\" ROJO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 560,
+    "sku": "KASU-0250",
+    "descripcion": "PLAFON OVALADO AMBAR",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 559,
+    "sku": "KASU-0249",
+    "descripcion": "PLAFON OVALADO ROJO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 562,
+    "sku": "KASU-0252",
+    "descripcion": "PLAFON TIPO CAJA AMBAR",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 561,
+    "sku": "KASU-0251",
+    "descripcion": "PLAFON TIPO CAJA ROJO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 584,
+    "sku": "KASU-0273",
+    "descripcion": "PORTA FUSIBLE",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 422,
+    "sku": "KASU-0158",
+    "descripcion": "PUENTE PARA BATERÍA NEGRO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 423,
+    "sku": "KASU-0159",
+    "descripcion": "PUENTE PARA BATERÍA ROJO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 553,
+    "sku": "KASU-0259",
+    "descripcion": "RELEVADOR 4T",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 593,
+    "sku": "KASU-0283",
+    "descripcion": "ROLLO CABLE CAL. 16 (30m)",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "BOLSA"
+  },
+  {
+    "id": 399,
+    "sku": "KASU-0112",
+    "descripcion": "SELENOIDE DE ARRANQUE P/FORD",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 585,
+    "sku": "KASU-0274",
+    "descripcion": "SELENOIDE P/FAN CLUTCH BENDIX",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 598,
+    "sku": "KASU-0287",
+    "descripcion": "SENSOR DE TEMPERATURA DIFERENCIAL",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 583,
+    "sku": "KASU-0272",
+    "descripcion": "SWITCH 1 PASO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 415,
+    "sku": "KASU-0136",
+    "descripcion": "SWITCH UNIVERSAL DE TERMINALES",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 573,
+    "sku": "KASU-0266",
+    "descripcion": "TORRETA 4 MODULOS PULIDO",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 564,
+    "sku": "KASU-0254",
+    "descripcion": "UNIDAD FARO H4651",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 563,
+    "sku": "KASU-0253",
+    "descripcion": "UNIDAD FARO H4656",
+    "categoria": "Eléctrico",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 344,
+    "sku": "KASU-0058",
+    "descripcion": "ALTERNADOR 12V DELCO REMY",
+    "categoria": "Eléctrico",
+    "subcategoria": "Arranque",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 352,
+    "sku": "KASU-0066",
+    "descripcion": "ALTERNADOR 12V DELCO REMY P/MOTOR DETROIT",
+    "categoria": "Eléctrico",
+    "subcategoria": "Arranque",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 351,
+    "sku": "KASU-0065",
+    "descripcion": "ALTERNADOR 12V (REPARADO)",
+    "categoria": "Eléctrico",
+    "subcategoria": "Arranque",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 345,
+    "sku": "KASU-0059",
+    "descripcion": "ALTERNADOR P/MOTONIVELADORA",
+    "categoria": "Eléctrico",
+    "subcategoria": "Arranque",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 353,
+    "sku": "KASU-0067",
+    "descripcion": "MARCHA 39MT DELCO REMY",
+    "categoria": "Eléctrico",
+    "subcategoria": "Arranque",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 354,
+    "sku": "KASU-0068",
+    "descripcion": "MARCHA 39MT DELCO REMY P/MOTOR DETROIT",
+    "categoria": "Eléctrico",
+    "subcategoria": "Arranque",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 343,
+    "sku": "KASU-0057",
+    "descripcion": "MARCHA 42MT DELCO REMY",
+    "categoria": "Eléctrico",
+    "subcategoria": "Arranque",
+    "unidad_medida": "Pieza"
+  }
+]

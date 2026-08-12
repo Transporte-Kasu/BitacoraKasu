@@ -1,0 +1,146 @@
+[
+  {
+    "id": 319,
+    "sku": "KASU-0033",
+    "descripcion": "FILTRO DE AIRE P/CABINA FLTC26430IN",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 337,
+    "sku": "KASU-0051",
+    "descripcion": "FILTRO DE COMBUSTIBLE S/N",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "Pieza"
+  },
+  {
+    "id": 289,
+    "sku": "KASU-0003",
+    "descripcion": "SERVICIO ECO 03",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 290,
+    "sku": "KASU-0004",
+    "descripcion": "SERVICIO ECO 06",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 291,
+    "sku": "KASU-0005",
+    "descripcion": "SERVICIO ECO 08",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 292,
+    "sku": "KASU-0006",
+    "descripcion": "SERVICIO ECO 09",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 293,
+    "sku": "KASU-0007",
+    "descripcion": "SERVICIO ECO 12",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 294,
+    "sku": "KASU-0008",
+    "descripcion": "SERVICIO ECO 13",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 295,
+    "sku": "KASU-0009",
+    "descripcion": "SERVICIO ECO 14",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 296,
+    "sku": "KASU-0010",
+    "descripcion": "SERVICIO ECO 15",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 297,
+    "sku": "KASU-0011",
+    "descripcion": "SERVICIO ECO 16",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 298,
+    "sku": "KASU-0012",
+    "descripcion": "SERVICIO ECO 17",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 299,
+    "sku": "KASU-0013",
+    "descripcion": "SERVICIO ECO 18",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 300,
+    "sku": "KASU-0014",
+    "descripcion": "SERVICIO ECO 19",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 301,
+    "sku": "KASU-0015",
+    "descripcion": "SERVICIO ECO 20",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 302,
+    "sku": "KASU-0016",
+    "descripcion": "SERVICIO ECO 21",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 303,
+    "sku": "KASU-0017",
+    "descripcion": "SERVICIO ECO 22",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  },
+  {
+    "id": 304,
+    "sku": "KASU-0018",
+    "descripcion": "SERVICIO ECO 27",
+    "categoria": "Filtros",
+    "subcategoria": "",
+    "unidad_medida": "KIT"
+  }
+]

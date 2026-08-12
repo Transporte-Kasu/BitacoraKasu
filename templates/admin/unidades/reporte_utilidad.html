@@ -1,0 +1,153 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Reporte de Utilidad por Unidad | Admin{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  .reporte-wrapper { max-width: 1400px; margin: 0 auto; padding: 20px 10px; }
+
+  .reporte-breadcrumb { margin-bottom: 16px; font-size: 13px; color: #666; }
+  .reporte-breadcrumb a { color: #417690; text-decoration: none; }
+  .reporte-breadcrumb a:hover { text-decoration: underline; }
+
+  .reporte-header { display: flex; align-items: center; justify-content: space-between;
+                    flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .reporte-titulo { font-size: 22px; font-weight: 700; color: #1F4E79; margin: 0; }
+
+  .filtro-card { background: #F0F6FF; border: 1px solid #C7DCEF; border-radius: 8px;
+                 padding: 16px 20px; margin-bottom: 24px; }
+  .filtro-card form { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .filtro-grupo { display: flex; flex-direction: column; gap: 4px; }
+  .filtro-grupo label { font-size: 12px; font-weight: 600; color: #417690; }
+  .filtro-grupo input[type="date"] {
+    border: 1px solid #C7DCEF; border-radius: 5px; padding: 7px 10px;
+    font-size: 13px; color: #333; background: white;
+  }
+  .btn-filtrar {
+    background: #1F4E79; color: white; border: none; padding: 8px 18px;
+    border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .btn-filtrar:hover { background: #17406A; }
+  .btn-excel {
+    background: #1A6B3C; color: white; border: none; padding: 8px 18px;
+    border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-excel:hover { background: #145530; color: white; }
+
+  .aviso-cobertura { background: #FFF3CD; border: 1px solid #FDE68A; border-radius: 8px;
+                      padding: 10px 16px; margin-bottom: 20px; font-size: 13px; color: #92400E; }
+
+  .tabla-card { background: white; border: 1px solid #E5E7EB; border-radius: 10px;
+                padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .tabla-responsive { overflow-x: auto; }
+  table.reporte-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.reporte-tabla thead th {
+    background: #1F4E79; color: white; padding: 9px 12px;
+    text-align: left; font-weight: 600; white-space: nowrap;
+  }
+  table.reporte-tabla tbody tr:nth-child(even) { background: #F0F6FF; }
+  table.reporte-tabla tbody tr:hover { background: #DBEAFE; }
+  table.reporte-tabla tbody td { padding: 8px 12px; border-bottom: 1px solid #E5E7EB; text-align: right; }
+  table.reporte-tabla tbody td:first-child { text-align: left; font-weight: 600; }
+  table.reporte-tabla tfoot td { padding: 10px 12px; font-weight: 700; border-top: 2px solid #1F4E79; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+  .badge-verde { background: #D1FAE5; color: #065F46; }
+  .badge-rojo { background: #FEE2E2; color: #991B1B; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reporte-wrapper">
+  <div class="reporte-breadcrumb">
+    <a href="{% url 'admin:index' %}">Inicio</a> ›
+    <a href="{% url 'admin:unidades_unidad_changelist' %}">Unidades</a> ›
+    Reporte de Utilidad
+  </div>
+
+  <div class="reporte-header">
+    <h1 class="reporte-titulo">💰 Reporte de Utilidad por Unidad</h1>
+    <a class="btn-excel"
+       href="{% url 'admin:unidades_unidad_reporte_utilidad_excel' %}?desde={{ desde|date:'Y-m-d' }}&hasta={{ hasta|date:'Y-m-d' }}">
+       📥 Exportar a Excel
+    </a>
+  </div>
+
+  <div class="filtro-card">
+    <form method="get">
+      <div class="filtro-grupo">
+        <label for="desde">Desde</label>
+        <input type="date" id="desde" name="desde" value="{{ desde|date:'Y-m-d' }}">
+      </div>
+      <div class="filtro-grupo">
+        <label for="hasta">Hasta</label>
+        <input type="date" id="hasta" name="hasta" value="{{ hasta|date:'Y-m-d' }}">
+      </div>
+      <button type="submit" class="btn-filtrar">Filtrar</button>
+    </form>
+  </div>
+
+  {% if bitacoras_excluidas or cargas_excluidas %}
+  <div class="aviso-cobertura">
+    ⚠️ En este rango quedaron fuera del cálculo {{ bitacoras_excluidas }} bitácora(s) sin tarifa vigente
+    y {{ cargas_excluidas }} carga(s) de combustible sin precio de diésel vigente.
+    Captura una <code>TarifaKilometro</code> y/o una <code>RecepcionPipa</code> con fecha anterior para cubrirlas.
+  </div>
+  {% endif %}
+
+  <div class="tabla-card">
+    <div class="tabla-responsive">
+      <table class="reporte-tabla">
+        <thead>
+          <tr>
+            <th>Unidad</th>
+            <th>Ingresos</th>
+            <th>Gasto Combustible</th>
+            <th>Gasto Taller</th>
+            <th>Gasto Consumibles</th>
+            <th>Gasto Total</th>
+            <th>Utilidad $</th>
+            <th>Utilidad %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in filas %}
+          <tr>
+            <td>{{ fila.unidad.numero_economico }}</td>
+            <td>${{ fila.ingresos|floatformat:2 }}</td>
+            <td>${{ fila.gasto_combustible|floatformat:2 }}</td>
+            <td>${{ fila.gasto_taller|floatformat:2 }}</td>
+            <td>${{ fila.gasto_consumibles|floatformat:2 }}</td>
+            <td>${{ fila.gasto_total|floatformat:2 }}</td>
+            <td>
+              {% if fila.utilidad >= 0 %}
+                <span class="badge badge-verde">${{ fila.utilidad|floatformat:2 }}</span>
+              {% else %}
+                <span class="badge badge-rojo">${{ fila.utilidad|floatformat:2 }}</span>
+              {% endif %}
+            </td>
+            <td>{% if fila.utilidad_pct is not None %}{{ fila.utilidad_pct|floatformat:1 }}%{% else %}—{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" style="text-align:center; color:#6B7280;">No hay unidades activas.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>TOTAL</td>
+            <td>${{ totales.ingresos|floatformat:2 }}</td>
+            <td>${{ totales.gasto_combustible|floatformat:2 }}</td>
+            <td>${{ totales.gasto_taller|floatformat:2 }}</td>
+            <td>${{ totales.gasto_consumibles|floatformat:2 }}</td>
+            <td>${{ totales.gasto_total|floatformat:2 }}</td>
+            <td>${{ totales.utilidad|floatformat:2 }}</td>
+            <td>—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

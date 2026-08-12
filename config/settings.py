@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'modulos.equipos',
     'modulos.dollys',
     'modulos.caja_seca',
+    'modulos.finanzas',
 ]
 
 MIDDLEWARE = [

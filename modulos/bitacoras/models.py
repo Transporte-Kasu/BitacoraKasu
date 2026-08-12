@@ -222,6 +222,14 @@ class BitacoraViaje(models.Model):
         default=False,
         verbose_name="Viaje completado"
     )
+    ingreso_calculado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="distancia_efectiva × tarifa por km vigente al completar el viaje",
+        verbose_name="Ingreso calculado",
+    )
     
     # Metadatos
     created_at = models.DateTimeField(auto_now_add=True)
@@ -399,7 +407,15 @@ class BitacoraViaje(models.Model):
         # Marcar como completado si tiene fecha de llegada
         if self.fecha_llegada and not self.completado:
             self.completado = True
-        
+
+        # Calcular ingreso del viaje según tarifa vigente al completarse
+        if self.completado and self.ingreso_calculado is None:
+            from modulos.finanzas.models import TarifaKilometro
+
+            tarifa = TarifaKilometro.vigente_en(self.fecha_llegada.date())
+            if tarifa and self.distancia_efectiva:
+                self.ingreso_calculado = self.distancia_efectiva * tarifa.valor
+
         # Actualizar kilometraje de la unidad al completar el viaje
         if self.completado and self.kilometraje_llegada:
             if self.kilometraje_llegada > self.unidad.kilometraje_actual:

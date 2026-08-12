@@ -1,0 +1,128 @@
+[
+  {
+    "id": 319,
+    "sku": "KASU-0033",
+    "precio_mxn": 150.72,
+    "fuente": "bpartes.com.mx - Filtro de aire para cabina Fleetguard AF26430 (equivalencia cruzada con International FLTC26430IN, Donaldson P614221, Baldwin PA4985, WIX 24316); precio antes de IVA. Referencia adicional: Amsa Tienda en Linea $164.27 MXN, Donaldson P614221 $212.63 MXN.",
+    "confianza": "alta"
+  },
+  {
+    "id": 337,
+    "sku": "KASU-0051",
+    "precio_mxn": 420,
+    "fuente": "Estimado por rango de mercado: coleccion 'Filtro de combustible separador Donaldson' en bpartes.com.mx (20 SKUs distintos, rango $138.88-$649.04 MXN antes de IVA); se tomo la mediana (~$422) al no especificar numero de parte (S/N). Referencia cruzada: Fleetguard FS19732 $675.37 MXN (Grupo Adams) a $1,069 MXN (Walmart Mexico).",
+    "confianza": "media"
+  },
+  {
+    "id": 289,
+    "sku": "KASU-0003",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes: No se encontro el kit 'SERVICIO ECO 03' publicado (probable clave interna de la flotilla por unidad economica, modelo/motor no especificado). Estimacion = promedio de 3 kits reales de mantenimiento diesel pesado en bpartes.com.mx (cada uno con filtro de aceite + filtro de aire + 2 filtros de combustible, antes de IVA): Donaldson X012280 Freightliner Cascadia/Detroit DD13-15-16 $5,208.00; Donaldson X012281 International LT/Cummins X15 $3,806.25; kit Kenworth T680/Cummins X15+Davco 382 $4,730.79 -> promedio $4,581.68; mas un filtro de cabina tipico Fleetguard AF26430 $150.72. Total estimado $4,732 MXN antes de IVA. El precio real puede variar segun el motor/unidad especifico.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 290,
+    "sku": "KASU-0004",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que KASU-0003 / id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx -Freightliner Cascadia Detroit DD13-15-16 $5,208.00, International LT Cummins X15 $3,806.25, Kenworth T680 Cummins X15 $4,730.79- mas filtro de cabina Fleetguard AF26430 $150.72, antes de IVA). No se encontro kit 'SERVICIO ECO 06' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 291,
+    "sku": "KASU-0005",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 08' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 292,
+    "sku": "KASU-0006",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 09' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 293,
+    "sku": "KASU-0007",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 12' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 294,
+    "sku": "KASU-0008",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 13' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 295,
+    "sku": "KASU-0009",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 14' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 296,
+    "sku": "KASU-0010",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 15' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 297,
+    "sku": "KASU-0011",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 16' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 298,
+    "sku": "KASU-0012",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 17' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 299,
+    "sku": "KASU-0013",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 18' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 300,
+    "sku": "KASU-0014",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 19' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 301,
+    "sku": "KASU-0015",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 20' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 302,
+    "sku": "KASU-0016",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 21' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 303,
+    "sku": "KASU-0017",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 22' publicado.",
+    "confianza": "estimado"
+  },
+  {
+    "id": 304,
+    "sku": "KASU-0018",
+    "precio_mxn": 4732,
+    "fuente": "estimado por componentes (misma metodologia que id 289: promedio de 3 kits reales de mantenimiento diesel pesado bpartes.com.mx mas filtro de cabina, antes de IVA). No se encontro kit 'SERVICIO ECO 27' publicado.",
+    "confianza": "estimado"
+  }
+]

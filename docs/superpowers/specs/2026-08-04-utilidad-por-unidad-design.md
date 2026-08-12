@@ -9,7 +9,7 @@
 
 Dar visibilidad, desde una sola vista en el admin de Django, de qué unidades (vehículos) generan utilidad y cuáles generan pérdida, cruzando ingresos de viaje (bitácoras) contra gastos de combustible, taller y consumibles de almacén.
 
-**Hallazgo que condiciona el diseño:** hoy no existe ningún dato de ingreso en el sistema (`BitacoraViaje`/`Cliente` no tienen tarifa/flete) ni de costo monetario de combustible (`CargaCombustible` solo registra litros). Este diseño agrega ambos antes de poder calcular utilidad real, siguiendo el modelo de negocio confirmado por el usuario: **tarifa única global por kilómetro**, y **precio de diesel global configurable**, ambos con historial de vigencia para no alterar cálculos de períodos pasados cuando la tarifa cambie.
+**Hallazgo que condiciona el diseño:** hoy no existe ningún dato de ingreso en el sistema (`BitacoraViaje`/`Cliente` no tienen tarifa/flete) ni de costo monetario de combustible (`CargaCombustible` solo registra litros). Tampoco existe ningún modelo de "pipa" ni de tanque de almacenamiento — el combustible de la flotilla se abastece llenando un tanque propio mediante pipas periódicas, y el costo real por litro es el que cobra cada pipa (costo total pagado ÷ litros recibidos), no un valor fijo capturado a mano. Este diseño agrega ambos antes de poder calcular utilidad real, siguiendo el modelo de negocio confirmado por el usuario: **tarifa única global por kilómetro**, y **precio de diesel derivado de las compras reales de pipa, con historial mensual garantizado** (al menos un precio por mes, aunque no llegue pipa ese mes), para no alterar cálculos de períodos pasados cuando el costo cambie.
 
 No se borra ni se regenera ningún registro existente — todos los cambios son aditivos (modelos nuevos + campos nullable).
 
@@ -26,16 +26,46 @@ vigente_desde = models.DateField()
 activo = models.BooleanField(default=True)
 ```
 
-### `PrecioDiesel`
+`TarifaKilometro` con `Meta.ordering = ['-vigente_desde']` y un método de clase/manager `vigente_en(fecha)` que retorna el registro con `vigente_desde <= fecha` más reciente y `activo=True` (o `None` si no hay ninguno, ej. antes de la primera tarifa capturada). Se registra en `modulos/finanzas/admin.py` con CRUD estándar — cualquier usuario con permiso agrega una nueva tarifa vigente sin tocar código. `list_display` muestra `valor`, `vigente_desde`, `activo`.
+
+### `RecepcionPipa` (fuente real del costo de diésel)
+
+Registra cada recepción real de pipa que rellena el tanque de almacenamiento de la empresa — es la transacción de la que se deriva el precio, no un valor capturado a mano:
+
 ```python
-valor = models.DecimalField(max_digits=10, decimal_places=2)  # $/litro
-vigente_desde = models.DateField()
-activo = models.BooleanField(default=True)
+fecha = models.DateField()
+litros = models.DecimalField(max_digits=10, decimal_places=2)          # litros recibidos
+costo_total = models.DecimalField(max_digits=12, decimal_places=2)     # lo pagado a la pipa, factura completa
+proveedor = models.CharField(max_length=200, blank=True)               # texto libre; sin FK a compras.Proveedor por ahora (módulos desacoplados)
+factura = models.FileField(upload_to='combustible/pipas/%Y/%m/', null=True, blank=True)
+notas = models.TextField(blank=True)
+created_at = models.DateTimeField(auto_now_add=True)
 ```
 
-Ambos con `Meta.ordering = ['-vigente_desde']`. Se agrega un método de clase o manager helper `vigente_en(fecha)` en cada modelo que retorna el registro con `vigente_desde <= fecha` más reciente y `activo=True` (o `None` si no hay ninguno, ej. antes de la primera tarifa capturada).
+Propiedad `precio_litro` (no almacenada): `costo_total / litros`. Se registra en `modulos/finanzas/admin.py` con CRUD estándar — captura manual por cada pipa que llega, con su factura adjunta (mismo patrón de storage que `combustible/{type}/%Y/%m/` ya usado en el proyecto).
 
-Ambos modelos se registran en `modulos/finanzas/admin.py` con CRUD estándar de Django (sin vistas custom) — cualquier usuario con permiso agrega una nueva tarifa vigente sin tocar código. `list_display` muestra `valor`, `vigente_desde`, `activo`.
+### `PrecioDieselMensual` (histórico mensual, derivado)
+
+Fila agregada por mes calendario, para no tener que recorrer todas las `RecepcionPipa` cada vez que se calcula el costo de una carga:
+
+```python
+anio = models.PositiveIntegerField()
+mes = models.PositiveSmallIntegerField()  # 1-12
+litros_totales = models.DecimalField(max_digits=12, decimal_places=2)
+costo_total = models.DecimalField(max_digits=14, decimal_places=2)
+precio_promedio_litro = models.DecimalField(max_digits=10, decimal_places=4)  # costo_total / litros_totales, ponderado
+actualizado_en = models.DateTimeField(auto_now=True)
+
+class Meta:
+    unique_together = ('anio', 'mes')
+    ordering = ['-anio', '-mes']
+```
+
+Se recalcula automáticamente vía signal `post_save`/`post_delete` en `RecepcionPipa`: junta todas las `RecepcionPipa.fecha` dentro de ese `(anio, mes)`, suma `litros` y `costo_total`, y hace `update_or_create` del renglón mensual con el promedio ponderado. Así el histórico mensual siempre refleja las pipas capturadas ese mes, sin backfill manual.
+
+Método de clase `vigente_en(fecha)`: busca el renglón `(anio, mes)` de la fecha dada; si no existe (no llegó pipa ese mes), **hace carry-forward** al mes anterior más reciente que sí tenga renglón (garantiza al menos un precio disponible por mes desde que existe la primera pipa capturada, sin exigir que llegue pipa todos los meses); si no hay ningún mes anterior con datos, retorna `None`.
+
+`PrecioDieselMensual` se registra en el admin **solo de lectura** (sin permiso de alta/edición manual — es 100% derivado de `RecepcionPipa`), como tabla de auditoría del histórico mensual.
 
 ---
 
@@ -59,7 +89,9 @@ Nuevo campo:
 costo_calculado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 ```
 
-Misma lógica: al pasar `estado` a `COMPLETADO`, si `costo_calculado` es `None` y hay `PrecioDiesel.vigente_en(fecha)`, se calcula `costo_calculado = cantidad_litros * precio.valor`. Cargas pasadas quedan en `None`, sin backfill.
+Misma lógica: al pasar `estado` a `COMPLETADO`, si `costo_calculado` es `None` y hay `PrecioDieselMensual.vigente_en(fecha)`, se calcula `costo_calculado = cantidad_litros * precio.precio_promedio_litro` (con carry-forward al mes anterior con datos si el mes de la carga aún no tiene ninguna `RecepcionPipa`). Cargas pasadas quedan en `None`, sin backfill.
+
+Nota: el precio es mensual, no por carga individual — todas las cargas de un mismo mes usan el mismo `precio_promedio_litro`, aunque el precio real de la pipa haya cambiado a mitad de mes. Es una aproximación deliberada (granularidad mínima mensual, según lo pedido); si se necesitara precisión diaria más adelante, `RecepcionPipa` ya tiene la fecha exacta para refinar `vigente_en()` sin cambiar el resto del diseño.
 
 ---
 
@@ -106,7 +138,7 @@ Sigue la estructura visual de `templates/admin/combustible/reporte_estadisticas.
 
 | Cambio | Tipo |
 |---|---|
-| App `modulos/finanzas` (2 modelos nuevos) | Aditivo |
+| App `modulos/finanzas` (3 modelos nuevos: `TarifaKilometro`, `RecepcionPipa`, `PrecioDieselMensual`) | Aditivo |
 | `BitacoraViaje.ingreso_calculado` | Campo nuevo, `null=True` |
 | `CargaCombustible.costo_calculado` | Campo nuevo, `null=True` |
 
@@ -118,17 +150,17 @@ Ningún registro existente se modifica, borra ni regenera. Las migraciones son p
 
 | Archivo | Cambio |
 |---|---|
-| `modulos/finanzas/` (nueva app) | `models.py` (`TarifaKilometro`, `PrecioDiesel`), `admin.py`, `apps.py`, migración inicial |
+| `modulos/finanzas/` (nueva app) | `models.py` (`TarifaKilometro`, `RecepcionPipa`, `PrecioDieselMensual`), `admin.py`, `apps.py`, `signals.py` (recalcular `PrecioDieselMensual` en `post_save`/`post_delete` de `RecepcionPipa`), migración inicial |
 | `config/settings.py` | Agregar `modulos.finanzas` a `INSTALLED_APPS` |
 | `modulos/bitacoras/models.py` | Campo `ingreso_calculado` + lógica en `save()` |
 | `modulos/bitacoras/migrations/` | Nueva migración `AddField` |
-| `modulos/combustible/models.py` | Campo `costo_calculado` + lógica en `save()` |
+| `modulos/combustible/models.py` | Campo `costo_calculado` + lógica en `save()`, usando `PrecioDieselMensual.vigente_en()` |
 | `modulos/combustible/migrations/` | Nueva migración `AddField` |
 | `modulos/unidades/admin.py` | Nueva vista `reporte_utilidad_view` + `get_urls()` + botón en changelist |
 | `templates/admin/unidades/reporte_utilidad.html` | Nuevo template |
-| `modulos/finanzas/tests.py` | Tests de `vigente_en()` (historial de tarifas, casos límite de fecha) |
+| `modulos/finanzas/tests.py` | Tests de `TarifaKilometro.vigente_en()`; tests de `PrecioDieselMensual.vigente_en()` incluyendo carry-forward a mes sin pipas y caso sin ningún mes previo con datos; test de que el signal recalcula el promedio ponderado al agregar/borrar `RecepcionPipa` |
 | `modulos/bitacoras/tests.py` | Test de cálculo de `ingreso_calculado` al completar viaje |
-| `modulos/combustible/tests.py` | Test de cálculo de `costo_calculado` al completar carga |
+| `modulos/combustible/tests.py` | Test de cálculo de `costo_calculado` al completar carga, usando el precio mensual vigente |
 | `modulos/unidades/tests.py` | Test de agregación del reporte (evita doble conteo, totales correctos) |
 
 ---
@@ -140,3 +172,6 @@ Ningún registro existente se modifica, borra ni regenera. Las migraciones son p
 - Reporte histórico de utilidad para períodos anteriores a esta implementación (esos registros no tendrán ingreso/costo calculado).
 - Ajustes manuales de ingreso por viaje (descuentos, recargos) — el ingreso siempre se deriva de distancia × tarifa vigente.
 - Integración con el módulo `modulos/reportes` (generador programado/email/narrativa IA) — este reporte vive únicamente como vista bajo demanda en el admin de `Unidad`, no como `ConfiguracionReporte` programado. Se puede añadir después reutilizando los mismos cálculos.
+- Múltiples tanques de almacenamiento o pipas asignadas a una unidad/ruta específica — se asume un solo tanque de diésel compartido por toda la flotilla, así que el precio mensual derivado de `RecepcionPipa` es único y global, no por unidad.
+- Precio de diésel con granularidad diaria/por carga — la granularidad mínima garantizada es mensual (con carry-forward si un mes no tuvo pipas); todas las cargas del mismo mes usan el mismo `precio_promedio_litro`.
+- Vincular `RecepcionPipa` al flujo de `compras` (`Requisicion`/`OrdenCompra`/`Proveedor`) — por ahora es captura directa e independiente en `modulos/finanzas`, con `proveedor` como texto libre.
