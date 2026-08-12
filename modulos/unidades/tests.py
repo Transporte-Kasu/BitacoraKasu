@@ -14,7 +14,7 @@ from modulos.combustible.models import Despachador, CargaCombustible
 from modulos.operadores.models import Operador
 from modulos.taller.models import OrdenTrabajo, PiezaRequerida
 
-from .admin import calcular_reporte_utilidad
+from .services import calcular_reporte_utilidad
 from .models import Unidad
 
 
