@@ -27,6 +27,7 @@ class ConfiguracionReporte(models.Model):
         ('COMBUSTIBLE_ALERTAS',  'Combustible — Alertas de candado'),
         # Unidades
         ('UNIDADES_KILOMETRAJE', 'Unidades — Kilometraje de flota'),
+        ('UNIDADES_BALANZA_UTILIDAD', 'Unidades — Balanza de utilidad/pérdida por unidad'),
         # Flota (dollys, equipos, cajas secas)
         ('FLOTA_VIGENCIAS',      'Flota — Vigencias de dollys, equipos y cajas secas'),
     ]
