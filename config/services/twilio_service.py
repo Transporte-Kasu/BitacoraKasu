@@ -36,6 +36,22 @@ def _fecha_es(dt) -> str:
     return f"{dt.day} {_MESES[dt.month - 1]} {dt.year} {dt.strftime('%H:%M')}"
 
 
+def _var_info_carga(bitacora) -> str:
+    """{{1}} — Información de Carga (contenedores, tipo, peso)."""
+    es_full = bitacora.modalidad in ('FULL', 'LOCAL_FULL')
+    tipo = bitacora.tipo_contenedor or '-'
+    destino = (bitacora.destino or '-').upper()
+
+    if es_full and bitacora.contenedor_2:
+        contenedores = f"{bitacora.contenedor or '-'} / {bitacora.contenedor_2}"
+        especificaciones = f"Tipo {tipo} (ambos) con pesos de {bitacora.peso or '-'} y {bitacora.peso_2 or '-'} respectivamente"
+    else:
+        contenedores = bitacora.contenedor or '-'
+        especificaciones = f"Tipo {tipo} con peso de {bitacora.peso or '-'}t"
+
+    return f"Contenedores: {contenedores} | Especificaciones: {especificaciones} | Destino Final: {destino}"
+
+
 def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
     """
     Envía WhatsApp (template Twilio) + email al cliente con los datos del viaje.
@@ -47,18 +63,7 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
     # ── Construir variables del template (3 vars) ─────────────────────────────
     operador = bitacora.operador
     unidad = bitacora.unidad
-    es_full = bitacora.modalidad in ('FULL', 'LOCAL_FULL')
-    tipo = bitacora.tipo_contenedor or '-'
-    destino = (bitacora.destino or '-').upper()
-
-    # {{1}} — Información de Carga (una sola línea; Twilio no acepta \n en variables)
-    if es_full and bitacora.contenedor_2:
-        contenedores = f"{bitacora.contenedor or '-'} / {bitacora.contenedor_2}"
-        especificaciones = f"Tipo {tipo} (ambos) con pesos de {bitacora.peso or '-'} y {bitacora.peso_2 or '-'} respectivamente"
-    else:
-        contenedores = bitacora.contenedor or '-'
-        especificaciones = f"Tipo {tipo} con peso de {bitacora.peso or '-'}t"
-    var1 = f"Contenedores: {contenedores} | Especificaciones: {especificaciones} | Destino Final: {destino}"
+    var1 = _var_info_carga(bitacora)
 
     # {{2}} — Detalles del Traslado
     telefono = getattr(operador, 'telefono', '') or ''

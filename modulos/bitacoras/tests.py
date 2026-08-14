@@ -9,6 +9,7 @@ from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
 
 from .models import BitacoraViaje
+from config.services.twilio_service import _var_info_carga
 
 
 def _crear_unidad(numero_economico='ECO-001'):
@@ -78,3 +79,48 @@ class IngresoCalculadoTests(TestCase):
         viaje.save()
 
         self.assertIsNone(viaje.ingreso_calculado)
+
+
+class VarInfoCargaTests(TestCase):
+    def setUp(self):
+        self.unidad = _crear_unidad()
+        self.operador = _crear_operador()
+
+    def _crear_viaje(self, **overrides):
+        defaults = dict(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='LOCAL',
+            fecha_carga=_aware(2026, 6, 1),
+            fecha_salida=_aware(2026, 6, 1),
+            destino='Bodega Norte, Monterrey',
+            contenedor='MSKU1234567',
+            peso=Decimal('28.05'),
+            tipo_contenedor='40',
+        )
+        defaults.update(overrides)
+        return BitacoraViaje(**defaults)
+
+    def test_un_solo_contenedor(self):
+        viaje = self._crear_viaje()
+
+        resultado = _var_info_carga(viaje)
+
+        self.assertEqual(
+            resultado,
+            "Contenedores: MSKU1234567 | Especificaciones: Tipo 40 con peso de 28.05t | Destino Final: BODEGA NORTE, MONTERREY"
+        )
+
+    def test_modalidad_full_con_dos_contenedores(self):
+        viaje = self._crear_viaje(
+            modalidad='FULL',
+            contenedor_2='PONU8765436',
+            peso_2=Decimal('15.65'),
+        )
+
+        resultado = _var_info_carga(viaje)
+
+        self.assertEqual(
+            resultado,
+            "Contenedores: MSKU1234567 / PONU8765436 | Especificaciones: Tipo 40 (ambos) con pesos de 28.05 y 15.65 respectivamente | Destino Final: BODEGA NORTE, MONTERREY"
+        )
