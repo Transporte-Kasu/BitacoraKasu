@@ -234,6 +234,31 @@ class EnviarNotificacionOperadorTests(TestCase):
 
         self.assertFalse(resultado['wa_ok'])
 
+    @patch('config.services.twilio_service._twilio_client')
+    def test_horario_de_entrega_usa_hora_local_no_utc(self, mock_client_fn):
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+        viaje = BitacoraViaje.objects.create(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='LOCAL',
+            fecha_carga=_aware(2026, 6, 22, 8),
+            fecha_salida=_aware(2026, 6, 22, 17),
+            destino='Bodega Norte, Monterrey',
+            contenedor='MSKU1234567',
+            peso=Decimal('28.05'),
+            tipo_contenedor='40',
+            duracion_estimada=411,
+        )
+        viaje_desde_db = BitacoraViaje.objects.get(pk=viaje.pk)
+
+        resultado = enviar_notificacion_operador(viaje_desde_db)
+
+        self.assertTrue(resultado['wa_ok'])
+        kwargs = mock_messages.create.call_args.kwargs
+        variables = json.loads(kwargs['content_variables'])
+        self.assertIn('22 jun 2026 23:51', variables['2'])
+
 
 class NotificarOperadorViewTests(TestCase):
     def setUp(self):

@@ -3,6 +3,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum
 from django.http import JsonResponse, HttpResponse
@@ -364,6 +365,8 @@ class ClienteDeleteView(LoginRequiredMixin, DeleteView):
         return super().post(request, *args, **kwargs)
 
 
+@login_required
+@require_POST
 def enviar_notificacion_cliente(request, pk):
     """Envía WhatsApp + email al cliente asignado a la bitácora."""
     bitacora = get_object_or_404(BitacoraViaje, pk=pk)
@@ -389,6 +392,8 @@ def enviar_notificacion_cliente(request, pk):
     return redirect('bitacoras:detail', pk=pk)
 
 
+@login_required
+@require_POST
 def enviar_notificacion_operador(request, pk):
     """Envía WhatsApp al operador asignado a la bitácora."""
     bitacora = get_object_or_404(BitacoraViaje, pk=pk)

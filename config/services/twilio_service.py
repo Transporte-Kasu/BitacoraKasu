@@ -8,6 +8,7 @@ import json
 import logging
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone as dj_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +46,11 @@ _MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic
 
 
 def _fecha_es(dt) -> str:
-    """Formatea datetime como '22 jun 2026 17:00'."""
+    """Formatea datetime como '22 jun 2026 17:00' (convertido a hora local)."""
     if not dt:
         return '-'
+    if dj_timezone.is_aware(dt):
+        dt = dj_timezone.localtime(dt)
     return f"{dt.day} {_MESES[dt.month - 1]} {dt.year} {dt.strftime('%H:%M')}"
 
 
