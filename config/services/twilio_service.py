@@ -3,6 +3,7 @@ Twilio Service — envío de mensajes WhatsApp con plantillas Content API
 y correos electrónicos a clientes de bitácoras.
 """
 
+from datetime import timedelta
 import json
 import logging
 from django.conf import settings
@@ -132,6 +133,56 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
             logger.error("Error email para cliente %s: %s", cliente.nombre, exc)
     else:
         logger.warning("Cliente %s sin email — correo omitido.", cliente.nombre)
+
+    return resultado
+
+
+def enviar_notificacion_operador(bitacora) -> dict:
+    """
+    Envía WhatsApp (mismo template Twilio que cliente) al operador asignado
+    con los datos de su próximo viaje.
+
+    Returns dict con clave 'wa_ok' (bool).
+    """
+    resultado = {'wa_ok': False}
+    operador = bitacora.operador
+
+    var1 = _var_info_carga(bitacora)
+
+    # {{2}} — Detalles del Traslado (versión operador: destino + horario de entrega)
+    if bitacora.duracion_estimada:
+        hora_entrega = bitacora.fecha_salida + timedelta(minutes=bitacora.duracion_estimada)
+    else:
+        hora_entrega = bitacora.fecha_salida
+    destino = (bitacora.destino or '-').upper()
+    var2 = f"Destino: {destino} | Horario de entrega: {_fecha_es(hora_entrega)}"
+
+    # {{3}} — Notas Adicionales (igual que cliente)
+    obs = bitacora.observaciones or 'SIN CUSTODIA'
+    tipo_servicio = 'REPARTO' if bitacora.reparto else 'DIRECTO'
+    var3 = f"Servicio {tipo_servicio} ejecutado {obs}."
+
+    variables = {'1': var1, '2': var2, '3': var3}
+
+    telefono = (operador.telefono or '').strip()
+    if telefono and settings.TWILIO_CONTENT_SID_BITACORA:
+        try:
+            client = _twilio_client()
+            client.messages.create(
+                from_=settings.TWILIO_WHATSAPP_FROM,
+                to=_numero_wa_mx(telefono),
+                content_sid=settings.TWILIO_CONTENT_SID_BITACORA,
+                content_variables=json.dumps(variables, ensure_ascii=False),
+            )
+            resultado['wa_ok'] = True
+            logger.info("WA enviado a operador %s (%s)", operador.nombre, telefono)
+        except Exception as exc:
+            logger.error("Error WA Twilio para operador %s: %s", operador.nombre, exc)
+    else:
+        if not telefono:
+            logger.warning("Operador %s sin teléfono — WA omitido.", operador.nombre)
+        if not settings.TWILIO_CONTENT_SID_BITACORA:
+            logger.warning("TWILIO_CONTENT_SID_BITACORA no configurado.")
 
     return resultado
 
