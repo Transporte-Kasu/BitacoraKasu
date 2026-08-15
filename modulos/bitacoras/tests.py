@@ -263,6 +263,25 @@ class EnviarNotificacionOperadorTests(TestCase):
         variables = json.loads(kwargs['content_variables'])
         self.assertIn('22 jun 2026 23:51', variables['2'])
 
+    @patch('config.services.twilio_service._twilio_client')
+    def test_usa_fecha_hora_entrega_real_cuando_esta_presente(self, mock_client_fn):
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+        viaje = self._crear_viaje(
+            duracion_estimada=411,
+            fecha_hora_entrega=_aware(2026, 6, 25, 8),
+        )
+
+        resultado = enviar_notificacion_operador(viaje)
+
+        self.assertTrue(resultado['wa_ok'])
+        kwargs = mock_messages.create.call_args.kwargs
+        variables = json.loads(kwargs['content_variables'])
+        self.assertEqual(
+            variables['2'],
+            "Destino: BODEGA NORTE, MONTERREY | Horario de entrega: 25 jun 2026 08:00"
+        )
+
 
 class NotificarOperadorViewTests(TestCase):
     def setUp(self):

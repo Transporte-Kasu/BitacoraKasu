@@ -153,7 +153,9 @@ def enviar_notificacion_operador(bitacora) -> dict:
     var1 = _var_info_carga(bitacora)
 
     # {{2}} — Detalles del Traslado (versión operador: destino + horario de entrega)
-    if bitacora.duracion_estimada:
+    if bitacora.fecha_hora_entrega:
+        hora_entrega = bitacora.fecha_hora_entrega
+    elif bitacora.duracion_estimada:
         hora_entrega = bitacora.fecha_salida + timedelta(minutes=bitacora.duracion_estimada)
     else:
         hora_entrega = bitacora.fecha_salida
