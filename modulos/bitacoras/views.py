@@ -521,6 +521,7 @@ def carga_masiva_preview(request):
             observaciones         = request.POST.get(f'{p}observaciones', '').strip()
             fecha_sal_str = request.POST.get(f'{p}fecha_salida', '')
             fecha_car_str = request.POST.get(f'{p}fecha_carga', '')
+            fecha_entrega_str = request.POST.get(f'{p}fecha_hora_entrega', '').strip()
             tipo_cont     = request.POST.get(f'{p}tipo_contenedor', '40')
             operador_id   = request.POST.get(f'{p}operador', '').strip()
             unidad_id     = request.POST.get(f'{p}unidad', '').strip()
@@ -546,6 +547,7 @@ def carga_masiva_preview(request):
                 observaciones         = observaciones,
                 fecha_salida  = datetime.fromisoformat(fecha_sal_str),
                 fecha_carga   = datetime.fromisoformat(fecha_car_str),
+                fecha_hora_entrega = datetime.fromisoformat(fecha_entrega_str) if fecha_entrega_str else None,
                 tipo_contenedor = tipo_cont,
                 operador_id   = int(operador_id),
                 unidad_id     = int(unidad_id),

@@ -298,6 +298,11 @@ textarea.form-control { resize: vertical; min-height: 4.5rem; }
                                 <input type="datetime-local" name="v{{ idx }}_fecha_salida"
                                        value="{{ viaje.fecha_salida }}" class="form-control text-xs" required>
                             </div>
+                            <div>
+                                <label class="block text-[11px] text-slate-400 mb-0.5">Fecha y hora de entrega</label>
+                                <input type="datetime-local" name="v{{ idx }}_fecha_hora_entrega"
+                                       value="{{ viaje.fecha_hora_entrega }}" class="form-control text-xs">
+                            </div>
                         </div>
                     </div>
                 </div>

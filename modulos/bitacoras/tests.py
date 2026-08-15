@@ -418,3 +418,51 @@ class ParseConfirmacionExcelFechaHoraEntregaTests(TestCase):
 
         self.assertEqual(viajes[0]['fecha_hora_entrega'], '2026-06-25T00:00')
         self.assertEqual(viajes[0]['fecha_entrega_display'], '25/06/2026 00:00')
+
+
+class CargaMasivaFechaHoraEntregaTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username='tester_carga', password='clave-segura-123')
+        self.client.force_login(self.user)
+        self.unidad = _crear_unidad(numero_economico='ECO-500')
+        self.operador = _crear_operador()
+
+    def _datos_post(self, **overrides):
+        datos = {
+            'total_viajes': '1',
+            'v0_modalidad': 'SENCILLO',
+            'v0_contenedor': 'MSKU1234567',
+            'v0_peso': '28.05',
+            'v0_destino': 'Bodega Norte, Monterrey',
+            'v0_cp_destino': '90200',
+            'v0_fecha_salida': '2026-06-24T17:00',
+            'v0_fecha_carga': '2026-06-24T08:00',
+            'v0_tipo_contenedor': '40',
+            'v0_operador': str(self.operador.pk),
+            'v0_unidad': str(self.unidad.pk),
+        }
+        datos.update(overrides)
+        return datos
+
+    def test_post_con_fecha_hora_entrega_la_persiste(self):
+        response = self.client.post(
+            reverse('bitacoras:carga_masiva_preview'),
+            self._datos_post(v0_fecha_hora_entrega='2026-06-25T08:00'),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        viaje = BitacoraViaje.objects.get(contenedor='MSKU1234567')
+        self.assertEqual(
+            timezone.localtime(viaje.fecha_hora_entrega).strftime('%Y-%m-%d %H:%M'),
+            '2026-06-25 08:00'
+        )
+
+    def test_post_sin_fecha_hora_entrega_guarda_none(self):
+        response = self.client.post(
+            reverse('bitacoras:carga_masiva_preview'),
+            self._datos_post(),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        viaje = BitacoraViaje.objects.get(contenedor='MSKU1234567')
+        self.assertIsNone(viaje.fecha_hora_entrega)
