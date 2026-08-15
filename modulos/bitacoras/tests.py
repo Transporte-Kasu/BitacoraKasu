@@ -1,8 +1,10 @@
 import json
 from datetime import date, datetime
 from decimal import Decimal
+from io import BytesIO
 from unittest.mock import patch, MagicMock
 
+import openpyxl
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -13,6 +15,7 @@ from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
 
 from .models import BitacoraViaje
+from .excel_parser import _parse_fecha_entrega, parse_confirmacion_excel
 from config.services.twilio_service import _var_info_carga, _numero_wa_mx, enviar_notificacion_operador
 
 
@@ -352,3 +355,66 @@ class FechaHoraEntregaModeloTests(TestCase):
             timezone.localtime(viaje_desde_db.fecha_hora_entrega).strftime('%Y-%m-%d %H:%M'),
             '2026-06-25 08:00'
         )
+
+
+class ParseFechaEntregaTests(TestCase):
+    def test_con_hora(self):
+        resultado = _parse_fecha_entrega('25/06/2026    08:00 HRS')
+        self.assertEqual(resultado, datetime(2026, 6, 25, 8, 0))
+
+    def test_sin_hora_usa_medianoche(self):
+        resultado = _parse_fecha_entrega('25/06/2026')
+        self.assertEqual(resultado, datetime(2026, 6, 25, 0, 0))
+
+    def test_vacio_retorna_none(self):
+        self.assertIsNone(_parse_fecha_entrega(None))
+        self.assertIsNone(_parse_fecha_entrega(''))
+
+
+def _construir_excel_confirmacion(filas):
+    """Construye un .xlsx en memoria con el encabezado esperado por parse_confirmacion_excel."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    header = [
+        'FECHA ENTREGA / HORARIO', 'CONTENEDOR', 'CUSTODIA', 'DIRECCION CARTA PORTE',
+        'DIRECCION DE ENTREGA', 'MODALIDAD', 'CONTACTO BODEGA', 'CODIGO SAT',
+        'MERCANCIA', 'UNIDAD MEDIDA', 'CANTIDAD', 'PESOS (KG)', 'PEDIMENTO',
+    ]
+    ws.append(header)
+    for fila in filas:
+        ws.append(fila)
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+class ParseConfirmacionExcelFechaHoraEntregaTests(TestCase):
+    def test_expone_fecha_hora_entrega_y_display_con_hora(self):
+        archivo = _construir_excel_confirmacion([
+            [
+                '25/06/2026    08:00 HRS', 'MSKU1234567', 'CUSTORESCA',
+                'Dirección carta porte X', 'Bodega Norte CP 90200',
+                'SENCILLO', 'Juan', None, 'Caja fuerte', None, None, 28050, 'PED123',
+            ],
+        ])
+
+        viajes = parse_confirmacion_excel(archivo, '17:00', '08:00', '40')
+
+        self.assertEqual(len(viajes), 1)
+        self.assertEqual(viajes[0]['fecha_hora_entrega'], '2026-06-25T08:00')
+        self.assertEqual(viajes[0]['fecha_entrega_display'], '25/06/2026 08:00')
+
+    def test_fila_sin_hora_en_la_celda_expone_medianoche(self):
+        archivo = _construir_excel_confirmacion([
+            [
+                '25/06/2026', 'MSKU1234567', 'CUSTORESCA',
+                'Dirección carta porte X', 'Bodega Norte CP 90200',
+                'SENCILLO', 'Juan', None, 'Caja fuerte', None, None, 28050, 'PED123',
+            ],
+        ])
+
+        viajes = parse_confirmacion_excel(archivo, '17:00', '08:00', '40')
+
+        self.assertEqual(viajes[0]['fecha_hora_entrega'], '2026-06-25T00:00')
+        self.assertEqual(viajes[0]['fecha_entrega_display'], '25/06/2026 00:00')

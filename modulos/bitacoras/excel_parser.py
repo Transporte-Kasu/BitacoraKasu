@@ -18,7 +18,11 @@ def _parse_fecha_entrega(raw):
     if not m:
         return None
     day, month, year = m.groups()
-    return datetime(int(year), int(month), int(day))
+    hora, minuto = 0, 0
+    m_hora = re.search(r'(\d{1,2}):(\d{2})', s)
+    if m_hora:
+        hora, minuto = int(m_hora.group(1)), int(m_hora.group(2))
+    return datetime(int(year), int(month), int(day), hora, minuto)
 
 
 def parse_confirmacion_excel(file_obj, hora_salida_str, hora_carga_str, tipo_contenedor):
@@ -115,7 +119,8 @@ def parse_confirmacion_excel(file_obj, hora_salida_str, hora_carga_str, tipo_con
                 'cp_destino':            cp,
                 'domicilio_carta_porte': domicilio_carta_porte,
                 'cp_faltante':           not cp,
-                'fecha_entrega_display': fecha_entrega.strftime('%d/%m/%Y') if fecha_entrega else '',
+                'fecha_entrega_display': fecha_entrega.strftime('%d/%m/%Y %H:%M') if fecha_entrega else '',
+                'fecha_hora_entrega':    fecha_entrega.strftime('%Y-%m-%dT%H:%M') if fecha_entrega else '',
                 'fecha_salida':          fecha_salida.strftime('%Y-%m-%dT%H:%M') if fecha_salida else '',
                 'fecha_carga':           fecha_carga.strftime('%Y-%m-%dT%H:%M') if fecha_carga else '',
                 'observaciones':         '\n'.join(obs_parts),
