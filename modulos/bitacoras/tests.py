@@ -9,7 +9,7 @@ from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
 
 from .models import BitacoraViaje
-from config.services.twilio_service import _var_info_carga
+from config.services.twilio_service import _var_info_carga, _numero_wa_mx
 
 
 def _crear_unidad(numero_economico='ECO-001'):
@@ -124,3 +124,15 @@ class VarInfoCargaTests(TestCase):
             resultado,
             "Contenedores: MSKU1234567 / PONU8765436 | Especificaciones: Tipo 40 (ambos) con pesos de 28.05 y 15.65 respectivamente | Destino Final: BODEGA NORTE, MONTERREY"
         )
+
+
+class NumeroWaMxTests(TestCase):
+    def test_diez_digitos_antepone_codigo_pais(self):
+        self.assertEqual(_numero_wa_mx('7531573954'), 'whatsapp:+5217531573954')
+
+    def test_diez_digitos_con_espacios_y_guiones(self):
+        self.assertEqual(_numero_wa_mx('753 157 3954'), 'whatsapp:+5217531573954')
+        self.assertEqual(_numero_wa_mx('753-157-3954'), 'whatsapp:+5217531573954')
+
+    def test_numero_ya_con_codigo_de_pais_no_se_modifica(self):
+        self.assertEqual(_numero_wa_mx('+5217531573954'), 'whatsapp:+5217531573954')

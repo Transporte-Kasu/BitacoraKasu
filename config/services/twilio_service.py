@@ -26,6 +26,20 @@ def _numero_wa(celular: str) -> str:
     return numero
 
 
+def _numero_wa_mx(telefono: str) -> str:
+    """
+    Normaliza teléfono de operador a formato whatsapp:+521XXXXXXXXXX.
+    Si son 10 dígitos (formato actual de Operador.telefono), antepone
+    '521' (México + WhatsApp) automáticamente. Si ya trae código de país,
+    se respeta tal cual (mismo comportamiento que _numero_wa).
+    """
+    numero = telefono.strip().replace(' ', '').replace('-', '')
+    solo_digitos = numero.lstrip('+')
+    if solo_digitos.isdigit() and len(solo_digitos) == 10:
+        numero = '521' + solo_digitos
+    return _numero_wa(numero)
+
+
 _MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 
 
