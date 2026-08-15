@@ -213,6 +213,12 @@
                         <div class="dato-label">Fecha de Salida</div>
                         <div class="dato-valor">{{ bitacora.fecha_salida|date:"d/m/Y H:i" }}</div>
                     </div>
+                    {% if bitacora.fecha_hora_entrega %}
+                    <div class="dato-group">
+                        <div class="dato-label">Fecha/Hora de Entrega</div>
+                        <div class="dato-valor">{{ bitacora.fecha_hora_entrega|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    {% endif %}
                     {% if bitacora.fecha_llegada %}
                     <div class="dato-group col-span-2">
                         <div class="dato-label">Fecha de Llegada</div>

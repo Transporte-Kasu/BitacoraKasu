@@ -46,7 +46,7 @@ class BitacoraViajeAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Fechas', {
-            'fields': ('fecha_carga', 'fecha_salida', 'fecha_llegada', 'completado')
+            'fields': ('fecha_carga', 'fecha_salida', 'fecha_hora_entrega', 'fecha_llegada', 'completado')
         }),
         ('Combustible y Kilometraje', {
             'fields': (
