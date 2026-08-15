@@ -15,6 +15,7 @@ from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
 
 from .models import BitacoraViaje
+from .forms import BitacoraViajeForm
 from .excel_parser import _parse_fecha_entrega, parse_confirmacion_excel
 from config.services.twilio_service import _var_info_carga, _numero_wa_mx, enviar_notificacion_operador
 
@@ -466,3 +467,40 @@ class CargaMasivaFechaHoraEntregaTests(TestCase):
         self.assertEqual(response.status_code, 302)
         viaje = BitacoraViaje.objects.get(contenedor='MSKU1234567')
         self.assertIsNone(viaje.fecha_hora_entrega)
+
+
+class BitacoraViajeFormFechaHoraEntregaTests(TestCase):
+    def setUp(self):
+        self.unidad = _crear_unidad(numero_economico='ECO-600')
+        self.operador = _crear_operador()
+
+    def _datos_base(self, **overrides):
+        datos = dict(
+            modalidad='LOCAL',
+            operador=self.operador.pk,
+            unidad=self.unidad.pk,
+            fecha_carga='2026-06-22T08:00',
+            fecha_salida='2026-06-22T17:00',
+            contenedor='MSKU1234567',
+            tipo_contenedor='40',
+            peso='28.05',
+            cp_origen='40812',
+            destino='Bodega Norte, Monterrey',
+        )
+        datos.update(overrides)
+        return datos
+
+    def test_valido_sin_fecha_hora_entrega(self):
+        form = BitacoraViajeForm(data=self._datos_base())
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertIsNone(form.cleaned_data['fecha_hora_entrega'])
+
+    def test_valido_con_fecha_hora_entrega(self):
+        form = BitacoraViajeForm(data=self._datos_base(fecha_hora_entrega='2026-06-21T08:00'))
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(
+            form.cleaned_data['fecha_hora_entrega'].strftime('%Y-%m-%d %H:%M'),
+            '2026-06-21 08:00'
+        )

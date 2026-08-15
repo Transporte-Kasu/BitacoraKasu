@@ -29,6 +29,7 @@ class BitacoraViajeForm(forms.ModelForm):
             'salida_a_ruta',
             'fecha_carga',
             'fecha_salida',
+            'fecha_hora_entrega',
             # Contenedor 1
             'contenedor', 'tipo_contenedor', 'peso', 'sellos',
             # Contenedor 2 (solo FULL)
@@ -63,6 +64,10 @@ class BitacoraViajeForm(forms.ModelForm):
                 'type': 'datetime-local',
             }),
             'fecha_salida': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+            }),
+            'fecha_hora_entrega': forms.DateTimeInput(attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
             }),
