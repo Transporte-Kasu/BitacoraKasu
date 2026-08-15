@@ -314,3 +314,41 @@ class NotificarOperadorViewTests(TestCase):
 
         mensajes = [str(m) for m in response.context['messages']]
         self.assertTrue(any('No se pudo enviar' in m for m in mensajes))
+
+
+class FechaHoraEntregaModeloTests(TestCase):
+    def setUp(self):
+        self.unidad = _crear_unidad(numero_economico='ECO-400')
+        self.operador = _crear_operador()
+
+    def _crear_viaje(self, **overrides):
+        defaults = dict(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='LOCAL',
+            fecha_carga=_aware(2026, 6, 22, 8),
+            fecha_salida=_aware(2026, 6, 22, 17),
+            destino='Bodega Norte, Monterrey',
+            cp_origen='40812',
+        )
+        defaults.update(overrides)
+        return BitacoraViaje(**defaults)
+
+    def test_por_defecto_es_none(self):
+        viaje = self._crear_viaje()
+        viaje.save()
+
+        viaje_desde_db = BitacoraViaje.objects.get(pk=viaje.pk)
+
+        self.assertIsNone(viaje_desde_db.fecha_hora_entrega)
+
+    def test_se_guarda_y_recupera_correctamente(self):
+        viaje = self._crear_viaje(fecha_hora_entrega=_aware(2026, 6, 25, 8))
+        viaje.save()
+
+        viaje_desde_db = BitacoraViaje.objects.get(pk=viaje.pk)
+
+        self.assertEqual(
+            timezone.localtime(viaje_desde_db.fecha_hora_entrega).strftime('%Y-%m-%d %H:%M'),
+            '2026-06-25 08:00'
+        )

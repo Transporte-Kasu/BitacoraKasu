@@ -112,7 +112,12 @@ class BitacoraViaje(models.Model):
         blank=True,
         verbose_name="Fecha/hora de llegada"
     )
-    
+    fecha_hora_entrega = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fecha/hora de entrega",
+    )
+
     # Combustible y kilometraje (gestionados desde módulo combustible)
     diesel_cargado = models.DecimalField(
         max_digits=8,
