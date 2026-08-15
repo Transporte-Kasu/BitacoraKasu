@@ -18,6 +18,7 @@ urlpatterns = [
     path('<int:pk>/completar/', views.completar_viaje, name='completar'),
     path('<int:pk>/calcular-distancia/', views.calcular_distancia_ajax, name='calcular_distancia'),
     path('<int:pk>/notificar-cliente/', views.enviar_notificacion_cliente, name='notificar_cliente'),
+    path('<int:pk>/notificar-operador/', views.enviar_notificacion_operador, name='notificar_operador'),
 
     # CRUD clientes
     path('clientes/', views.ClienteListView.as_view(), name='cliente_list'),

@@ -389,6 +389,21 @@ def enviar_notificacion_cliente(request, pk):
     return redirect('bitacoras:detail', pk=pk)
 
 
+def enviar_notificacion_operador(request, pk):
+    """Envía WhatsApp al operador asignado a la bitácora."""
+    bitacora = get_object_or_404(BitacoraViaje, pk=pk)
+
+    from config.services.twilio_service import enviar_notificacion_operador as _enviar
+    resultado = _enviar(bitacora)
+
+    if resultado['wa_ok']:
+        messages.success(request, f"WhatsApp enviado a {bitacora.operador.nombre}.")
+    else:
+        messages.error(request, f"No se pudo enviar el WhatsApp a {bitacora.operador.nombre}. Verifica su teléfono y la configuración de Twilio.")
+
+    return redirect('bitacoras:detail', pk=pk)
+
+
 # ============================================================================
 # CARGA MASIVA DESDE EXCEL
 # ============================================================================

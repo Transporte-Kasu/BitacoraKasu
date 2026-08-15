@@ -3,7 +3,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from modulos.finanzas.models import TarifaKilometro
@@ -231,3 +233,59 @@ class EnviarNotificacionOperadorTests(TestCase):
         resultado = enviar_notificacion_operador(viaje)
 
         self.assertFalse(resultado['wa_ok'])
+
+
+class NotificarOperadorViewTests(TestCase):
+    def setUp(self):
+        # bitacoras:detail (redirect target) requiere login (LoginRequiredMixin).
+        self.user = get_user_model().objects.create_user(username='tester', password='clave-segura-123')
+        self.client.force_login(self.user)
+
+        self.unidad = _crear_unidad()
+        self.operador = Operador.objects.create(
+            nombre='Kevin Márquez', tipo='LOCAL', telefono='7531573954'
+        )
+        self.viaje = BitacoraViaje.objects.create(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='LOCAL',
+            fecha_carga=_aware(2026, 6, 22, 8),
+            fecha_salida=_aware(2026, 6, 22, 17),
+            destino='Bodega Norte, Monterrey',
+            contenedor='MSKU1234567',
+            peso=Decimal('28.05'),
+        )
+
+    @override_settings(TWILIO_CONTENT_SID_BITACORA='HXfake000000000000000000000000', TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+    @patch('config.services.twilio_service._twilio_client')
+    def test_post_exitoso_redirige_con_mensaje_de_exito(self, mock_client_fn):
+        mock_client_fn.return_value.messages = MagicMock()
+
+        response = self.client.post(reverse('bitacoras:notificar_operador', args=[self.viaje.pk]))
+
+        self.assertRedirects(response, reverse('bitacoras:detail', args=[self.viaje.pk]))
+
+    @override_settings(TWILIO_CONTENT_SID_BITACORA='HXfake000000000000000000000000', TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+    @patch('config.services.twilio_service._twilio_client')
+    def test_post_exitoso_incluye_mensaje_de_exito_en_response(self, mock_client_fn):
+        mock_client_fn.return_value.messages = MagicMock()
+
+        response = self.client.post(
+            reverse('bitacoras:notificar_operador', args=[self.viaje.pk]), follow=True
+        )
+
+        mensajes = [str(m) for m in response.context['messages']]
+        self.assertTrue(any('Kevin Márquez' in m and 'WhatsApp enviado' in m for m in mensajes))
+
+    def test_post_sin_telefono_muestra_mensaje_de_error_y_no_llama_twilio(self):
+        self.operador.telefono = ''
+        self.operador.save()
+
+        with patch('config.services.twilio_service._twilio_client') as mock_client_fn:
+            response = self.client.post(
+                reverse('bitacoras:notificar_operador', args=[self.viaje.pk]), follow=True
+            )
+            mock_client_fn.assert_not_called()
+
+        mensajes = [str(m) for m in response.context['messages']]
+        self.assertTrue(any('No se pudo enviar' in m for m in mensajes))
