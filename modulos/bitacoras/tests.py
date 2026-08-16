@@ -14,10 +14,17 @@ from modulos.finanzas.models import TarifaKilometro
 from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
 
-from .models import BitacoraViaje
+from .models import BitacoraViaje, Cliente
 from .forms import BitacoraViajeForm
 from .excel_parser import _parse_fecha_entrega, parse_confirmacion_excel
-from config.services.twilio_service import _var_info_carga, _numero_wa_mx, enviar_notificacion_operador
+from config.services.twilio_service import (
+    _var_info_carga,
+    _numero_wa_mx,
+    _sanitizar_texto,
+    enviar_notificacion_bitacora,
+    enviar_notificacion_operador,
+    _cuerpo_email,
+)
 
 
 def _crear_unidad(numero_economico='ECO-001'):
@@ -193,7 +200,7 @@ class EnviarNotificacionOperadorTests(TestCase):
         )
         self.assertEqual(
             variables['3'],
-            "Servicio DIRECTO ejecutado Custodia: CUSTORESCA\nContacto: LEIZOREK."
+            "Servicio DIRECTO ejecutado Custodia: CUSTORESCA | Contacto: LEIZOREK."
         )
 
     @patch('config.services.twilio_service._twilio_client')
@@ -545,3 +552,110 @@ class BitacoraViajeFormFechaHoraEntregaTests(TestCase):
         form = BitacoraViajeForm(instance=viaje_desde_db)
 
         self.assertIn('2026-06-25T08:00', str(form['fecha_hora_entrega']))
+
+
+class SanitizarTextoTests(TestCase):
+    def test_saltos_de_linea_se_convierten_en_separador_pipe(self):
+        resultado = _sanitizar_texto('Custodia: CUSTORESCA\nContacto: LEIZOREK\nMercancía: CAJA FUERTE')
+
+        self.assertEqual(
+            resultado,
+            'Custodia: CUSTORESCA | Contacto: LEIZOREK | Mercancía: CAJA FUERTE'
+        )
+
+    def test_tabs_se_convierten_en_espacio(self):
+        resultado = _sanitizar_texto('Custodia:\tCUSTORESCA')
+
+        self.assertEqual(resultado, 'Custodia: CUSTORESCA')
+
+    def test_espacios_multiples_colapsan(self):
+        resultado = _sanitizar_texto('Custodia:      CUSTORESCA')
+
+        self.assertEqual(resultado, 'Custodia: CUSTORESCA')
+
+    def test_texto_vacio_o_none_se_retorna_tal_cual(self):
+        self.assertEqual(_sanitizar_texto(''), '')
+        self.assertIsNone(_sanitizar_texto(None))
+
+    def test_sin_saltos_ni_tabs_no_se_modifica(self):
+        resultado = _sanitizar_texto('Bodega Norte, Monterrey')
+
+        self.assertEqual(resultado, 'Bodega Norte, Monterrey')
+
+
+class VarInfoCargaSaneamientoTests(TestCase):
+    def setUp(self):
+        self.unidad = _crear_unidad(numero_economico='ECO-800')
+        self.operador = _crear_operador()
+
+    def test_destino_con_salto_de_linea_se_sanea(self):
+        viaje = BitacoraViaje(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='LOCAL',
+            fecha_carga=_aware(2026, 6, 1),
+            fecha_salida=_aware(2026, 6, 1),
+            destino='Bodega Norte\nMonterrey',
+            contenedor='MSKU1234567',
+            peso=Decimal('28.05'),
+            tipo_contenedor='40',
+        )
+
+        resultado = _var_info_carga(viaje)
+
+        self.assertNotIn('\n', resultado)
+        self.assertIn('BODEGA NORTE | MONTERREY', resultado)
+
+
+@override_settings(TWILIO_CONTENT_SID_BITACORA='HXfake000000000000000000000000', TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+class EnviarNotificacionBitacoraObservacionesTests(TestCase):
+    def setUp(self):
+        self.unidad = _crear_unidad(numero_economico='ECO-900')
+        self.operador = _crear_operador()
+        self.cliente = Cliente.objects.create(nombre='Acme S.A.', celular='+5217531234567', activo=True)
+
+    def _crear_viaje(self, **overrides):
+        defaults = dict(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='LOCAL',
+            fecha_carga=_aware(2026, 6, 22, 8),
+            fecha_salida=_aware(2026, 6, 22, 17),
+            destino='Bodega Norte, Monterrey',
+            contenedor='MSKU1234567',
+            peso=Decimal('28.05'),
+            tipo_contenedor='40',
+            observaciones='Custodia: CUSTORESCA\nContacto: LEIZOREK',
+            reparto=False,
+        )
+        defaults.update(overrides)
+        return BitacoraViaje(**defaults)
+
+    @patch('config.services.twilio_service._twilio_client')
+    def test_observaciones_multilinea_no_rompe_content_variables(self, mock_client_fn):
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+        viaje = self._crear_viaje()
+
+        resultado = enviar_notificacion_bitacora(viaje, self.cliente)
+
+        self.assertTrue(resultado['wa_ok'])
+        kwargs = mock_messages.create.call_args.kwargs
+        variables = json.loads(kwargs['content_variables'])
+        self.assertNotIn('\n', variables['3'])
+        self.assertEqual(
+            variables['3'],
+            'Servicio DIRECTO ejecutado Custodia: CUSTORESCA | Contacto: LEIZOREK.'
+        )
+
+    def test_cuerpo_email_conserva_saltos_de_linea_reales_en_observaciones(self):
+        viaje = self._crear_viaje()
+        variables = {
+            '1': _var_info_carga(viaje),
+            '2': 'Unidad: ECO-900 (Placas ABC-123) | Operador: Juan Pérez  | Salida: 22 jun 2026 17:00',
+            '3': 'Servicio DIRECTO ejecutado Custodia: CUSTORESCA | Contacto: LEIZOREK.',
+        }
+
+        cuerpo = _cuerpo_email(viaje, variables)
+
+        self.assertIn('Custodia: CUSTORESCA\nContacto: LEIZOREK', cuerpo)

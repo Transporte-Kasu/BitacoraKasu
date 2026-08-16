@@ -6,6 +6,7 @@ y correos electrónicos a clientes de bitácoras.
 from datetime import timedelta
 import json
 import logging
+import re
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone as dj_timezone
@@ -42,6 +43,23 @@ def _numero_wa_mx(telefono: str) -> str:
     return _numero_wa(numero)
 
 
+def _sanitizar_texto(texto: str) -> str:
+    """
+    Normaliza texto libre para Content Variables de Twilio.
+
+    Twilio rechaza (error 21656) cualquier variable que contenga saltos de
+    línea, tabs, o más de cuatro espacios consecutivos. Los saltos de línea
+    se convierten en ' | ' (mismo separador ya usado entre sub-campos en
+    otras variables); tabs y espacios largos colapsan a un solo espacio.
+    """
+    if not texto:
+        return texto
+    texto = re.sub(r'[\r\n]+', ' | ', texto)
+    texto = re.sub(r'\t+', ' ', texto)
+    texto = re.sub(r' {5,}', ' ', texto)
+    return texto.strip(' |')
+
+
 _MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 
 
@@ -58,7 +76,7 @@ def _var_info_carga(bitacora) -> str:
     """{{1}} — Información de Carga (contenedores, tipo, peso)."""
     es_full = bitacora.modalidad in ('FULL', 'LOCAL_FULL')
     tipo = bitacora.tipo_contenedor or '-'
-    destino = (bitacora.destino or '-').upper()
+    destino = _sanitizar_texto(bitacora.destino or '-').upper()
 
     if es_full and bitacora.contenedor_2:
         contenedores = f"{bitacora.contenedor or '-'} / {bitacora.contenedor_2}"
@@ -92,7 +110,7 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
     )
 
     # {{3}} — Notas Adicionales
-    obs = bitacora.observaciones or 'SIN CUSTODIA'
+    obs = _sanitizar_texto(bitacora.observaciones or 'SIN CUSTODIA')
     tipo_servicio = 'REPARTO' if bitacora.reparto else 'DIRECTO'
     var3 = f"Servicio {tipo_servicio} ejecutado {obs}."
 
@@ -159,11 +177,11 @@ def enviar_notificacion_operador(bitacora) -> dict:
         hora_entrega = bitacora.fecha_salida + timedelta(minutes=bitacora.duracion_estimada)
     else:
         hora_entrega = bitacora.fecha_salida
-    destino = (bitacora.destino or '-').upper()
+    destino = _sanitizar_texto(bitacora.destino or '-').upper()
     var2 = f"Destino: {destino} | Horario de entrega: {_fecha_es(hora_entrega)}"
 
     # {{3}} — Notas Adicionales (igual que cliente)
-    obs = bitacora.observaciones or 'SIN CUSTODIA'
+    obs = _sanitizar_texto(bitacora.observaciones or 'SIN CUSTODIA')
     tipo_servicio = 'REPARTO' if bitacora.reparto else 'DIRECTO'
     var3 = f"Servicio {tipo_servicio} ejecutado {obs}."
 
@@ -197,6 +215,11 @@ def _cuerpo_email(bitacora, variables: dict) -> str:
     def expand(v):
         return v.replace(' | ', '\n  ')
 
+    # Notas Adicionales usa bitacora.observaciones directo (no variables['3']),
+    # que viene saneado (sin saltos de línea reales) para WhatsApp/Twilio.
+    tipo_servicio = 'REPARTO' if bitacora.reparto else 'DIRECTO'
+    obs_email = bitacora.observaciones or 'SIN CUSTODIA'
+
     lineas = [
         "Resumen de Bitacora - Sistema Kasu",
         "",
@@ -207,7 +230,7 @@ def _cuerpo_email(bitacora, variables: dict) -> str:
         f"  {expand(variables['2'])}",
         "",
         "NOTAS ADICIONALES",
-        f"  {variables['3']}",
+        f"  Servicio {tipo_servicio} ejecutado {obs_email}.",
         "",
         "Transportes y Logistica Kasu",
     ]
