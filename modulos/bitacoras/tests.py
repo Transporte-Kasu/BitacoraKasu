@@ -390,6 +390,10 @@ class ParseFechaEntregaTests(TestCase):
         self.assertIsNone(_parse_fecha_entrega(None))
         self.assertIsNone(_parse_fecha_entrega(''))
 
+    def test_hora_fuera_de_rango_cae_a_medianoche_sin_lanzar_excepcion(self):
+        resultado = _parse_fecha_entrega('25/06/2026 24:00 HRS')
+        self.assertEqual(resultado, datetime(2026, 6, 25, 0, 0))
+
 
 def _construir_excel_confirmacion(filas):
     """Construye un .xlsx en memoria con el encabezado esperado por parse_confirmacion_excel."""
@@ -523,3 +527,21 @@ class BitacoraViajeFormFechaHoraEntregaTests(TestCase):
             form.cleaned_data['fecha_hora_entrega'].strftime('%Y-%m-%d %H:%M'),
             '2026-06-21 08:00'
         )
+
+    def test_editar_viaje_existente_preserva_fecha_hora_entrega_en_el_render(self):
+        viaje = BitacoraViaje.objects.create(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='LOCAL',
+            fecha_carga=_aware(2026, 6, 22, 8),
+            fecha_salida=_aware(2026, 6, 22, 17),
+            destino='Bodega Norte, Monterrey',
+            cp_origen='40812',
+            tipo_contenedor='40',
+            fecha_hora_entrega=_aware(2026, 6, 25, 8),
+        )
+        viaje_desde_db = BitacoraViaje.objects.get(pk=viaje.pk)
+
+        form = BitacoraViajeForm(instance=viaje_desde_db)
+
+        self.assertIn('2026-06-25T08:00', str(form['fecha_hora_entrega']))

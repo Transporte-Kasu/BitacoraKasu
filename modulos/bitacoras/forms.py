@@ -59,15 +59,15 @@ class BitacoraViajeForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Folio o referencia de salida',
             }),
-            'fecha_carga': forms.DateTimeInput(attrs={
+            'fecha_carga': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
             }),
-            'fecha_salida': forms.DateTimeInput(attrs={
+            'fecha_salida': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
             }),
-            'fecha_hora_entrega': forms.DateTimeInput(attrs={
+            'fecha_hora_entrega': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
             }),
@@ -187,7 +187,7 @@ class BitacoraViajeCompletarForm(forms.ModelForm):
         model = BitacoraViaje
         fields = ['fecha_llegada', 'kilometraje_llegada', 'observaciones']
         widgets = {
-            'fecha_llegada': forms.DateTimeInput(attrs={
+            'fecha_llegada': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
             }),

@@ -21,7 +21,9 @@ def _parse_fecha_entrega(raw):
     hora, minuto = 0, 0
     m_hora = re.search(r'(\d{1,2}):(\d{2})', s)
     if m_hora:
-        hora, minuto = int(m_hora.group(1)), int(m_hora.group(2))
+        h, mi = int(m_hora.group(1)), int(m_hora.group(2))
+        if 0 <= h <= 23 and 0 <= mi <= 59:
+            hora, minuto = h, mi
     return datetime(int(year), int(month), int(day), hora, minuto)
 
 
