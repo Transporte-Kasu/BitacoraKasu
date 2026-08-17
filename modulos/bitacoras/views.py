@@ -381,6 +381,7 @@ def enviar_notificacion_cliente(request, pk):
             return redirect('bitacoras:detail', pk=pk)
 
         partes = []
+        algun_envio_exitoso = False
         for numero, cliente in destinatarios:
             if not cliente:
                 partes.append(f"Contenedor {numero}: sin cliente asignado.")
@@ -391,10 +392,15 @@ def enviar_notificacion_cliente(request, pk):
                 envios.append('WhatsApp enviado')
             if resultado['email_ok']:
                 envios.append('correo enviado')
+            if resultado['wa_ok'] or resultado['email_ok']:
+                algun_envio_exitoso = True
             estado = ', '.join(envios) if envios else 'no se pudo enviar'
             partes.append(f"Contenedor {numero} → {cliente.nombre}: {estado}.")
 
-        messages.success(request, ' '.join(partes))
+        if algun_envio_exitoso:
+            messages.success(request, ' '.join(partes))
+        else:
+            messages.error(request, ' '.join(partes))
         return redirect('bitacoras:detail', pk=pk)
 
     if not bitacora.cliente:

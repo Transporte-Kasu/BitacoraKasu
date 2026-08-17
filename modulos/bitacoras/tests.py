@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock
 
 import openpyxl
 from django.contrib.auth import get_user_model
+from django.contrib.messages import constants as message_constants
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -967,3 +968,20 @@ class NotificarClienteRepartoViewTests(TestCase):
         self.assertEqual(mock_client_fn.return_value.messages.create.call_count, 1)
         mensajes = [str(m) for m in response.context['messages']]
         self.assertTrue(any('Cliente Uno' in m and 'WhatsApp enviado' in m for m in mensajes))
+
+    @override_settings(TWILIO_CONTENT_SID_BITACORA='')
+    @patch('config.services.twilio_service._twilio_client')
+    def test_reparto_ambas_notificaciones_fallan_muestra_error(self, mock_client_fn):
+        response = self.client.post(
+            reverse('bitacoras:notificar_cliente', args=[self.viaje.pk]), follow=True
+        )
+
+        mock_client_fn.assert_not_called()
+
+        mensajes = list(response.context['messages'])
+        self.assertTrue(any('no se pudo enviar' in str(m) for m in mensajes))
+        self.assertTrue(
+            all(m.level != message_constants.SUCCESS for m in mensajes),
+            f"No debe mostrarse un mensaje de éxito cuando ambas notificaciones fallan: {[str(m) for m in mensajes]}",
+        )
+        self.assertTrue(any(m.level == message_constants.ERROR for m in mensajes))
