@@ -368,8 +368,34 @@ class ClienteDeleteView(LoginRequiredMixin, DeleteView):
 @login_required
 @require_POST
 def enviar_notificacion_cliente(request, pk):
-    """Envía WhatsApp + email al cliente asignado a la bitácora."""
+    """Envía WhatsApp + email al cliente asignado a la bitácora (o a los dos clientes, si el viaje tiene reparto)."""
     bitacora = get_object_or_404(BitacoraViaje, pk=pk)
+
+    if bitacora.reparto:
+        from config.services.twilio_service import enviar_notificaciones_reparto
+        resultados = enviar_notificaciones_reparto(bitacora)
+        destinatarios = [(1, bitacora.cliente), (2, bitacora.cliente_2 or bitacora.cliente)]
+
+        if not any(cliente for _, cliente in destinatarios):
+            messages.error(request, 'Esta bitácora no tiene cliente asignado.')
+            return redirect('bitacoras:detail', pk=pk)
+
+        partes = []
+        for numero, cliente in destinatarios:
+            if not cliente:
+                partes.append(f"Contenedor {numero}: sin cliente asignado.")
+                continue
+            resultado = resultados[f'contenedor_{numero}']
+            envios = []
+            if resultado['wa_ok']:
+                envios.append('WhatsApp enviado')
+            if resultado['email_ok']:
+                envios.append('correo enviado')
+            estado = ', '.join(envios) if envios else 'no se pudo enviar'
+            partes.append(f"Contenedor {numero} → {cliente.nombre}: {estado}.")
+
+        messages.success(request, ' '.join(partes))
+        return redirect('bitacoras:detail', pk=pk)
 
     if not bitacora.cliente:
         messages.error(request, 'Esta bitácora no tiene cliente asignado.')

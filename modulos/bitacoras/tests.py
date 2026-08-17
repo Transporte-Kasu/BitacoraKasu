@@ -895,3 +895,75 @@ class EnviarNotificacionesRepartoTests(TestCase):
         self.assertIsNone(resultado['contenedor_1'])
         self.assertTrue(resultado['contenedor_2']['wa_ok'])
         self.assertEqual(mock_messages.create.call_count, 1)
+
+
+class NotificarClienteRepartoViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username='tester2', password='clave-segura-123')
+        self.client.force_login(self.user)
+
+        self.unidad = _crear_unidad(numero_economico='ECO-980')
+        self.operador = Operador.objects.create(
+            nombre='Kevin Márquez', tipo='LOCAL', telefono='7531573954'
+        )
+        self.cliente = Cliente.objects.create(nombre='Cliente Uno', celular='+5217531111111')
+        self.cliente_2 = Cliente.objects.create(nombre='Cliente Dos', celular='+5217532222222')
+        self.viaje = BitacoraViaje.objects.create(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='FULL',
+            fecha_carga=_aware(2026, 6, 22, 8),
+            fecha_salida=_aware(2026, 6, 22, 17),
+            destino='Bodega Norte, Monterrey',
+            contenedor='MSKU1234567',
+            peso=Decimal('28.05'),
+            contenedor_2='PONU8765436',
+            peso_2=Decimal('15.65'),
+            cp_destino='64000',
+            cp_destino_2='64010',
+            reparto=True,
+            cliente=self.cliente,
+            cliente_2=self.cliente_2,
+        )
+
+    @override_settings(TWILIO_CONTENT_SID_BITACORA='HXfake000000000000000000000000', TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+    @patch('config.services.twilio_service._twilio_client')
+    def test_reparto_notifica_a_los_dos_clientes(self, mock_client_fn):
+        mock_client_fn.return_value.messages = MagicMock()
+
+        response = self.client.post(
+            reverse('bitacoras:notificar_cliente', args=[self.viaje.pk]), follow=True
+        )
+
+        self.assertEqual(mock_client_fn.return_value.messages.create.call_count, 2)
+        mensajes = [str(m) for m in response.context['messages']]
+        self.assertTrue(any('Cliente Uno' in m and 'Cliente Dos' in m for m in mensajes))
+
+    def test_reparto_sin_ningun_cliente_asignado_muestra_error(self):
+        self.viaje.cliente = None
+        self.viaje.cliente_2 = None
+        self.viaje.save()
+
+        with patch('config.services.twilio_service._twilio_client') as mock_client_fn:
+            response = self.client.post(
+                reverse('bitacoras:notificar_cliente', args=[self.viaje.pk]), follow=True
+            )
+            mock_client_fn.assert_not_called()
+
+        mensajes = [str(m) for m in response.context['messages']]
+        self.assertTrue(any('no tiene cliente asignado' in m for m in mensajes))
+
+    @override_settings(TWILIO_CONTENT_SID_BITACORA='HXfake000000000000000000000000', TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+    @patch('config.services.twilio_service._twilio_client')
+    def test_sin_reparto_sigue_notificando_a_un_solo_cliente(self, mock_client_fn):
+        mock_client_fn.return_value.messages = MagicMock()
+        self.viaje.reparto = False
+        self.viaje.save()
+
+        response = self.client.post(
+            reverse('bitacoras:notificar_cliente', args=[self.viaje.pk]), follow=True
+        )
+
+        self.assertEqual(mock_client_fn.return_value.messages.create.call_count, 1)
+        mensajes = [str(m) for m in response.context['messages']]
+        self.assertTrue(any('Cliente Uno' in m and 'WhatsApp enviado' in m for m in mensajes))
