@@ -724,6 +724,77 @@ class RepartoValidacionModeloTests(TestCase):
         viaje.clean()  # no debe lanzar — ambos campos son opcionales
 
 
+class BitacoraViajeAdminRepartoTests(TestCase):
+    """
+    Regresión: el ModelForm que construye el admin para BitacoraViaje debe
+    incluir cp_destino_2. Si no lo incluye, BitacoraViaje.clean() sigue
+    exigiendo ese campo cuando reparto=True (Model.full_clean() llama a
+    clean() sin filtrar por exclude), pero como el ModelForm del admin no
+    tiene ese campo declarado, BaseForm.add_error() revienta con un
+    ValueError ("'X' has no field named 'cp_destino_2'") en vez de mostrar
+    un error de validación normal. Ver fieldset 'Destino' en admin.py.
+    """
+
+    def setUp(self):
+        self.unidad = _crear_unidad(numero_economico='ECO-970')
+        self.operador = _crear_operador()
+
+    def _get_admin_form_class(self):
+        from django.contrib import admin as django_admin
+
+        admin_instance = django_admin.site._registry[BitacoraViaje]
+        # get_form necesita un `request` con `.user` (usado por
+        # get_readonly_fields / has_change_permission); un MagicMock basta
+        # porque aquí solo nos interesa la clase de formulario resultante.
+        return admin_instance.get_form(MagicMock())
+
+    def _datos_full_reparto(self, **overrides):
+        # El admin renderiza los DateTimeField del modelo con el widget
+        # SplitDateTimeField propio del admin (AdminSplitDateTime), que
+        # espera dos subcampos (fecha y hora) en vez de un solo string.
+        datos = {
+            'modalidad': 'FULL',
+            'operador': self.operador.pk,
+            'unidad': self.unidad.pk,
+            'fecha_carga_0': '2026-06-22',
+            'fecha_carga_1': '08:00',
+            'fecha_salida_0': '2026-06-22',
+            'fecha_salida_1': '17:00',
+            'contenedor': 'MSKU1234567',
+            'peso': '28.05',
+            'contenedor_2': 'PONU8765436',
+            'peso_2': '15.65',
+            'cp_origen': '40812',
+            'cp_destino': '64000',
+            'destino': 'Bodega Norte, Monterrey',
+            'reparto': True,
+        }
+        datos.update(overrides)
+        return datos
+
+    def test_form_del_admin_incluye_cp_destino_2(self):
+        form_class = self._get_admin_form_class()
+
+        self.assertIn('cp_destino_2', form_class.base_fields)
+
+    def test_form_del_admin_reparto_sin_cp_destino_2_no_revienta(self):
+        form_class = self._get_admin_form_class()
+        form = form_class(data=self._datos_full_reparto(cp_destino_2=''))
+
+        # No debe lanzar ValueError: debe comportarse como una validación
+        # normal, con el error reportado en el campo correspondiente.
+        is_valid = form.is_valid()
+
+        self.assertFalse(is_valid)
+        self.assertIn('cp_destino_2', form.errors)
+
+    def test_form_del_admin_reparto_con_cp_destino_2_es_valido(self):
+        form_class = self._get_admin_form_class()
+        form = form_class(data=self._datos_full_reparto(cp_destino_2='64010'))
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+
 class BitacoraViajeFormRepartoValidacionTests(TestCase):
     def setUp(self):
         self.unidad = _crear_unidad(numero_economico='ECO-960')

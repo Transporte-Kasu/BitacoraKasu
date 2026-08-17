@@ -55,7 +55,7 @@ class BitacoraViajeAdmin(admin.ModelAdmin):
             )
         }),
         ('Destino', {
-            'fields': ('cp_origen', 'cp_destino', 'destino')
+            'fields': ('cp_origen', 'cp_destino', 'cp_destino_2', 'destino')
         }),
         ('Datos Google Maps', {
             'fields': (
