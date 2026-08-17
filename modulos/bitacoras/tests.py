@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock
 
 import openpyxl
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -659,3 +660,62 @@ class EnviarNotificacionBitacoraObservacionesTests(TestCase):
         cuerpo = _cuerpo_email(viaje, variables)
 
         self.assertIn('Custodia: CUSTORESCA\nContacto: LEIZOREK', cuerpo)
+
+
+class RepartoValidacionModeloTests(TestCase):
+    def setUp(self):
+        self.unidad = _crear_unidad(numero_economico='ECO-950')
+        self.operador = _crear_operador()
+        self.cliente = Cliente.objects.create(nombre='Cliente Uno', celular='+5217531234567')
+        self.cliente_2 = Cliente.objects.create(nombre='Cliente Dos', celular='+5217539876543')
+
+    def _crear_viaje_full(self, **overrides):
+        defaults = dict(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='FULL',
+            fecha_carga=_aware(2026, 6, 1),
+            fecha_salida=_aware(2026, 6, 1),
+            destino='Bodega Norte, Monterrey',
+            contenedor='MSKU1234567',
+            peso=Decimal('28.05'),
+            contenedor_2='PONU8765436',
+            peso_2=Decimal('15.65'),
+            cp_destino='64000',
+            reparto=True,
+        )
+        defaults.update(overrides)
+        return BitacoraViaje(**defaults)
+
+    def test_reparto_sin_cp_destino_2_es_invalido(self):
+        viaje = self._crear_viaje_full(cp_destino_2='')
+
+        with self.assertRaises(ValidationError) as ctx:
+            viaje.clean()
+
+        self.assertIn('cp_destino_2', ctx.exception.message_dict)
+
+    def test_reparto_con_cp_destino_2_igual_a_cp_destino_es_valido(self):
+        viaje = self._crear_viaje_full(cp_destino_2='64000')
+
+        viaje.clean()  # no debe lanzar
+
+    def test_reparto_con_cliente_2_y_fecha_hora_entrega_2_se_guardan(self):
+        viaje = self._crear_viaje_full(
+            cp_destino_2='64010',
+            cliente=self.cliente,
+            cliente_2=self.cliente_2,
+            fecha_hora_entrega=_aware(2026, 6, 2, 10),
+            fecha_hora_entrega_2=_aware(2026, 6, 2, 15),
+        )
+        viaje.full_clean()
+        viaje.save()
+
+        viaje_desde_db = BitacoraViaje.objects.get(pk=viaje.pk)
+        self.assertEqual(viaje_desde_db.cliente_2, self.cliente_2)
+        self.assertEqual(viaje_desde_db.fecha_hora_entrega_2, _aware(2026, 6, 2, 15))
+
+    def test_reparto_sin_cliente_2_ni_fecha_hora_entrega_2_es_valido(self):
+        viaje = self._crear_viaje_full(cp_destino_2='64010')
+
+        viaje.clean()  # no debe lanzar — ambos campos son opcionales

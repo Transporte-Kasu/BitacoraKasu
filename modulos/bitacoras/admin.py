@@ -42,7 +42,7 @@ class BitacoraViajeAdmin(admin.ModelAdmin):
             'fields': ('contenedor', 'peso', 'sellos')
         }),
         ('Contenedor 2 (FULL)', {
-            'fields': ('contenedor_2', 'peso_2', 'sellos_2', 'reparto'),
+            'fields': ('contenedor_2', 'peso_2', 'sellos_2', 'reparto', 'cliente_2', 'fecha_hora_entrega_2'),
             'classes': ('collapse',)
         }),
         ('Fechas', {

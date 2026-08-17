@@ -49,6 +49,14 @@ class BitacoraViaje(models.Model):
         related_name='bitacoras',
         verbose_name="Cliente",
     )
+    cliente_2 = models.ForeignKey(
+        'Cliente',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bitacoras_contenedor_2',
+        verbose_name="Cliente (contenedor 2)",
+    )
     operador = models.ForeignKey(
         'operadores.Operador',  # Referencia a otra aplicación
         on_delete=models.PROTECT,
@@ -116,6 +124,11 @@ class BitacoraViaje(models.Model):
         null=True,
         blank=True,
         verbose_name="Fecha/hora de entrega",
+    )
+    fecha_hora_entrega_2 = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fecha/hora de entrega (contenedor 2)",
     )
 
     # Combustible y kilometraje (gestionados desde módulo combustible)
@@ -339,6 +352,9 @@ class BitacoraViaje(models.Model):
 
         if modalidad == 'LOCAL_FULL' and self.reparto:
             raise ValidationError({'reparto': 'Local Full no usa reparto.'})
+
+        if self.reparto and not self.cp_destino_2:
+            raise ValidationError({'cp_destino_2': 'El reparto requiere el CP del segundo destino.'})
 
     # ========================================================================
     # MÉTODOS
