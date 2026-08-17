@@ -20,9 +20,11 @@ from .forms import BitacoraViajeForm
 from .excel_parser import _parse_fecha_entrega, parse_confirmacion_excel
 from config.services.twilio_service import (
     _var_info_carga,
+    _var_info_carga_contenedor,
     _numero_wa_mx,
     _sanitizar_texto,
     enviar_notificacion_bitacora,
+    enviar_notificaciones_reparto,
     enviar_notificacion_operador,
     _cuerpo_email,
 )
@@ -774,3 +776,122 @@ class BitacoraViajeFormRepartoValidacionTests(TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data['cliente_2'], self.cliente)
+
+
+@override_settings(TWILIO_CONTENT_SID_BITACORA='HXfake000000000000000000000000', TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+class EnviarNotificacionesRepartoTests(TestCase):
+    def setUp(self):
+        self.unidad = _crear_unidad(numero_economico='ECO-970')
+        self.operador = Operador.objects.create(
+            nombre='Kevin Márquez', tipo='LOCAL', telefono='7531573954'
+        )
+        self.cliente = Cliente.objects.create(nombre='Cliente Uno', celular='+5217531111111', email='uno@acme.mx')
+        self.cliente_2 = Cliente.objects.create(nombre='Cliente Dos', celular='+5217532222222', email='dos@acme.mx')
+
+    def _crear_viaje(self, **overrides):
+        defaults = dict(
+            operador=self.operador,
+            unidad=self.unidad,
+            modalidad='FULL',
+            fecha_carga=_aware(2026, 6, 22, 8),
+            fecha_salida=_aware(2026, 6, 22, 17),
+            destino='Bodega Norte, Monterrey',
+            contenedor='MSKU1234567',
+            peso=Decimal('28.05'),
+            contenedor_2='PONU8765436',
+            peso_2=Decimal('15.65'),
+            tipo_contenedor='40',
+            cp_destino='64000',
+            cp_destino_2='64010',
+            reparto=True,
+            cliente=self.cliente,
+        )
+        defaults.update(overrides)
+        return BitacoraViaje(**defaults)
+
+    def test_var_info_carga_contenedor_usa_datos_propios(self):
+        viaje = self._crear_viaje()
+
+        self.assertEqual(
+            _var_info_carga_contenedor(viaje, 1),
+            "Contenedor: MSKU1234567 | Especificaciones: Tipo 40 con peso de 28.05t | Destino Final: CP 64000"
+        )
+        self.assertEqual(
+            _var_info_carga_contenedor(viaje, 2),
+            "Contenedor: PONU8765436 | Especificaciones: Tipo 40 con peso de 15.65t | Destino Final: CP 64010"
+        )
+
+    @patch('config.services.twilio_service._twilio_client')
+    def test_mismo_cliente_recibe_dos_notificaciones_independientes(self, mock_client_fn):
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+        viaje = self._crear_viaje()  # cliente_2 no asignado
+
+        resultado = enviar_notificaciones_reparto(viaje)
+
+        self.assertTrue(resultado['contenedor_1']['wa_ok'])
+        self.assertTrue(resultado['contenedor_2']['wa_ok'])
+        self.assertEqual(mock_messages.create.call_count, 2)
+
+        llamadas = mock_messages.create.call_args_list
+        destinos = {json.loads(c.kwargs['content_variables'])['1'] for c in llamadas}
+        self.assertIn('Contenedor: MSKU1234567', ''.join(destinos))
+        self.assertIn('Contenedor: PONU8765436', ''.join(destinos))
+        for c in llamadas:
+            self.assertEqual(c.kwargs['to'], 'whatsapp:+5217531111111')
+
+    @patch('config.services.twilio_service._twilio_client')
+    def test_cliente_2_distinto_recibe_su_propio_mensaje(self, mock_client_fn):
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+        viaje = self._crear_viaje(cliente_2=self.cliente_2)
+
+        resultado = enviar_notificaciones_reparto(viaje)
+
+        self.assertTrue(resultado['contenedor_1']['wa_ok'])
+        self.assertTrue(resultado['contenedor_2']['wa_ok'])
+        llamadas = mock_messages.create.call_args_list
+        destinatarios = {c.kwargs['to'] for c in llamadas}
+        self.assertEqual(destinatarios, {'whatsapp:+5217531111111', 'whatsapp:+5217532222222'})
+
+    @patch('config.services.twilio_service._twilio_client')
+    def test_fecha_hora_entrega_2_vacia_usa_fecha_hora_entrega(self, mock_client_fn):
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+        viaje = self._crear_viaje(fecha_hora_entrega=_aware(2026, 6, 23, 9))
+
+        enviar_notificaciones_reparto(viaje)
+
+        llamadas = mock_messages.create.call_args_list
+        var2s = [json.loads(c.kwargs['content_variables'])['2'] for c in llamadas]
+        self.assertTrue(all('Entrega: 23 jun 2026 09:00' in v for v in var2s))
+
+    @patch('config.services.twilio_service._twilio_client')
+    def test_fecha_hora_entrega_2_presente_se_usa_para_contenedor_2(self, mock_client_fn):
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+        viaje = self._crear_viaje(
+            fecha_hora_entrega=_aware(2026, 6, 23, 9),
+            fecha_hora_entrega_2=_aware(2026, 6, 23, 15),
+        )
+
+        enviar_notificaciones_reparto(viaje)
+
+        llamadas = mock_messages.create.call_args_list
+        variables_por_llamada = [json.loads(c.kwargs['content_variables']) for c in llamadas]
+        var2_contenedor_1 = next(v['2'] for v in variables_por_llamada if 'MSKU1234567' in v['1'])
+        var2_contenedor_2 = next(v['2'] for v in variables_por_llamada if 'PONU8765436' in v['1'])
+        self.assertIn('Entrega: 23 jun 2026 09:00', var2_contenedor_1)
+        self.assertIn('Entrega: 23 jun 2026 15:00', var2_contenedor_2)
+
+    @patch('config.services.twilio_service._twilio_client')
+    def test_sin_cliente_en_contenedor_1_no_envia_esa_notificacion(self, mock_client_fn):
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+        viaje = self._crear_viaje(cliente=None, cliente_2=self.cliente_2)
+
+        resultado = enviar_notificaciones_reparto(viaje)
+
+        self.assertIsNone(resultado['contenedor_1'])
+        self.assertTrue(resultado['contenedor_2']['wa_ok'])
+        self.assertEqual(mock_messages.create.call_count, 1)

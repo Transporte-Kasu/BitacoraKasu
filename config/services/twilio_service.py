@@ -88,33 +88,13 @@ def _var_info_carga(bitacora) -> str:
     return f"Contenedores: {contenedores} | Especificaciones: {especificaciones} | Destino Final: {destino}"
 
 
-def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
+def _enviar_wa_y_email_cliente(bitacora, cliente, variables: dict) -> dict:
     """
-    Envía WhatsApp (template Twilio) + email al cliente con los datos del viaje.
-
-    Returns dict con claves 'wa_ok' (bool) y 'email_ok' (bool).
+    Envía WhatsApp (template Twilio) + email a `cliente` con `variables` ya armadas.
+    Mecanismo compartido entre la notificación combinada y las notificaciones
+    divididas por contenedor (reparto).
     """
     resultado = {'wa_ok': False, 'email_ok': False}
-
-    # ── Construir variables del template (3 vars) ─────────────────────────────
-    operador = bitacora.operador
-    unidad = bitacora.unidad
-    var1 = _var_info_carga(bitacora)
-
-    # {{2}} — Detalles del Traslado
-    telefono = getattr(operador, 'telefono', '') or ''
-    var2 = (
-        f"Unidad: {unidad.numero_economico} (Placas {unidad.placa}) | "
-        f"Operador: {operador.nombre} {telefono} | "
-        f"Salida: {_fecha_es(bitacora.fecha_salida)}"
-    )
-
-    # {{3}} — Notas Adicionales
-    obs = _sanitizar_texto(bitacora.observaciones or 'SIN CUSTODIA')
-    tipo_servicio = 'REPARTO' if bitacora.reparto else 'DIRECTO'
-    var3 = f"Servicio {tipo_servicio} ejecutado {obs}."
-
-    variables = {'1': var1, '2': var2, '3': var3}
 
     # ── WhatsApp ──────────────────────────────────────────────────────────────
     if cliente.celular and settings.TWILIO_CONTENT_SID_BITACORA:
@@ -154,6 +134,101 @@ def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
             logger.error("Error email para cliente %s: %s", cliente.nombre, exc)
     else:
         logger.warning("Cliente %s sin email — correo omitido.", cliente.nombre)
+
+    return resultado
+
+
+def enviar_notificacion_bitacora(bitacora, cliente) -> dict:
+    """
+    Envía WhatsApp (template Twilio) + email al cliente con los datos del viaje.
+
+    Returns dict con claves 'wa_ok' (bool) y 'email_ok' (bool).
+    """
+    operador = bitacora.operador
+    unidad = bitacora.unidad
+    var1 = _var_info_carga(bitacora)
+
+    # {{2}} — Detalles del Traslado
+    telefono = getattr(operador, 'telefono', '') or ''
+    var2 = (
+        f"Unidad: {unidad.numero_economico} (Placas {unidad.placa}) | "
+        f"Operador: {operador.nombre} {telefono} | "
+        f"Salida: {_fecha_es(bitacora.fecha_salida)}"
+    )
+
+    # {{3}} — Notas Adicionales
+    obs = _sanitizar_texto(bitacora.observaciones or 'SIN CUSTODIA')
+    tipo_servicio = 'REPARTO' if bitacora.reparto else 'DIRECTO'
+    var3 = f"Servicio {tipo_servicio} ejecutado {obs}."
+
+    variables = {'1': var1, '2': var2, '3': var3}
+
+    return _enviar_wa_y_email_cliente(bitacora, cliente, variables)
+
+
+def _var_info_carga_contenedor(bitacora, numero) -> str:
+    """{{1}} para un solo contenedor — usado en notificaciones de reparto."""
+    if numero == 2:
+        contenedor = bitacora.contenedor_2 or '-'
+        peso = bitacora.peso_2 or '-'
+        cp_destino = bitacora.cp_destino_2 or '-'
+    else:
+        contenedor = bitacora.contenedor or '-'
+        peso = bitacora.peso or '-'
+        cp_destino = bitacora.cp_destino or '-'
+
+    tipo = bitacora.tipo_contenedor or '-'
+    especificaciones = f"Tipo {tipo} con peso de {peso}t"
+
+    return f"Contenedor: {contenedor} | Especificaciones: {especificaciones} | Destino Final: CP {cp_destino}"
+
+
+def _enviar_notificacion_contenedor(bitacora, numero, cliente, fecha_entrega) -> dict:
+    """Arma variables para un solo contenedor (con su propio horario de entrega) y envía WA+email."""
+    operador = bitacora.operador
+    unidad = bitacora.unidad
+    var1 = _var_info_carga_contenedor(bitacora, numero)
+
+    telefono = getattr(operador, 'telefono', '') or ''
+    var2 = (
+        f"Unidad: {unidad.numero_economico} (Placas {unidad.placa}) | "
+        f"Operador: {operador.nombre} {telefono} | "
+        f"Salida: {_fecha_es(bitacora.fecha_salida)} | "
+        f"Entrega: {_fecha_es(fecha_entrega)}"
+    )
+
+    obs = _sanitizar_texto(bitacora.observaciones or 'SIN CUSTODIA')
+    var3 = f"Servicio REPARTO ejecutado (contenedor {numero}) {obs}."
+
+    variables = {'1': var1, '2': var2, '3': var3}
+    return _enviar_wa_y_email_cliente(bitacora, cliente, variables)
+
+
+def enviar_notificaciones_reparto(bitacora) -> dict:
+    """
+    Envía dos notificaciones de cliente independientes (una por contenedor)
+    para viajes con reparto=True. Cada una usa los datos propios de su
+    contenedor (destino, cliente, horario de entrega), con fallback al
+    contenedor 1 cuando el campo _2 correspondiente está vacío.
+
+    Returns dict: {'contenedor_1': {...} | None, 'contenedor_2': {...} | None},
+    mismo formato de resultado que enviar_notificacion_bitacora en cada entrada
+    (None cuando ese contenedor no tiene cliente asignado).
+    """
+    resultado = {'contenedor_1': None, 'contenedor_2': None}
+
+    if bitacora.cliente:
+        resultado['contenedor_1'] = _enviar_notificacion_contenedor(
+            bitacora, numero=1, cliente=bitacora.cliente,
+            fecha_entrega=bitacora.fecha_hora_entrega,
+        )
+
+    cliente_2 = bitacora.cliente_2 or bitacora.cliente
+    if cliente_2:
+        resultado['contenedor_2'] = _enviar_notificacion_contenedor(
+            bitacora, numero=2, cliente=cliente_2,
+            fecha_entrega=bitacora.fecha_hora_entrega_2 or bitacora.fecha_hora_entrega,
+        )
 
     return resultado
 
