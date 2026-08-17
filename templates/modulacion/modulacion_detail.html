@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{{ modulacion.folio }}{% endblock %}
+
+{% block breadcrumb %}
+<nav class="text-sm text-gray-500 mb-4">
+    <a href="{% url 'modulacion:dashboard' %}" class="hover:text-blue-600">Modulación</a>
+    <span class="mx-2">/</span>
+    <a href="{% url 'modulacion:list' %}" class="hover:text-blue-600">Lista</a>
+    <span class="mx-2">/</span>
+    <span class="text-gray-800 font-medium">{{ modulacion.folio }}</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+            <div>
+                <h1 class="text-lg font-bold text-gray-900">{{ modulacion.folio }} — {{ modulacion.contenedor }}</h1>
+                <p class="text-sm text-gray-500 mt-0.5">Origen: {{ modulacion.get_origen_display }} · Recibido {{ modulacion.fecha_recepcion|date:"d/m/Y H:i" }}</p>
+            </div>
+            <span class="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">{{ modulacion.get_estado_display }}</span>
+        </div>
+
+        <div class="px-6 py-5 grid grid-cols-2 gap-4 text-sm">
+            <div><span class="text-gray-500">Agencia:</span> <span class="font-medium">{{ modulacion.agencia.nombre }}</span></div>
+            <div><span class="text-gray-500">Terminal portuaria:</span> <span class="font-medium">{{ modulacion.terminal_portuaria.nombre }}</span></div>
+            <div><span class="text-gray-500">Tipo de contenedor:</span> <span class="font-medium">{{ modulacion.tipo_contenedor }}</span></div>
+            <div><span class="text-gray-500">Peso:</span> <span class="font-medium">{{ modulacion.peso_toneladas }} ton</span></div>
+            <div><span class="text-gray-500">Cliente:</span> <span class="font-medium">{{ modulacion.cliente.nombre|default:"—" }}</span></div>
+            <div><span class="text-gray-500">Pedimento:</span> <span class="font-medium">{{ modulacion.num_pedimento|default:"—" }}</span></div>
+            <div><span class="text-gray-500">DODA:</span> <span class="font-medium">{{ modulacion.num_doda|default:"—" }}</span></div>
+            {% if modulacion.transportista_externo %}
+            <div><span class="text-gray-500">Transportista externo:</span> <span class="font-medium">{{ modulacion.transportista_externo }}</span></div>
+            {% endif %}
+            {% if modulacion.fecha_retiro %}
+            <div><span class="text-gray-500">Fecha de retiro:</span> <span class="font-medium">{{ modulacion.fecha_retiro|date:"d/m/Y H:i" }}</span></div>
+            {% endif %}
+        </div>
+
+        {% if modulacion.observaciones %}
+        <div class="px-6 pb-5 text-sm">
+            <span class="text-gray-500">Observaciones:</span>
+            <p class="text-gray-700 mt-1">{{ modulacion.observaciones }}</p>
+        </div>
+        {% endif %}
+
+        {% if modulacion.bitacora_viaje %}
+        <div class="px-6 pb-5">
+            <a href="{% url 'bitacoras:detail' modulacion.bitacora_viaje.pk %}"
+               class="text-sm text-blue-600 hover:underline">Ver Bitácora de Viaje #{{ modulacion.bitacora_viaje.pk }} →</a>
+        </div>
+        {% endif %}
+
+        <div class="px-6 py-4 border-t border-gray-100 flex flex-wrap gap-3">
+            <a href="{% url 'modulacion:update' modulacion.pk %}"
+               class="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition">Editar</a>
+            <a href="{% url 'modulacion:delete' modulacion.pk %}"
+               class="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition">Eliminar</a>
+
+            {% if modulacion.estado == 'PENDIENTE' or modulacion.estado == 'MODULADO' %}
+            <a href="{% url 'modulacion:enviar_a_bitacora' modulacion.pk %}"
+               class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">Enviar a Bitácora de Viajes</a>
+            <form method="post" action="{% url 'modulacion:enviar_a_patio_esperanza' modulacion.pk %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition">Enviar a Patio Esperanza</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if modulacion.estado == 'EN_PATIO_ESPERANZA' %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-700">Retirar del Patio Esperanza</h2>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+            <form method="post" action="{% url 'modulacion:retirar_de_patio' modulacion.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="modo" value="kasu">
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
+                    Retira Transportes Kasu
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'modulacion:retirar_de_patio' modulacion.pk %}" class="flex items-end gap-3">
+                {% csrf_token %}
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Transportista externo</label>
+                    {{ retiro_externo_form.transportista_externo }}
+                </div>
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800 transition">
+                    Retira transporte externo
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Enviar a Bitácora — {{ modulacion.folio }}{% endblock %}
+
+{% block breadcrumb %}
+<nav class="text-sm text-gray-500 mb-4">
+    <a href="{% url 'modulacion:dashboard' %}" class="hover:text-blue-600">Modulación</a>
+    <span class="mx-2">/</span>
+    <a href="{% url 'modulacion:detail' modulacion.pk %}" class="hover:text-blue-600">{{ modulacion.folio }}</a>
+    <span class="mx-2">/</span>
+    <span class="text-gray-800 font-medium">Enviar a Bitácora</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <h1 class="text-lg font-bold text-gray-900">Enviar {{ modulacion.folio }} a Bitácora de Viajes</h1>
+            <p class="text-sm text-gray-500 mt-0.5">
+                Contenedor {{ modulacion.contenedor }} · {{ modulacion.peso_toneladas }} ton · Cliente {{ modulacion.cliente.nombre|default:"—" }}.
+                Se creará un viaje modalidad <strong>Local</strong>; falta indicar operador, unidad y destino.
+            </p>
+        </div>
+
+        <form method="post" class="px-6 py-5 space-y-4">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">
+                {{ form.non_field_errors.0 }}
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Operador <span class="text-red-500">*</span></label>
+                    {{ form.operador }}
+                    {% if form.operador.errors %}<p class="text-xs text-red-500 mt-1">{{ form.operador.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Unidad <span class="text-red-500">*</span></label>
+                    {{ form.unidad }}
+                    {% if form.unidad.errors %}<p class="text-xs text-red-500 mt-1">{{ form.unidad.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha/hora de carga <span class="text-red-500">*</span></label>
+                    {{ form.fecha_carga }}
+                    {% if form.fecha_carga.errors %}<p class="text-xs text-red-500 mt-1">{{ form.fecha_carga.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha/hora de salida <span class="text-red-500">*</span></label>
+                    {{ form.fecha_salida }}
+                    {% if form.fecha_salida.errors %}<p class="text-xs text-red-500 mt-1">{{ form.fecha_salida.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Dirección de entrega <span class="text-red-500">*</span></label>
+                {{ form.destino }}
+                {% if form.destino.errors %}<p class="text-xs text-red-500 mt-1">{{ form.destino.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Código postal destino</label>
+                {{ form.cp_destino }}
+                <p class="text-xs text-gray-400 mt-1">Si lo indicas, se calculará la distancia con Google Maps automáticamente.</p>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <a href="{% url 'modulacion:detail' modulacion.pk %}"
+                   class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancelar</a>
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
+                    Crear viaje y enviar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

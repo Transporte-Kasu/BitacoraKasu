@@ -1,0 +1,259 @@
+import json
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from django.utils import timezone
+
+from modulos.bitacoras.models import BitacoraViaje, Cliente
+from modulos.operadores.models import Operador
+from modulos.unidades.models import Unidad
+
+from .models import Agencia, Modulacion, TerminalPortuaria
+
+
+def _crear_agencia(nombre='LOGINCO'):
+    return Agencia.objects.get_or_create(nombre=nombre)[0]
+
+
+def _crear_terminal(nombre='TIMSA'):
+    return TerminalPortuaria.objects.get_or_create(nombre=nombre)[0]
+
+
+def _crear_modulacion(**kwargs):
+    datos = {
+        'agencia': _crear_agencia(),
+        'terminal_portuaria': _crear_terminal(),
+        'tipo_contenedor': '40HC',
+        'peso_toneladas': Decimal('18.50'),
+        'contenedor': 'MSCU1234567',
+    }
+    datos.update(kwargs)
+    return Modulacion.objects.create(**datos)
+
+
+def _crear_unidad(numero_economico='ECO-001', tipo='LOCAL'):
+    return Unidad.objects.create(
+        numero_economico=numero_economico,
+        placa='ABC-123',
+        tipo=tipo,
+        año=2020,
+        capacidad_combustible=Decimal('200.00'),
+        rendimiento_esperado=Decimal('3.00'),
+    )
+
+
+def _crear_operador(nombre='Juan Pérez', tipo='LOCAL'):
+    return Operador.objects.create(nombre=nombre, tipo=tipo)
+
+
+class ModulacionModelTests(TestCase):
+    def test_folio_autogenerado(self):
+        modulacion = _crear_modulacion()
+        fecha = timezone.now().strftime('%Y%m%d')
+        self.assertEqual(modulacion.folio, f'MOD-{fecha}-001')
+
+    def test_folio_consecutivo_mismo_dia(self):
+        _crear_modulacion(contenedor='AAAU1111111')
+        segunda = _crear_modulacion(contenedor='BBBU2222222')
+        fecha = timezone.now().strftime('%Y%m%d')
+        self.assertEqual(segunda.folio, f'MOD-{fecha}-002')
+
+    def test_unique_constraint_doda_contenedor(self):
+        _crear_modulacion(num_doda='D-0001', contenedor='MSCU1234567')
+        with self.assertRaises(Exception):
+            _crear_modulacion(num_doda='D-0001', contenedor='MSCU1234567')
+
+    def test_multiples_manuales_sin_doda_no_chocan(self):
+        _crear_modulacion(num_doda='', contenedor='AAAU1111111')
+        segunda = _crear_modulacion(num_doda='', contenedor='BBBU2222222')
+        self.assertIsNotNone(segunda.pk)
+
+
+class RecibirModulacionApiTests(TestCase):
+    def setUp(self):
+        self.url = reverse('modulacion:api_recibir')
+        self.payload = {
+            'agencia': 'LOGINCO',
+            'terminal_portuaria': 'TIMSA',
+            'tipo_contenedor': '40HC',
+            'peso_toneladas': '18.50',
+            'contenedor': 'mscu1234567',
+            'cliente': 'Cliente Demo',
+            'num_pedimento': '25 12 3456 1234567',
+            'num_doda': 'D-0001',
+        }
+
+    def _post(self, payload, token='secreto-test'):
+        return self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token}' if token else '',
+        )
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_sin_token_devuelve_401(self):
+        response = self.client.post(self.url, data=json.dumps(self.payload), content_type='application/json')
+        self.assertEqual(response.status_code, 401)
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_token_incorrecto_devuelve_401(self):
+        response = self._post(self.payload, token='otro-token')
+        self.assertEqual(response.status_code, 401)
+
+    @override_settings(BITACORAKASU_API_TOKEN='')
+    def test_token_no_configurado_devuelve_401(self):
+        response = self._post(self.payload, token='cualquiera')
+        self.assertEqual(response.status_code, 401)
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_payload_incompleto_devuelve_400(self):
+        incompleto = dict(self.payload)
+        del incompleto['contenedor']
+        response = self._post(incompleto)
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_payload_valido_crea_modulacion_y_catalogos(self):
+        response = self._post(self.payload)
+        self.assertEqual(response.status_code, 201)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+
+        modulacion = Modulacion.objects.get(pk=data['id'])
+        self.assertEqual(modulacion.contenedor, 'MSCU1234567')
+        self.assertEqual(modulacion.origen, 'HAL9MIL')
+        self.assertEqual(modulacion.estado, 'PENDIENTE')
+        self.assertEqual(modulacion.agencia.nombre, 'LOGINCO')
+        self.assertEqual(modulacion.terminal_portuaria.nombre, 'TIMSA')
+        self.assertEqual(modulacion.cliente.nombre, 'Cliente Demo')
+        self.assertTrue(Agencia.objects.filter(nombre='LOGINCO').exists())
+        self.assertTrue(Cliente.objects.filter(nombre='Cliente Demo').exists())
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_reenvio_mismo_doda_contenedor_es_idempotente(self):
+        primera = self._post(self.payload)
+        self.assertEqual(primera.status_code, 201)
+
+        segunda = self._post(self.payload)
+        self.assertEqual(segunda.status_code, 200)
+        data = json.loads(segunda.content)
+        self.assertTrue(data.get('duplicado'))
+        self.assertEqual(Modulacion.objects.count(), 1)
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_reutiliza_catalogos_existentes(self):
+        agencia = _crear_agencia('LOGINCO')
+        self._post(self.payload)
+        self.assertEqual(Agencia.objects.filter(nombre='LOGINCO').count(), 1)
+        modulacion = Modulacion.objects.latest('id')
+        self.assertEqual(modulacion.agencia_id, agencia.id)
+
+    def test_get_no_permitido(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+
+class ModulacionViewsAuthTests(TestCase):
+    def setUp(self):
+        self.modulacion = _crear_modulacion()
+
+    def test_lista_requiere_login(self):
+        response = self.client.get(reverse('modulacion:list'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_detalle_requiere_login(self):
+        response = self.client.get(reverse('modulacion:detail', kwargs={'pk': self.modulacion.pk}))
+        self.assertEqual(response.status_code, 302)
+
+
+class EnviarABitacoraViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tester', password='pass12345')
+        self.client.login(username='tester', password='pass12345')
+
+        self.cliente = Cliente.objects.create(nombre='Cliente Demo')
+        self.modulacion = _crear_modulacion(cliente=self.cliente)
+        self.operador = _crear_operador()
+        self.unidad = _crear_unidad()
+
+    def test_get_muestra_formulario(self):
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'operador')
+
+    def test_post_crea_bitacora_local_y_liga_modulacion(self):
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
+        ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        response = self.client.post(url, data={
+            'operador': self.operador.pk,
+            'unidad': self.unidad.pk,
+            'fecha_carga': ahora,
+            'fecha_salida': ahora,
+            'destino': 'Calle Falsa 123',
+            'cp_destino': '',
+        })
+
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.estado, 'ENVIADO_BITACORA')
+        self.assertIsNotNone(self.modulacion.bitacora_viaje)
+
+        bitacora = self.modulacion.bitacora_viaje
+        self.assertEqual(bitacora.modalidad, 'LOCAL')
+        self.assertEqual(bitacora.contenedor, self.modulacion.contenedor)
+        self.assertEqual(bitacora.peso, self.modulacion.peso_toneladas)
+        self.assertEqual(bitacora.tipo_contenedor, '40')
+        self.assertEqual(bitacora.cliente, self.cliente)
+        self.assertEqual(bitacora.operador, self.operador)
+        self.assertEqual(bitacora.unidad, self.unidad)
+        self.assertRedirects(response, reverse('bitacoras:detail', kwargs={'pk': bitacora.pk}))
+
+    def test_post_incompleto_no_crea_bitacora(self):
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
+        response = self.client.post(url, data={'operador': self.operador.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(BitacoraViaje.objects.count(), 0)
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.estado, 'PENDIENTE')
+
+
+class PatioEsperanzaFlowTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tester2', password='pass12345')
+        self.client.login(username='tester2', password='pass12345')
+        self.modulacion = _crear_modulacion()
+
+    def test_enviar_a_patio_esperanza_cambia_estado(self):
+        url = reverse('modulacion:enviar_a_patio_esperanza', kwargs={'pk': self.modulacion.pk})
+        self.client.post(url)
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.estado, 'EN_PATIO_ESPERANZA')
+
+    def test_retirar_de_patio_modo_kasu_redirige_a_enviar_bitacora(self):
+        self.modulacion.estado = 'EN_PATIO_ESPERANZA'
+        self.modulacion.save()
+
+        url = reverse('modulacion:retirar_de_patio', kwargs={'pk': self.modulacion.pk})
+        response = self.client.post(url, data={'modo': 'kasu'})
+        self.assertRedirects(
+            response,
+            reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk}),
+        )
+
+    def test_retirar_de_patio_modo_tercero(self):
+        self.modulacion.estado = 'EN_PATIO_ESPERANZA'
+        self.modulacion.save()
+
+        url = reverse('modulacion:retirar_de_patio', kwargs={'pk': self.modulacion.pk})
+        self.client.post(url, data={'transportista_externo': 'Transportes Beta'})
+
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.estado, 'RETIRADO_TERCERO')
+        self.assertEqual(self.modulacion.transportista_externo, 'Transportes Beta')
+        self.assertIsNotNone(self.modulacion.fecha_retiro)
+        self.assertIsNone(self.modulacion.bitacora_viaje)

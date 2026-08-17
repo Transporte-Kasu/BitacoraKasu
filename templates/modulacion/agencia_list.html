@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Agencias{% endblock %}
+
+{% block breadcrumb %}
+<nav class="text-sm text-gray-500 mb-4">
+    <a href="{% url 'modulacion:dashboard' %}" class="hover:text-blue-600">Modulación</a>
+    <span class="mx-2">/</span>
+    <span class="text-gray-800 font-medium">Agencias</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-xl font-bold text-gray-900">Agencias</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Agentes aduanales/despachantes (ej. LOGINCO)</p>
+    </div>
+    <a href="{% url 'modulacion:agencia_create' %}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+        + Nueva agencia
+    </a>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    {% if agencias %}
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th class="px-4 py-3">Nombre</th>
+                <th class="px-4 py-3 text-center">Estado</th>
+                <th class="px-4 py-3 text-right">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for agencia in agencias %}
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3 font-medium text-gray-900">{{ agencia.nombre }}</td>
+                <td class="px-4 py-3 text-center">
+                    {% if agencia.activo %}
+                    <span class="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Activa</span>
+                    {% else %}
+                    <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-semibold rounded-full">Inactiva</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <div class="flex justify-end gap-2">
+                        <a href="{% url 'modulacion:agencia_update' agencia.pk %}"
+                           class="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition">Editar</a>
+                        <a href="{% url 'modulacion:agencia_delete' agencia.pk %}"
+                           class="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition">Eliminar</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="py-16 text-center text-gray-400">
+        <p class="text-lg font-medium">Sin agencias registradas</p>
+        <a href="{% url 'modulacion:agencia_create' %}"
+           class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+            + Nueva agencia
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

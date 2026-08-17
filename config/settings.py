@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'modulos.dollys',
     'modulos.caja_seca',
     'modulos.finanzas',
+    'modulos.modulacion',
 ]
 
 MIDDLEWARE = [
@@ -255,6 +256,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'inicio'
 LOGOUT_REDIRECT_URL = 'login'
+
+# ---------------------------------------------------------------------------
+# Modulación — recepción de contenedores desde HAL9MIL (LOGINCO)
+# ---------------------------------------------------------------------------
+BITACORAKASU_API_TOKEN = env.str('BITACORAKASU_API_TOKEN', default='')
 
 # ─── Reportes automáticos ───────────────────────────────────────────────────
 # La configuración de reportes vive en la BD (ConfiguracionReporte).

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} Agencia{% endblock %}
+
+{% block breadcrumb %}
+<nav class="text-sm text-gray-500 mb-4">
+    <a href="{% url 'modulacion:dashboard' %}" class="hover:text-blue-600">Modulación</a>
+    <span class="mx-2">/</span>
+    <a href="{% url 'modulacion:agencia_list' %}" class="hover:text-blue-600">Agencias</a>
+    <span class="mx-2">/</span>
+    <span class="text-gray-800 font-medium">{% if object %}Editar{% else %}Nueva{% endif %}</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <h1 class="text-lg font-bold text-gray-900">
+                {% if object %}Editar agencia: {{ object.nombre }}{% else %}Nueva agencia{% endif %}
+            </h1>
+        </div>
+        <form method="post" class="px-6 py-5 space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre <span class="text-red-500">*</span></label>
+                {{ form.nombre }}
+                {% if form.nombre.errors %}<p class="text-xs text-red-500 mt-1">{{ form.nombre.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="flex items-center gap-3 pt-1">
+                {{ form.activo }}
+                <label class="text-sm text-gray-700">Agencia activa</label>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <a href="{% url 'modulacion:agencia_list' %}"
+                   class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancelar</a>
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                    {% if object %}Guardar cambios{% else %}Crear agencia{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

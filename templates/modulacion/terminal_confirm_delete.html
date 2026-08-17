@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar terminal portuaria{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-8 px-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-red-50 border-b border-red-100 px-6 py-5">
+            <h1 class="text-lg font-bold text-gray-900">Eliminar terminal portuaria</h1>
+            <p class="text-sm text-red-600">Esta acción no se puede deshacer</p>
+        </div>
+        <div class="px-6 py-5">
+            <p class="text-sm text-gray-600 mb-5">¿Eliminar a <strong>{{ object.nombre }}</strong>?</p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex gap-3 justify-end">
+                    <a href="{% url 'modulacion:terminal_list' %}"
+                       class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancelar</a>
+                    <button type="submit"
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition">Sí, eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

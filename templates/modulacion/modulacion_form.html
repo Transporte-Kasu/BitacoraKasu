@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} Modulación{% endblock %}
+
+{% block breadcrumb %}
+<nav class="text-sm text-gray-500 mb-4">
+    <a href="{% url 'modulacion:dashboard' %}" class="hover:text-blue-600">Modulación</a>
+    <span class="mx-2">/</span>
+    <a href="{% url 'modulacion:list' %}" class="hover:text-blue-600">Lista</a>
+    <span class="mx-2">/</span>
+    <span class="text-gray-800 font-medium">{% if object %}Editar{% else %}Captura manual{% endif %}</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <h1 class="text-lg font-bold text-gray-900">
+                {% if object %}Editar modulación: {{ object.folio }}{% else %}Captura manual de contenedor{% endif %}
+            </h1>
+            <p class="text-sm text-gray-500 mt-0.5">
+                Úsalo solo si el contenedor no llegó automáticamente desde HAL9MIL.
+                <a href="{% url 'modulacion:agencia_create' %}" class="text-blue-600 hover:underline" target="_blank">＋ nueva agencia</a>
+                ·
+                <a href="{% url 'modulacion:terminal_create' %}" class="text-blue-600 hover:underline" target="_blank">＋ nueva terminal</a>
+            </p>
+        </div>
+
+        <form method="post" class="px-6 py-5 space-y-4">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">
+                {{ form.non_field_errors.0 }}
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Agencia <span class="text-red-500">*</span></label>
+                    {{ form.agencia }}
+                    {% if form.agencia.errors %}<p class="text-xs text-red-500 mt-1">{{ form.agencia.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Terminal portuaria <span class="text-red-500">*</span></label>
+                    {{ form.terminal_portuaria }}
+                    {% if form.terminal_portuaria.errors %}<p class="text-xs text-red-500 mt-1">{{ form.terminal_portuaria.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contenedor <span class="text-red-500">*</span></label>
+                    {{ form.contenedor }}
+                    {% if form.contenedor.errors %}<p class="text-xs text-red-500 mt-1">{{ form.contenedor.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo <span class="text-red-500">*</span></label>
+                    {{ form.tipo_contenedor }}
+                    {% if form.tipo_contenedor.errors %}<p class="text-xs text-red-500 mt-1">{{ form.tipo_contenedor.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Peso (ton) <span class="text-red-500">*</span></label>
+                    {{ form.peso_toneladas }}
+                    {% if form.peso_toneladas.errors %}<p class="text-xs text-red-500 mt-1">{{ form.peso_toneladas.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+                {{ form.cliente }}
+                {% if form.cliente.errors %}<p class="text-xs text-red-500 mt-1">{{ form.cliente.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Número de pedimento</label>
+                    {{ form.num_pedimento }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Número de DODA</label>
+                    {{ form.num_doda }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                {{ form.observaciones }}
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <a href="{% url 'modulacion:list' %}"
+                   class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancelar</a>
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                    {% if object %}Guardar cambios{% else %}Crear modulación{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
