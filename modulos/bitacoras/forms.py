@@ -34,7 +34,7 @@ class BitacoraViajeForm(forms.ModelForm):
             'contenedor', 'tipo_contenedor', 'peso', 'sellos',
             # Contenedor 2 (solo FULL)
             'contenedor_2', 'peso_2', 'sellos_2',
-            'reparto',
+            'reparto', 'cliente_2', 'fecha_hora_entrega_2',
             # Destino
             'cp_origen', 'cp_destino', 'cp_destino_2', 'destino', 'domicilio_carta_porte',
             # Opcional
@@ -42,6 +42,9 @@ class BitacoraViajeForm(forms.ModelForm):
         ]
         widgets = {
             'cliente': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'cliente_2': forms.Select(attrs={
                 'class': 'form-control',
             }),
             'modalidad': forms.Select(attrs={
@@ -68,6 +71,10 @@ class BitacoraViajeForm(forms.ModelForm):
                 'type': 'datetime-local',
             }),
             'fecha_hora_entrega': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+            }),
+            'fecha_hora_entrega_2': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
             }),
@@ -164,6 +171,7 @@ class BitacoraViajeForm(forms.ModelForm):
         modalidad = cleaned_data.get('modalidad')
         contenedor_2 = cleaned_data.get('contenedor_2')
         reparto = cleaned_data.get('reparto')
+        cp_destino_2 = cleaned_data.get('cp_destino_2')
 
         if modalidad in ('FULL', 'LOCAL_FULL') and not contenedor_2:
             self.add_error('contenedor_2', 'Full y Local Full requieren el segundo contenedor.')
@@ -176,6 +184,9 @@ class BitacoraViajeForm(forms.ModelForm):
 
         if modalidad == 'LOCAL_FULL' and reparto:
             self.add_error('reparto', 'Local Full no usa reparto.')
+
+        if reparto and not cp_destino_2:
+            self.add_error('cp_destino_2', 'El reparto requiere el CP del segundo destino.')
 
         return cleaned_data
 

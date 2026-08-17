@@ -719,3 +719,58 @@ class RepartoValidacionModeloTests(TestCase):
         viaje = self._crear_viaje_full(cp_destino_2='64010')
 
         viaje.clean()  # no debe lanzar — ambos campos son opcionales
+
+
+class BitacoraViajeFormRepartoValidacionTests(TestCase):
+    def setUp(self):
+        self.unidad = _crear_unidad(numero_economico='ECO-960')
+        self.operador = _crear_operador()
+        self.cliente = Cliente.objects.create(nombre='Cliente Uno', celular='+5217531234567')
+
+    def _datos_full_reparto(self, **overrides):
+        datos = dict(
+            modalidad='FULL',
+            operador=self.operador.pk,
+            unidad=self.unidad.pk,
+            fecha_carga='2026-06-22T08:00',
+            fecha_salida='2026-06-22T17:00',
+            contenedor='MSKU1234567',
+            tipo_contenedor='40',
+            peso='28.05',
+            contenedor_2='PONU8765436',
+            peso_2='15.65',
+            cp_origen='40812',
+            cp_destino='64000',
+            destino='Bodega Norte, Monterrey',
+            reparto=True,
+        )
+        datos.update(overrides)
+        return datos
+
+    def test_reparto_sin_cp_destino_2_es_invalido(self):
+        form = BitacoraViajeForm(data=self._datos_full_reparto(cp_destino_2=''))
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('cp_destino_2', form.errors)
+
+    def test_reparto_con_cp_destino_2_es_valido(self):
+        form = BitacoraViajeForm(data=self._datos_full_reparto(cp_destino_2='64010'))
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_reparto_cliente_2_y_fecha_hora_entrega_2_son_opcionales(self):
+        form = BitacoraViajeForm(data=self._datos_full_reparto(cp_destino_2='64010'))
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertIsNone(form.cleaned_data['cliente_2'])
+        self.assertIsNone(form.cleaned_data['fecha_hora_entrega_2'])
+
+    def test_reparto_con_cliente_2_y_fecha_hora_entrega_2_presentes(self):
+        form = BitacoraViajeForm(data=self._datos_full_reparto(
+            cp_destino_2='64010',
+            cliente_2=self.cliente.pk,
+            fecha_hora_entrega_2='2026-06-23T09:00',
+        ))
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['cliente_2'], self.cliente)

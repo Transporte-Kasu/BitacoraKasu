@@ -511,7 +511,7 @@ textarea.form-control { resize: vertical; min-height: 5rem; }
                             <div>
                                 <label for="id_cp_destino_2" class="block text-sm font-medium text-slate-700 mb-1.5">
                                     CP destino 2
-                                    <span class="text-slate-400 font-normal text-xs">(reparto — opcional si igual)</span>
+                                    <span class="text-slate-400 font-normal text-xs">(reparto — obligatorio)</span>
                                 </label>
                                 {{ form.cp_destino_2 }}
                                 {% if form.cp_destino_2.errors %}
@@ -526,6 +526,28 @@ textarea.form-control { resize: vertical; min-height: 5rem; }
                                     Calculando distancia…
                                 </span>
                                 <p class="mt-1 text-xs text-slate-400">Se usará el CP más lejano para el rendimiento.</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label for="{{ form.cliente_2.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1.5">
+                                    Cliente (contenedor 2)
+                                    <span class="text-slate-400 font-normal text-xs">(vacío = mismo cliente)</span>
+                                </label>
+                                {{ form.cliente_2 }}
+                                {% if form.cliente_2.errors %}
+                                <p class="mt-1 text-xs text-red-600" role="alert">{{ form.cliente_2.errors|join:", " }}</p>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label for="{{ form.fecha_hora_entrega_2.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1.5">
+                                    Fecha/hora de entrega (contenedor 2)
+                                    <span class="text-slate-400 font-normal text-xs">(vacío = mismo horario)</span>
+                                </label>
+                                {{ form.fecha_hora_entrega_2 }}
+                                {% if form.fecha_hora_entrega_2.errors %}
+                                <p class="mt-1 text-xs text-red-600" role="alert">{{ form.fecha_hora_entrega_2.errors|join:", " }}</p>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
