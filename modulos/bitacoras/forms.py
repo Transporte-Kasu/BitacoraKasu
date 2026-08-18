@@ -152,6 +152,15 @@ class BitacoraViajeForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        modalidad_actual = self.instance.modalidad if self.instance and self.instance.pk else None
+        if modalidad_actual not in ('LOCAL', 'LOCAL_FULL'):
+            self.fields['modalidad'].choices = [
+                (valor, etiqueta) for valor, etiqueta in self.fields['modalidad'].choices
+                if valor not in ('LOCAL', 'LOCAL_FULL')
+            ]
+
     def _validar_numero_contenedor(self, valor, field_name):
         val = (valor or '').strip().upper()
         if val and not _CONTAINER_RE.match(val):

@@ -510,7 +510,7 @@ class BitacoraViajeFormFechaHoraEntregaTests(TestCase):
 
     def _datos_base(self, **overrides):
         datos = dict(
-            modalidad='LOCAL',
+            modalidad='SENCILLO',
             operador=self.operador.pk,
             unidad=self.unidad.pk,
             fecha_carga='2026-06-22T08:00',
