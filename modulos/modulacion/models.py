@@ -1,8 +1,8 @@
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
-from django.db import models
-from django.db.models import Max, Q
+from django.db import IntegrityError, models, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -130,17 +130,38 @@ class Modulacion(models.Model):
         return f"{self.folio} - {self.contenedor}"
 
     def save(self, *args, **kwargs):
-        if not self.folio:
-            fecha = timezone.now().strftime('%Y%m%d')
-            ultimo = Modulacion.objects.filter(folio__startswith=f'MOD-{fecha}').aggregate(
-                Max('folio')
-            )['folio__max']
+        if self.folio:
+            super().save(*args, **kwargs)
+            return
 
-            if ultimo:
-                numero = int(ultimo.split('-')[-1]) + 1
-            else:
-                numero = 1
+        # Generación de folio con reintento ante colisión: con
+        # --workers 1 --threads 4 (ver Procfile), dos requests concurrentes a
+        # recibir_modulacion (p.ej. dos patentes de HAL9MIL sincronizando casi
+        # al mismo tiempo) pueden calcular el mismo consecutivo antes de que
+        # cualquiera haga commit. select_for_update() serializa contra el
+        # último folio del día ya existente; el reintento cubre además el caso
+        # límite del primer folio del día (sin fila que bloquear todavía).
+        fecha = timezone.now().strftime('%Y%m%d')
+        ultimo_error = None
+        for _intento in range(5):
+            with transaction.atomic():
+                ultimo = (
+                    Modulacion.objects
+                    .select_for_update()
+                    .filter(folio__startswith=f'MOD-{fecha}')
+                    .order_by('-folio')
+                    .first()
+                )
+                numero = int(ultimo.folio.split('-')[-1]) + 1 if ultimo else 1
+                self.folio = f'MOD-{fecha}-{numero:03d}'
+                try:
+                    with transaction.atomic():
+                        super().save(*args, **kwargs)
+                    return
+                except IntegrityError as exc:
+                    ultimo_error = exc
+                    self.folio = ''
 
-            self.folio = f'MOD-{fecha}-{numero:03d}'
-
-        super().save(*args, **kwargs)
+        raise IntegrityError(
+            f'No se pudo generar un folio único para {fecha} después de varios intentos'
+        ) from ultimo_error

@@ -1,7 +1,9 @@
 import json
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.db.models import QuerySet
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -69,6 +71,37 @@ class ModulacionModelTests(TestCase):
         _crear_modulacion(num_doda='', contenedor='AAAU1111111')
         segunda = _crear_modulacion(num_doda='', contenedor='BBBU2222222')
         self.assertIsNotNone(segunda.pk)
+
+    def test_reintenta_folio_si_colisiona_justo_antes_del_insert(self):
+        """Reproduce, sin threads reales, la condición de carrera que motivó
+        el fix: dos requests concurrentes a recibir_modulacion (posible con
+        --workers 1 --threads 4, ver Procfile) pueden calcular el mismo
+        consecutivo si el SELECT con lock de una de ellas no alcanza a ver
+        todavía la fila que la otra insertó justo antes. Se fuerza esa
+        condición mockeando select_for_update() para que la PRIMERA llamada
+        devuelva un queryset vacío (como si el folio ya existente aún no
+        fuera visible), lo que hace que el primer intento calcule '001' de
+        nuevo y choque con el unique constraint de folio — la segunda llamada
+        (el reintento) usa el select_for_update() real, ve el '001' ya
+        confirmado y calcula '002' correctamente."""
+        fecha = timezone.now().strftime('%Y%m%d')
+        primera = _crear_modulacion(contenedor='AAAU1111111')
+        self.assertEqual(primera.folio, f'MOD-{fecha}-001')
+
+        original_select_for_update = QuerySet.select_for_update
+        llamadas = {'n': 0}
+
+        def select_for_update_con_stale_read_una_vez(self, *args, **kwargs):
+            llamadas['n'] += 1
+            qs = original_select_for_update(self, *args, **kwargs)
+            return qs.none() if llamadas['n'] == 1 else qs
+
+        with patch.object(QuerySet, 'select_for_update', select_for_update_con_stale_read_una_vez):
+            segunda = _crear_modulacion(contenedor='BBBU2222222')
+
+        self.assertEqual(segunda.folio, f'MOD-{fecha}-002')
+        self.assertEqual(llamadas['n'], 2)
+        self.assertEqual(Modulacion.objects.filter(folio=f'MOD-{fecha}-001').count(), 1)
 
 
 class RecibirModulacionApiTests(TestCase):
