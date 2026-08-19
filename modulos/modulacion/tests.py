@@ -202,6 +202,39 @@ class ModulacionViewsAuthTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
+class ModulacionListViewFilterTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tester', password='pass12345')
+        self.client.login(username='tester', password='pass12345')
+
+    def test_solo_muestra_con_doda_del_mes_y_anio_actual(self):
+        con_doda_mes_actual = _crear_modulacion(num_doda='D-0001', contenedor='AAAU1111111')
+        _crear_modulacion(num_doda='', contenedor='BBBU2222222')
+
+        mes_pasado = _crear_modulacion(num_doda='D-0002', contenedor='CCCU3333333')
+        fecha_vieja = timezone.now().replace(year=timezone.now().year - 1)
+        Modulacion.objects.filter(pk=mes_pasado.pk).update(fecha_recepcion=fecha_vieja)
+
+        response = self.client.get(reverse('modulacion:list'))
+        modulaciones = list(response.context['modulaciones'])
+
+        self.assertIn(con_doda_mes_actual, modulaciones)
+        self.assertEqual(len(modulaciones), 1)
+
+    def test_permite_filtrar_por_mes_y_anio_explicito(self):
+        mod = _crear_modulacion(num_doda='D-0003', contenedor='DDDU4444444')
+        fecha_vieja = timezone.now().replace(year=timezone.now().year - 1)
+        Modulacion.objects.filter(pk=mod.pk).update(fecha_recepcion=fecha_vieja)
+
+        response = self.client.get(reverse('modulacion:list'), {
+            'mes': fecha_vieja.month,
+            'anio': fecha_vieja.year,
+        })
+        modulaciones = list(response.context['modulaciones'])
+        self.assertIn(mod, modulaciones)
+
+
 class EnviarABitacoraViewTests(TestCase):
     def setUp(self):
         User = get_user_model()

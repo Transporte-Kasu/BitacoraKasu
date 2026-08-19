@@ -83,6 +83,11 @@ def modulacion_dashboard(request):
 
 
 class ModulacionListView(LoginRequiredMixin, ListView):
+    """
+    Lista de Modulaciones con DODA. Por default solo muestra las que tienen
+    número de DODA asignado y cuya fecha de recepción cae en el mes/año en
+    curso; `mes`/`anio` en el querystring permiten navegar a otros periodos.
+    """
     model = Modulacion
     template_name = 'modulacion/modulacion_list.html'
     context_object_name = 'modulaciones'
@@ -90,6 +95,12 @@ class ModulacionListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = Modulacion.objects.select_related('agencia', 'terminal_portuaria', 'cliente', 'bitacora_viaje')
+        qs = qs.exclude(num_doda='')
+
+        hoy = timezone.localdate()
+        anio = int(self.request.GET.get('anio') or hoy.year)
+        mes = int(self.request.GET.get('mes') or hoy.month)
+        qs = qs.filter(fecha_recepcion__year=anio, fecha_recepcion__month=mes)
 
         estado = self.request.GET.get('estado')
         if estado:
@@ -112,8 +123,17 @@ class ModulacionListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        hoy = timezone.localdate()
         context['estado_choices'] = Modulacion.ESTADO_CHOICES
         context['agencias_list'] = Agencia.objects.filter(activo=True)
+        context['anio_actual'] = int(self.request.GET.get('anio') or hoy.year)
+        context['mes_actual'] = int(self.request.GET.get('mes') or hoy.month)
+        context['anios_disponibles'] = range(hoy.year - 3, hoy.year + 1)
+        context['meses_disponibles'] = [
+            (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+            (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+            (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre'),
+        ]
         return context
 
 

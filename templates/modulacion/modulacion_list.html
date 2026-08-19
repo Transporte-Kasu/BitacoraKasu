@@ -37,9 +37,21 @@
         <option value="{{ agencia.pk }}" {% if request.GET.agencia == agencia.pk|stringformat:"s" %}selected{% endif %}>{{ agencia.nombre }}</option>
         {% endfor %}
     </select>
+    <select name="mes" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        {% for value, label in meses_disponibles %}
+        <option value="{{ value }}" {% if mes_actual == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="anio" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        {% for anio in anios_disponibles %}
+        <option value="{{ anio }}" {% if anio_actual == anio %}selected{% endif %}>{{ anio }}</option>
+        {% endfor %}
+    </select>
     <button type="submit" class="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm hover:bg-gray-200 transition">Filtrar</button>
     <a href="{% url 'modulacion:list' %}" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Limpiar</a>
 </form>
+
+<p class="text-xs text-gray-400 mb-2">Mostrando DODA con recepción en {{ mes_actual }}/{{ anio_actual }}. Solo se listan modulaciones con número de DODA asignado.</p>
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     {% if modulaciones %}
@@ -47,6 +59,7 @@
         <thead>
             <tr class="bg-gray-50 border-b border-gray-100 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <th class="px-4 py-3">Folio</th>
+                <th class="px-4 py-3">DODA</th>
                 <th class="px-4 py-3">Contenedor</th>
                 <th class="px-4 py-3">Agencia</th>
                 <th class="px-4 py-3">Terminal</th>
@@ -59,6 +72,7 @@
             {% for m in modulaciones %}
             <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="window.location='{% url 'modulacion:detail' m.pk %}'">
                 <td class="px-4 py-3 font-medium text-gray-900">{{ m.folio }}</td>
+                <td class="px-4 py-3">{{ m.num_doda }}</td>
                 <td class="px-4 py-3">{{ m.contenedor }}</td>
                 <td class="px-4 py-3">{{ m.agencia.nombre }}</td>
                 <td class="px-4 py-3">{{ m.terminal_portuaria.nombre }}</td>
