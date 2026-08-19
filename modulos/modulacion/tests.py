@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -103,6 +104,16 @@ class ModulacionModelTests(TestCase):
         self.assertEqual(llamadas['n'], 2)
         self.assertEqual(Modulacion.objects.filter(folio=f'MOD-{fecha}-001').count(), 1)
 
+    def test_folio_usa_fecha_recepcion_explicita_no_la_de_hoy(self):
+        """Un reintento masivo de historial atrasado manda fecha_recepcion
+        explícita (la fecha real del DODA) — el folio debe agruparse por esa
+        fecha, no por el día en que corrió el reintento. Sin esto, cientos de
+        DODAs viejas reenviadas de golpe quedarían todas bajo el folio de
+        hoy."""
+        vieja = timezone.make_aware(datetime(2025, 11, 20))
+        modulacion = _crear_modulacion(fecha_recepcion=vieja)
+        self.assertEqual(modulacion.folio, 'MOD-20251120-001')
+
 
 class RecibirModulacionApiTests(TestCase):
     def setUp(self):
@@ -187,6 +198,33 @@ class RecibirModulacionApiTests(TestCase):
     def test_get_no_permitido(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_fecha_doda_valida_se_usa_como_fecha_recepcion_y_folio(self):
+        payload = dict(self.payload, fecha_doda='2025-11-20')
+        response = self._post(payload)
+        self.assertEqual(response.status_code, 201)
+
+        modulacion = Modulacion.objects.get(pk=json.loads(response.content)['id'])
+        self.assertEqual(modulacion.fecha_recepcion.date(), datetime(2025, 11, 20).date())
+        self.assertEqual(modulacion.folio, 'MOD-20251120-001')
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_fecha_doda_ausente_usa_fecha_actual(self):
+        response = self._post(self.payload)
+        self.assertEqual(response.status_code, 201)
+
+        modulacion = Modulacion.objects.get(pk=json.loads(response.content)['id'])
+        self.assertEqual(modulacion.fecha_recepcion.date(), timezone.now().date())
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_fecha_doda_invalida_se_ignora_y_no_rompe_el_alta(self):
+        payload = dict(self.payload, fecha_doda='no-es-una-fecha')
+        response = self._post(payload)
+        self.assertEqual(response.status_code, 201)
+
+        modulacion = Modulacion.objects.get(pk=json.loads(response.content)['id'])
+        self.assertEqual(modulacion.fecha_recepcion.date(), timezone.now().date())
 
 
 class ModulacionViewsAuthTests(TestCase):

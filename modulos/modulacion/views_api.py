@@ -1,7 +1,9 @@
 import json
+from datetime import datetime
 
 from django.conf import settings
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -10,6 +12,24 @@ from modulos.bitacoras.models import Cliente
 from .models import Agencia, Modulacion, TerminalPortuaria
 
 REQUIRED_FIELDS = ['agencia', 'terminal_portuaria', 'tipo_contenedor', 'peso_toneladas', 'contenedor', 'cliente']
+
+
+def _parsear_fecha_doda(valor):
+    """Parsea 'fecha_doda' ('YYYY-MM-DD', opcional) a un datetime aware.
+
+    Usada como fecha_recepcion para que el folio y las vistas por mes
+    reflejen la fecha real del DODA en vez del día en que HAL9MIL lo mandó
+    — importante para reintentos masivos de historial atrasado. Una fecha
+    ausente o inválida no es un error: se ignora y Modulacion cae a su
+    default (fecha_recepcion = ahora).
+    """
+    valor = str(valor or '').strip()
+    if not valor:
+        return None
+    try:
+        return timezone.make_aware(datetime.strptime(valor, '%Y-%m-%d'))
+    except ValueError:
+        return None
 
 
 @csrf_exempt
@@ -27,7 +47,8 @@ def recibir_modulacion(request):
       "contenedor": "<numero>",
       "cliente": "<nombre>",
       "num_pedimento": "<opcional>",
-      "num_doda": "<opcional>"
+      "num_doda": "<opcional>",
+      "fecha_doda": "<opcional, 'YYYY-MM-DD'>"
     }
     """
     token_esperado = settings.BITACORAKASU_API_TOKEN
@@ -64,6 +85,9 @@ def recibir_modulacion(request):
     terminal_portuaria, _ = TerminalPortuaria.objects.get_or_create(nombre=str(payload['terminal_portuaria']).strip())
     cliente, _ = Cliente.objects.get_or_create(nombre=str(payload['cliente']).strip())
 
+    fecha_recepcion = _parsear_fecha_doda(payload.get('fecha_doda'))
+    extra = {'fecha_recepcion': fecha_recepcion} if fecha_recepcion else {}
+
     try:
         modulacion = Modulacion.objects.create(
             agencia=agencia,
@@ -76,6 +100,7 @@ def recibir_modulacion(request):
             num_doda=num_doda,
             origen='HAL9MIL',
             estado='PENDIENTE',
+            **extra,
         )
     except Exception as exc:
         return JsonResponse({'success': False, 'error': f'No se pudo crear la modulación: {exc}'}, status=400)

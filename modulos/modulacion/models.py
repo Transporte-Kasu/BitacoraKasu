@@ -106,7 +106,14 @@ class Modulacion(models.Model):
     )
     transportista_externo = models.CharField(max_length=120, blank=True, verbose_name="Transportista externo")
 
-    fecha_recepcion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de recepción")
+    fecha_recepcion = models.DateTimeField(
+        default=timezone.now,
+        verbose_name="Fecha de recepción",
+        help_text=(
+            "Fecha real del DODA cuando el origen la manda (HAL9MIL); si no "
+            "llega, la fecha en que se recibió el registro."
+        ),
+    )
     fecha_retiro = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de retiro")
 
     observaciones = models.TextField(blank=True, verbose_name="Observaciones")
@@ -141,7 +148,12 @@ class Modulacion(models.Model):
         # cualquiera haga commit. select_for_update() serializa contra el
         # último folio del día ya existente; el reintento cubre además el caso
         # límite del primer folio del día (sin fila que bloquear todavía).
-        fecha = timezone.now().strftime('%Y%m%d')
+        #
+        # El folio se agrupa por fecha_recepcion (que ya trae la fecha real
+        # del DODA cuando el origen la manda) y no por "ahora": un reintento
+        # masivo de historial atrasado no debe amontonar cientos de folios
+        # bajo el día en que se corrió el reintento.
+        fecha = self.fecha_recepcion.strftime('%Y%m%d')
         ultimo_error = None
         for _intento in range(5):
             with transaction.atomic():
