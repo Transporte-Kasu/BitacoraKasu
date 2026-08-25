@@ -95,15 +95,17 @@ def parse_confirmacion_excel(file_obj, hora_salida_str, hora_carga_str, tipo_con
                 obs_parts.append(f'Custodia: {custodia}')
             if contacto:
                 obs_parts.append(f'Contacto: {contacto}')
-            if mercancia:
-                obs_parts.append(f'Mercancía: {mercancia}')
-            if pedimento:
-                obs_parts.append(f'Pedimento: {pedimento}')
-
             fecha_entrega          = _parse_fecha_entrega(fecha_raw)
             cp                     = _extract_cp(dir_entrega)
             destino                = str(dir_entrega).strip() if dir_entrega else ''
-            domicilio_carta_porte  = str(dir_carta_porte).strip() if dir_carta_porte else ''
+
+            carta_porte_parts = []
+            if dir_carta_porte:
+                carta_porte_parts.append(str(dir_carta_porte).strip())
+            if mercancia:
+                carta_porte_parts.append(f'Mercancía: {mercancia}')
+            if pedimento:
+                carta_porte_parts.append(f'Pedimento: {pedimento}')
 
             fecha_salida = fecha_carga = None
             if fecha_entrega:
@@ -119,7 +121,7 @@ def parse_confirmacion_excel(file_obj, hora_salida_str, hora_carga_str, tipo_con
                 'peso_2':                '',
                 'destino':               destino,
                 'cp_destino':            cp,
-                'domicilio_carta_porte': domicilio_carta_porte,
+                'domicilio_carta_porte': '\n'.join(carta_porte_parts),
                 'cp_faltante':           not cp,
                 'fecha_entrega_display': fecha_entrega.strftime('%d/%m/%Y %H:%M') if fecha_entrega else '',
                 'fecha_hora_entrega':    fecha_entrega.strftime('%Y-%m-%dT%H:%M') if fecha_entrega else '',
@@ -136,7 +138,7 @@ def parse_confirmacion_excel(file_obj, hora_salida_str, hora_carga_str, tipo_con
                 current['contenedor_2'] = contenedor
                 current['peso_2']       = str(peso_tons) if peso_tons is not None else ''
                 if pedimento:
-                    sep = '\n' if current['observaciones'] else ''
-                    current['observaciones'] += f'{sep}Pedimento 2: {pedimento}'
+                    sep = '\n' if current['domicilio_carta_porte'] else ''
+                    current['domicilio_carta_porte'] += f'{sep}Pedimento 2: {pedimento}'
 
     return viajes

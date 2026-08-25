@@ -3,7 +3,6 @@ Twilio Service — envío de mensajes WhatsApp con plantillas Content API
 y correos electrónicos a clientes de bitácoras.
 """
 
-from datetime import timedelta
 import json
 import logging
 import re
@@ -242,18 +241,13 @@ def enviar_notificacion_operador(bitacora) -> dict:
     """
     resultado = {'wa_ok': False}
     operador = bitacora.operador
+    unidad = bitacora.unidad
 
     var1 = _var_info_carga(bitacora)
 
-    # {{2}} — Detalles del Traslado (versión operador: destino + horario de entrega)
-    if bitacora.fecha_hora_entrega:
-        hora_entrega = bitacora.fecha_hora_entrega
-    elif bitacora.duracion_estimada:
-        hora_entrega = bitacora.fecha_salida + timedelta(minutes=bitacora.duracion_estimada)
-    else:
-        hora_entrega = bitacora.fecha_salida
+    # {{2}} — Detalles del Traslado (versión operador: destino + horario de salida + unidad)
     destino = _sanitizar_texto(bitacora.destino or '-').upper()
-    var2 = f"Destino: {destino} | Horario de entrega: {_fecha_es(hora_entrega)}"
+    var2 = f"Destino: {destino} | Horario de Salida: {_fecha_es(bitacora.fecha_salida)} | Unidad: {unidad.numero_economico} (Placas {unidad.placa})"
 
     # {{3}} — Notas Adicionales (igual que cliente)
     obs = _sanitizar_texto(bitacora.observaciones or 'SIN CUSTODIA')
