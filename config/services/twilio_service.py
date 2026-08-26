@@ -246,8 +246,7 @@ def enviar_notificacion_operador(bitacora) -> dict:
     var1 = _var_info_carga(bitacora)
 
     # {{2}} — Detalles del Traslado (versión operador: destino + horario de salida + unidad)
-    destino = _sanitizar_texto(bitacora.destino or '-').upper()
-    var2 = f"Destino: {destino} | Horario de Salida: {_fecha_es(bitacora.fecha_salida)} | Unidad: {unidad.numero_economico} (Placas {unidad.placa})"
+    var2 = f"Fecha y Horario de Salida: {_fecha_es(bitacora.fecha_salida)} | Unidad: {unidad.numero_economico} (Placas {unidad.placa})"
 
     # {{3}} — Notas Adicionales (igual que cliente)
     obs = _sanitizar_texto(bitacora.observaciones or 'SIN CUSTODIA')
