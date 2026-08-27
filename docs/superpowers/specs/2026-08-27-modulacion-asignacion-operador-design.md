@@ -201,3 +201,59 @@ Excel + WhatsApp + narrativa IA + historial, igual que los demás.
 2. Parte B: choices + migración → generador → wiring (command + narrativa) →
    vista en pantalla + URL + template → tests.
 3. Correr `python manage.py test modulos.modulacion modulos.reportes`.
+
+---
+
+# Adenda 2026-08-27 — Flujo lineal a Patio Esperanza + reporte de retiros
+
+Segunda iteración sobre el mismo módulo, ya en producción la primera parte.
+
+## Decisiones
+
+- Todo contenedor extraído pasa **primero** por Patio Esperanza. Desde ahí se
+  decide: lo lleva Transportes Kasu (→ app de Bitácora) o lo retira un
+  transporte externo al cliente.
+- El botón "Enviar a Patio Esperanza" solo **marca la fecha** de entrada al
+  patio; la asignación de unidad/operador ya existe como acción aparte.
+- El reporte semanal de "contenedores por operador" **no cambia** (sigue
+  contando por `fecha_retiro`).
+- La visibilidad de "quién retira de Patio Esperanza" se entrega como
+  **reporte semanal programable** en el módulo `reportes` (sin vista en
+  pantalla).
+
+## Parte A — Flujo lineal
+
+- `Modulacion.fecha_patio_esperanza` (`DateTimeField`, `null/blank`).
+  Migración `0004`.
+- `modulacion_detail.html`: en estado `PENDIENTE`/`MODULADO` se elimina el
+  botón "Enviar a Bitácora de Viajes"; queda solo "Enviar a Patio Esperanza".
+  Se muestra `fecha_patio_esperanza` en la grilla.
+- `enviar_a_patio_esperanza`: sella `fecha_patio_esperanza = now()` la primera
+  vez, además de poner `estado='EN_PATIO_ESPERANZA'`.
+- `EnviarABitacoraView` (GET y POST): si `estado != 'EN_PATIO_ESPERANZA'`,
+  redirige al detalle con `messages.warning`. Fuerza el flujo lineal aunque
+  se entre por URL directa.
+- Admin: `fecha_patio_esperanza` en `readonly_fields`.
+
+## Parte B — Reporte "Retiros de Patio Esperanza"
+
+- Choice `('MODULACION_RETIROS_PATIO', 'Modulación — Retiros de Patio Esperanza')`
+  en `TIPO_CHOICES`. Migración `reportes/0009`.
+- `generadores/modulacion.py` → `generar_retiros_patio(periodo_inicio, periodo_fin)`:
+  - Retirados en el período (`fecha_retiro` en rango): *Kasu* = estado
+    `ENVIADO_BITACORA`, *Externo* = estado `RETIRADO_TERCERO`.
+  - Aún en espera (snapshot, estado `EN_PATIO_ESPERANZA`): con días desde
+    `fecha_patio_esperanza`.
+  - `resumen`: `total_retirados`, `retirados_kasu`, `retirados_externo`,
+    `en_espera_actual`, `dias_promedio_espera`.
+  - `tablas`: "Retirados en el periodo" + "Aún en Patio Esperanza".
+- Registrado en `GENERADORES` (lo recoge el comando por el spread) y en
+  `narrativa._NOMBRES_REPORTE`. Sin vista en pantalla.
+
+## Pruebas
+
+- `EnviarABitacoraViewTests`: setUp deja la modulación en `EN_PATIO_ESPERANZA`;
+  nuevo test de la guardia de estado.
+- `PatioEsperanzaFlowTests`: `enviar_a_patio_esperanza` sella la fecha una vez.
+- `GenerarRetirosPatioTests`: conteo Kasu / externo por `fecha_retiro`,
+  snapshot "en espera", registro en `GENERADORES` del comando.

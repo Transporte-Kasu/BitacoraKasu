@@ -26,7 +26,7 @@ class ModulacionAdmin(admin.ModelAdmin):
     list_filter = ['estado', 'origen', 'agencia', 'terminal_portuaria', 'operador']
     search_fields = ['folio', 'contenedor', 'num_pedimento', 'num_doda', 'cliente__nombre']
     autocomplete_fields = ['operador', 'unidad']
-    readonly_fields = ['folio', 'fecha_recepcion', 'created_at', 'updated_at']
+    readonly_fields = ['folio', 'fecha_recepcion', 'fecha_patio_esperanza', 'created_at', 'updated_at']
     date_hierarchy = 'fecha_recepcion'
     ordering = ['-fecha_recepcion']
 

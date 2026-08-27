@@ -532,3 +532,76 @@ class ContenedoresPorOperadorViewTests(TestCase):
         self.client.logout()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 302)
+
+
+class GenerarRetirosPatioTests(TestCase):
+    def setUp(self):
+        from modulos.modulacion.models import Agencia, TerminalPortuaria
+
+        self.agencia = Agencia.objects.create(nombre='LOGINCO')
+        self.terminal = TerminalPortuaria.objects.create(nombre='TIMSA')
+        self.operador = Operador.objects.create(nombre='Ana Local', tipo='LOCAL')
+
+    def _modulacion(self, estado, contenedor, fecha_retiro=None,
+                    fecha_patio_esperanza=None, operador=None, transportista_externo=''):
+        from modulos.modulacion.models import Modulacion
+
+        m = Modulacion.objects.create(
+            agencia=self.agencia,
+            terminal_portuaria=self.terminal,
+            tipo_contenedor='40HC',
+            peso_toneladas=Decimal('18.00'),
+            contenedor=contenedor,
+            estado=estado,
+            operador=operador,
+            transportista_externo=transportista_externo,
+        )
+        campos = []
+        if fecha_retiro is not None:
+            m.fecha_retiro = fecha_retiro
+            campos.append('fecha_retiro')
+        if fecha_patio_esperanza is not None:
+            m.fecha_patio_esperanza = fecha_patio_esperanza
+            campos.append('fecha_patio_esperanza')
+        if campos:
+            m.save(update_fields=campos)
+        return m
+
+    def test_cuenta_kasu_externo_y_en_espera(self):
+        from modulos.reportes.generadores.modulacion import generar_retiros_patio
+
+        dentro = timezone.make_aware(timezone.datetime(2026, 8, 26, 10, 0))
+        fuera = timezone.make_aware(timezone.datetime(2026, 7, 1, 10, 0))
+
+        self._modulacion('ENVIADO_BITACORA', 'KKKK0000001', fecha_retiro=dentro, operador=self.operador)
+        self._modulacion('ENVIADO_BITACORA', 'KKKK0000002', fecha_retiro=dentro, operador=self.operador)
+        self._modulacion('RETIRADO_TERCERO', 'XXXX0000001', fecha_retiro=dentro,
+                         transportista_externo='Fletes Beta')
+        self._modulacion('RETIRADO_TERCERO', 'XXXX0000002', fecha_retiro=fuera,
+                         transportista_externo='Fletes Beta')  # fuera de rango
+        self._modulacion(
+            'EN_PATIO_ESPERANZA', 'EEEE0000001',
+            fecha_patio_esperanza=timezone.now() - timedelta(days=4),
+        )
+        self._modulacion(
+            'EN_PATIO_ESPERANZA', 'EEEE0000002',
+            fecha_patio_esperanza=timezone.now() - timedelta(days=2),
+        )
+
+        datos = generar_retiros_patio(date(2026, 8, 24), date(2026, 8, 30))
+
+        self.assertEqual(datos['resumen']['retirados_kasu'], 2)
+        self.assertEqual(datos['resumen']['retirados_externo'], 1)
+        self.assertEqual(datos['resumen']['total_retirados'], 3)
+        self.assertEqual(datos['resumen']['en_espera_actual'], 2)
+        self.assertEqual(datos['resumen']['dias_promedio_espera'], 3.0)
+
+        self.assertEqual(len(datos['tablas']['Retirados en el periodo']), 3)
+        self.assertEqual(len(datos['tablas']['Aún en Patio Esperanza']), 2)
+        tipos = {f['tipo_retiro'] for f in datos['tablas']['Retirados en el periodo']}
+        self.assertEqual(tipos, {'Transportes Kasu', 'Transporte externo'})
+
+    def test_registrado_en_generadores_del_comando(self):
+        from modulos.reportes.management.commands.generar_reportes import GENERADORES as CMD_GEN
+
+        self.assertIn('MODULACION_RETIROS_PATIO', CMD_GEN)

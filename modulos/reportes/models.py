@@ -33,6 +33,7 @@ class ConfiguracionReporte(models.Model):
         ('FLOTA_VIGENCIAS',      'Flota — Vigencias de dollys, equipos y cajas secas'),
         # Modulación
         ('MODULACION_CONTENEDORES_OPERADOR', 'Modulación — Contenedores extraídos por operador'),
+        ('MODULACION_RETIROS_PATIO', 'Modulación — Retiros de Patio Esperanza'),
     ]
 
     FRECUENCIA_CHOICES = [

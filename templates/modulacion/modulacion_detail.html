@@ -37,6 +37,9 @@
             {% if modulacion.fecha_asignacion %}
             <div><span class="text-gray-500">Fecha de asignación:</span> <span class="font-medium">{{ modulacion.fecha_asignacion|date:"d/m/Y H:i" }}</span></div>
             {% endif %}
+            {% if modulacion.fecha_patio_esperanza %}
+            <div><span class="text-gray-500">Entrada a Patio Esperanza:</span> <span class="font-medium">{{ modulacion.fecha_patio_esperanza|date:"d/m/Y H:i" }}</span></div>
+            {% endif %}
             {% if modulacion.transportista_externo %}
             <div><span class="text-gray-500">Transportista externo:</span> <span class="font-medium">{{ modulacion.transportista_externo }}</span></div>
             {% endif %}
@@ -70,8 +73,6 @@
                class="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition">Eliminar</a>
 
             {% if modulacion.estado == 'PENDIENTE' or modulacion.estado == 'MODULADO' %}
-            <a href="{% url 'modulacion:enviar_a_bitacora' modulacion.pk %}"
-               class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">Enviar a Bitácora de Viajes</a>
             <form method="post" action="{% url 'modulacion:enviar_a_patio_esperanza' modulacion.pk %}">
                 {% csrf_token %}
                 <button type="submit"

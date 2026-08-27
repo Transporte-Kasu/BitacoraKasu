@@ -40,6 +40,7 @@ _NOMBRES_REPORTE = {
     'UNIDADES_KILOMETRAJE':  'Kilometraje actual de la flota',
     'UNIDADES_BALANZA_UTILIDAD': 'Balanza de utilidad/pérdida por unidad',
     'MODULACION_CONTENEDORES_OPERADOR': 'Contenedores extraídos por operador (modulación)',
+    'MODULACION_RETIROS_PATIO': 'Retiros de Patio Esperanza (Transportes Kasu, externos y en espera)',
 }
 
 

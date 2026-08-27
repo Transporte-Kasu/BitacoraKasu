@@ -280,7 +280,8 @@ class EnviarABitacoraViewTests(TestCase):
         self.client.login(username='tester', password='pass12345')
 
         self.cliente = Cliente.objects.create(nombre='Cliente Demo')
-        self.modulacion = _crear_modulacion(cliente=self.cliente)
+        # El flujo es lineal: solo se envía a Bitácora desde Patio Esperanza.
+        self.modulacion = _crear_modulacion(cliente=self.cliente, estado='EN_PATIO_ESPERANZA')
         self.operador = _crear_operador()
         self.unidad = _crear_unidad()
 
@@ -322,7 +323,24 @@ class EnviarABitacoraViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(BitacoraViaje.objects.count(), 0)
         self.modulacion.refresh_from_db()
-        self.assertEqual(self.modulacion.estado, 'PENDIENTE')
+        self.assertEqual(self.modulacion.estado, 'EN_PATIO_ESPERANZA')
+
+    def test_guardia_redirige_si_no_esta_en_patio_esperanza(self):
+        otra = _crear_modulacion(estado='MODULADO', contenedor='ZZZU9999999')
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': otra.pk})
+
+        get_resp = self.client.get(url)
+        self.assertRedirects(get_resp, reverse('modulacion:detail', kwargs={'pk': otra.pk}))
+
+        post_resp = self.client.post(url, data={
+            'operador': self.operador.pk,
+            'unidad': self.unidad.pk,
+            'fecha_carga': timezone.now().strftime('%Y-%m-%dT%H:%M'),
+            'fecha_salida': timezone.now().strftime('%Y-%m-%dT%H:%M'),
+            'destino': 'Calle Falsa 123',
+        })
+        self.assertRedirects(post_resp, reverse('modulacion:detail', kwargs={'pk': otra.pk}))
+        self.assertEqual(BitacoraViaje.objects.count(), 0)
 
 
 class PatioEsperanzaFlowTests(TestCase):
@@ -332,11 +350,20 @@ class PatioEsperanzaFlowTests(TestCase):
         self.client.login(username='tester2', password='pass12345')
         self.modulacion = _crear_modulacion()
 
-    def test_enviar_a_patio_esperanza_cambia_estado(self):
+    def test_enviar_a_patio_esperanza_cambia_estado_y_sella_fecha(self):
         url = reverse('modulacion:enviar_a_patio_esperanza', kwargs={'pk': self.modulacion.pk})
         self.client.post(url)
         self.modulacion.refresh_from_db()
         self.assertEqual(self.modulacion.estado, 'EN_PATIO_ESPERANZA')
+        self.assertIsNotNone(self.modulacion.fecha_patio_esperanza)
+
+        # Reenviar no re-sella la fecha original.
+        fecha_original = self.modulacion.fecha_patio_esperanza
+        self.modulacion.estado = 'MODULADO'
+        self.modulacion.save(update_fields=['estado'])
+        self.client.post(url)
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.fecha_patio_esperanza, fecha_original)
 
     def test_retirar_de_patio_modo_kasu_redirige_a_enviar_bitacora(self):
         self.modulacion.estado = 'EN_PATIO_ESPERANZA'

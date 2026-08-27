@@ -236,14 +236,30 @@ class EnviarABitacoraView(LoginRequiredMixin, View):
     """
     template_name = 'modulacion/enviar_a_bitacora.html'
 
+    def _redirige_si_no_esta_en_patio(self, request, modulacion):
+        """El flujo es lineal: solo se envía a Bitácora desde Patio Esperanza."""
+        if modulacion.estado != 'EN_PATIO_ESPERANZA':
+            messages.warning(
+                request,
+                'El contenedor debe estar en Patio Esperanza para enviarse a Bitácora.',
+            )
+            return redirect(reverse('modulacion:detail', kwargs={'pk': modulacion.pk}))
+        return None
+
     def get(self, request, pk):
         modulacion = get_object_or_404(Modulacion, pk=pk)
+        redir = self._redirige_si_no_esta_en_patio(request, modulacion)
+        if redir:
+            return redir
         ahora = timezone.now()
         form = PromoverBitacoraForm(initial={'fecha_carga': ahora, 'fecha_salida': ahora})
         return render(request, self.template_name, {'modulacion': modulacion, 'form': form})
 
     def post(self, request, pk):
         modulacion = get_object_or_404(Modulacion, pk=pk)
+        redir = self._redirige_si_no_esta_en_patio(request, modulacion)
+        if redir:
+            return redir
         form = PromoverBitacoraForm(request.POST)
         if not form.is_valid():
             return render(request, self.template_name, {'modulacion': modulacion, 'form': form})
@@ -274,6 +290,8 @@ class EnviarABitacoraView(LoginRequiredMixin, View):
 def enviar_a_patio_esperanza(request, pk):
     modulacion = get_object_or_404(Modulacion, pk=pk)
     modulacion.estado = 'EN_PATIO_ESPERANZA'
+    if modulacion.fecha_patio_esperanza is None:
+        modulacion.fecha_patio_esperanza = timezone.now()
     modulacion.save()
     messages.success(request, f'Modulación {modulacion.folio} enviada al Patio Esperanza.')
     return redirect(reverse('modulacion:detail', kwargs={'pk': modulacion.pk}))

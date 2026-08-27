@@ -137,6 +137,12 @@ class Modulacion(models.Model):
             "llega, la fecha en que se recibió el registro."
         ),
     )
+    fecha_patio_esperanza = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fecha de entrada a Patio Esperanza",
+        help_text="Se sella la primera vez que el contenedor se manda a Patio Esperanza.",
+    )
     fecha_retiro = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de retiro")
 
     observaciones = models.TextField(blank=True, verbose_name="Observaciones")
