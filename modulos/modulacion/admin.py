@@ -21,14 +21,17 @@ class TerminalPortuariaAdmin(admin.ModelAdmin):
 class ModulacionAdmin(admin.ModelAdmin):
     list_display = [
         'folio', 'contenedor', 'agencia', 'terminal_portuaria',
-        'tipo_contenedor', 'cliente', 'origen', 'estado', 'fecha_recepcion',
+        'tipo_contenedor', 'cliente', 'unidad', 'operador', 'origen', 'estado', 'fecha_recepcion',
     ]
-    list_filter = ['estado', 'origen', 'agencia', 'terminal_portuaria']
+    list_filter = ['estado', 'origen', 'agencia', 'terminal_portuaria', 'operador']
     search_fields = ['folio', 'contenedor', 'num_pedimento', 'num_doda', 'cliente__nombre']
+    autocomplete_fields = ['operador', 'unidad']
     readonly_fields = ['folio', 'fecha_recepcion', 'created_at', 'updated_at']
     date_hierarchy = 'fecha_recepcion'
     ordering = ['-fecha_recepcion']
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('agencia', 'terminal_portuaria', 'cliente', 'bitacora_viaje')
+        return qs.select_related(
+            'agencia', 'terminal_portuaria', 'cliente', 'bitacora_viaje', 'unidad', 'operador',
+        )

@@ -12,11 +12,18 @@
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Historial de Reportes</h1>
             <p class="text-gray-500 mt-0.5 text-sm">Registros de reportes generados y enviados automáticamente</p>
         </div>
-        <a href="{% url 'reportes:configuracion_list' %}"
-           class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
-                  font-semibold text-sm px-4 py-2 rounded-lg transition">
-            ⚙️ Configurar reportes
-        </a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'reportes:contenedores_por_operador' %}"
+               class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700
+                      font-semibold text-sm px-4 py-2 rounded-lg transition">
+                📦 Contenedores por operador
+            </a>
+            <a href="{% url 'reportes:configuracion_list' %}"
+               class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                      font-semibold text-sm px-4 py-2 rounded-lg transition">
+                ⚙️ Configurar reportes
+            </a>
+        </div>
     </div>
 
     <!-- Filtros -->

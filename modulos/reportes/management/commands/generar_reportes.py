@@ -32,6 +32,7 @@ from config.services.whatsapp_service import enviar_mensaje as _wa_enviar
 from modulos.reportes.generadores import combustible as gen_combustible
 from modulos.reportes.generadores import unidades as gen_unidades
 from modulos.reportes.generadores import flota as gen_flota
+from modulos.reportes.generadores import modulacion as gen_modulacion
 from modulos.reportes.generadores.narrativa import generar_narrativa
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ GENERADORES = {
     **gen_combustible.GENERADORES,
     **gen_unidades.GENERADORES,
     **gen_flota.GENERADORES,
+    **gen_modulacion.GENERADORES,
 }
 
 

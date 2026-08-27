@@ -426,3 +426,109 @@ class PromptBalanzaUtilidadTests(TestCase):
         self.assertIn('Balanza', kwargs['prompt'] if 'prompt' in kwargs else args[0])
         self.assertEqual(kwargs['max_tokens'], 500)
         self.assertIn('salud financiera de la flotilla', kwargs['prompt'] if 'prompt' in kwargs else args[0])
+
+
+class GenerarContenedoresPorOperadorTests(TestCase):
+    def setUp(self):
+        from modulos.modulacion.models import Agencia, TerminalPortuaria
+
+        self.agencia = Agencia.objects.create(nombre='LOGINCO')
+        self.terminal = TerminalPortuaria.objects.create(nombre='TIMSA')
+        self.op_a = Operador.objects.create(nombre='Ana Local', tipo='LOCAL')
+        self.op_b = Operador.objects.create(nombre='Beto Local', tipo='LOCAL')
+
+    def _modulacion(self, operador=None, fecha_retiro=None, contenedor='ABCU1234567'):
+        from modulos.modulacion.models import Modulacion
+
+        m = Modulacion.objects.create(
+            agencia=self.agencia,
+            terminal_portuaria=self.terminal,
+            tipo_contenedor='40HC',
+            peso_toneladas=Decimal('18.00'),
+            contenedor=contenedor,
+            operador=operador,
+        )
+        if fecha_retiro is not None:
+            m.fecha_retiro = fecha_retiro
+            m.save(update_fields=['fecha_retiro'])
+        return m
+
+    def test_cuenta_por_operador_dentro_del_rango(self):
+        from modulos.reportes.generadores.modulacion import generar_contenedores_por_operador
+
+        base = timezone.make_aware(timezone.datetime(2026, 8, 25, 10, 0))  # lunes W35
+        self._modulacion(self.op_a, base, 'AAAA0000001')
+        self._modulacion(self.op_a, base + timedelta(days=1), 'AAAA0000002')
+        self._modulacion(self.op_b, base + timedelta(days=2), 'BBBB0000001')
+
+        datos = generar_contenedores_por_operador(date(2026, 8, 24), date(2026, 8, 30))
+
+        self.assertEqual(datos['resumen']['total_contenedores'], 3)
+        self.assertEqual(datos['resumen']['operadores_activos'], 2)
+        self.assertEqual(datos['resumen']['operador_top'], 'Ana Local')
+        self.assertEqual(datos['resumen']['contenedores_operador_top'], 2)
+        totales = {f['operador']: f['contenedores'] for f in datos['totales_operador']}
+        self.assertEqual(totales, {'Ana Local': 2, 'Beto Local': 1})
+
+    def test_excluye_sin_operador_y_fuera_de_rango(self):
+        from modulos.reportes.generadores.modulacion import generar_contenedores_por_operador
+
+        dentro = timezone.make_aware(timezone.datetime(2026, 8, 26, 9, 0))
+        fuera = timezone.make_aware(timezone.datetime(2026, 7, 1, 9, 0))
+        self._modulacion(self.op_a, dentro, 'AAAA0000010')
+        self._modulacion(None, dentro, 'CCCC0000001')          # sin operador
+        self._modulacion(self.op_b, fuera, 'BBBB0000010')        # fuera de rango
+        self._modulacion(self.op_b, None, 'BBBB0000011')         # sin fecha_retiro
+
+        datos = generar_contenedores_por_operador(date(2026, 8, 24), date(2026, 8, 30))
+        self.assertEqual(datos['resumen']['total_contenedores'], 1)
+        self.assertEqual(datos['resumen']['operadores_activos'], 1)
+
+    def test_agrupa_por_semana_iso(self):
+        from modulos.reportes.generadores.modulacion import generar_contenedores_por_operador
+
+        w35 = timezone.make_aware(timezone.datetime(2026, 8, 25, 8, 0))
+        w36 = timezone.make_aware(timezone.datetime(2026, 9, 1, 8, 0))
+        self._modulacion(self.op_a, w35, 'AAAA0000020')
+        self._modulacion(self.op_a, w36, 'AAAA0000021')
+
+        datos = generar_contenedores_por_operador(date(2026, 8, 24), date(2026, 9, 6))
+        semanas = sorted({f['semana'] for f in datos['filas']})
+        self.assertEqual(len(semanas), 2)
+        self.assertTrue(any('W35' in s for s in semanas))
+        self.assertTrue(any('W36' in s for s in semanas))
+
+    def test_registrado_en_generadores_del_comando(self):
+        from modulos.reportes.management.commands.generar_reportes import GENERADORES as CMD_GEN
+
+        self.assertIn('MODULACION_CONTENEDORES_OPERADOR', CMD_GEN)
+
+
+class ContenedoresPorOperadorViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='rep-tester', password='pass12345')
+        self.client.login(username='rep-tester', password='pass12345')
+        self.url = '/reportes/modulacion/contenedores-por-operador/'
+
+    def test_responde_200_con_rango_default(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('datos', response.context)
+        self.assertIn('desde', response.context)
+        self.assertIn('hasta', response.context)
+
+    def test_rango_explicito_se_respeta(self):
+        response = self.client.get(self.url, {'desde': '2026-08-01', 'hasta': '2026-08-31'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(str(response.context['desde']), '2026-08-01')
+        self.assertEqual(str(response.context['hasta']), '2026-08-31')
+
+    def test_rango_invalido_cae_a_default(self):
+        response = self.client.get(self.url, {'desde': 'no-es-fecha', 'hasta': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(response.context['desde'], response.context['hasta'])
+
+    def test_requiere_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)

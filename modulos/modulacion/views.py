@@ -1,3 +1,4 @@
+import json
 import os
 
 from django.contrib import messages
@@ -12,8 +13,16 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from modulos.bitacoras.models import BitacoraViaje
+from modulos.operadores.models import Operador
 
-from .forms import AgenciaForm, ModulacionForm, PromoverBitacoraForm, RetiroExternoForm, TerminalPortuariaForm
+from .forms import (
+    AgenciaForm,
+    AsignarUnidadOperadorForm,
+    ModulacionForm,
+    PromoverBitacoraForm,
+    RetiroExternoForm,
+    TerminalPortuariaForm,
+)
 from .models import Agencia, Modulacion, TerminalPortuaria
 
 
@@ -173,6 +182,38 @@ class ModulacionUpdateView(LoginRequiredMixin, UpdateView):
             modulacion.estado = 'MODULADO'
         modulacion.save()
         messages.success(self.request, f'Modulación {modulacion.folio} actualizada.')
+        return redirect(reverse('modulacion:detail', kwargs={'pk': modulacion.pk}))
+
+
+class AsignarUnidadOperadorView(LoginRequiredMixin, UpdateView):
+    """
+    Asigna (o reasigna) unidad y operador local a una Modulación. Se llega
+    desde un botón en el detalle. Es independiente de "Enviar a Bitácora":
+    aquí sólo se registran los datos en la Modulación (para el reporte de
+    contenedores por operador), no se crea ningún viaje.
+    """
+    model = Modulacion
+    form_class = AsignarUnidadOperadorForm
+    template_name = 'modulacion/asignar_unidad_operador.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Mapa unidad -> operador ligado, para auto-llenar el operador en el
+        # navegador al elegir una unidad (Operador.unidad_asignada).
+        pares = (
+            Operador.objects
+            .filter(tipo='LOCAL', activo=True, unidad_asignada__isnull=False)
+            .values_list('unidad_asignada_id', 'id')
+        )
+        context['unidad_operador_map'] = json.dumps({str(u): o for u, o in pares})
+        return context
+
+    def form_valid(self, form):
+        modulacion = form.save(commit=False)
+        if modulacion.fecha_asignacion is None:
+            modulacion.fecha_asignacion = timezone.now()
+        modulacion.save()
+        messages.success(self.request, f'Unidad y operador asignados a {modulacion.folio}.')
         return redirect(reverse('modulacion:detail', kwargs={'pk': modulacion.pk}))
 
 

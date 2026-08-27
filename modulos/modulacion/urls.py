@@ -13,6 +13,7 @@ urlpatterns = [
     path('crear/', views.ModulacionCreateView.as_view(), name='create'),
     path('<int:pk>/', views.ModulacionDetailView.as_view(), name='detail'),
     path('<int:pk>/editar/', views.ModulacionUpdateView.as_view(), name='update'),
+    path('<int:pk>/asignar/', views.AsignarUnidadOperadorView.as_view(), name='asignar'),
     path('<int:pk>/eliminar/', views.ModulacionDeleteView.as_view(), name='delete'),
 
     # Acciones especiales

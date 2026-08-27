@@ -96,6 +96,29 @@ class Modulacion(models.Model):
     origen = models.CharField(max_length=10, choices=ORIGEN_CHOICES, default='MANUAL', verbose_name="Origen")
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='PENDIENTE', verbose_name="Estado")
 
+    unidad = models.ForeignKey(
+        'unidades.Unidad',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='modulaciones',
+        verbose_name="Unidad asignada",
+    )
+    operador = models.ForeignKey(
+        'operadores.Operador',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='modulaciones',
+        verbose_name="Operador asignado",
+    )
+    fecha_asignacion = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fecha de asignación",
+        help_text="Se sella la primera vez que se asigna unidad y operador.",
+    )
+
     bitacora_viaje = models.OneToOneField(
         'bitacoras.BitacoraViaje',
         on_delete=models.SET_NULL,

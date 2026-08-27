@@ -4,6 +4,13 @@ from . import views
 app_name = 'reportes'
 
 urlpatterns = [
+    # Reportes bajo demanda (vista en pantalla)
+    path(
+        'modulacion/contenedores-por-operador/',
+        views.ContenedoresPorOperadorView.as_view(),
+        name='contenedores_por_operador',
+    ),
+
     # Historial de reportes generados
     path('historial/', views.HistorialReportesView.as_view(), name='historial'),
     path('historial/<int:pk>/', views.DetalleReporteGeneradoView.as_view(), name='detalle'),

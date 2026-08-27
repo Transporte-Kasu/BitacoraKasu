@@ -310,3 +310,6 @@ CorOpenWA.md
 .superpowers/
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,python,django
+
+# Settings locales para correr tests con SQLite (no versionado)
+test_settings.py

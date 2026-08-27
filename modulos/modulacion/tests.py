@@ -361,3 +361,94 @@ class PatioEsperanzaFlowTests(TestCase):
         self.assertEqual(self.modulacion.transportista_externo, 'Transportes Beta')
         self.assertIsNotNone(self.modulacion.fecha_retiro)
         self.assertIsNone(self.modulacion.bitacora_viaje)
+
+
+class AsignarUnidadOperadorViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tester-asig', password='pass12345')
+        self.client.login(username='tester-asig', password='pass12345')
+
+        self.modulacion = _crear_modulacion()
+        self.unidad = _crear_unidad(numero_economico='ECO-LOC-1', tipo='LOCAL')
+        self.operador_ligado = _crear_operador(nombre='Operador Ligado', tipo='LOCAL')
+        self.operador_ligado.unidad_asignada = self.unidad
+        self.operador_ligado.save()
+        self.operador_otro = _crear_operador(nombre='Operador Otro', tipo='LOCAL')
+        self.url = reverse('modulacion:asignar', kwargs={'pk': self.modulacion.pk})
+
+    def test_requiere_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_get_muestra_formulario_y_mapa_unidad_operador(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        mapa = json.loads(response.context['unidad_operador_map'])
+        self.assertEqual(mapa, {str(self.unidad.pk): self.operador_ligado.pk})
+
+    def test_mapa_excluye_operadores_no_local_o_inactivos_o_sin_unidad(self):
+        foraneo = _crear_operador(nombre='Foraneo', tipo='FORANEO')
+        foraneo.unidad_asignada = _crear_unidad(numero_economico='ECO-FOR-1', tipo='FORANEA')
+        foraneo.save()
+        inactivo = _crear_operador(nombre='Inactivo', tipo='LOCAL')
+        inactivo.unidad_asignada = _crear_unidad(numero_economico='ECO-LOC-9', tipo='LOCAL')
+        inactivo.activo = False
+        inactivo.save()
+
+        response = self.client.get(self.url)
+        mapa = json.loads(response.context['unidad_operador_map'])
+        self.assertEqual(list(mapa.keys()), [str(self.unidad.pk)])
+
+    def test_form_querysets_filtran_local_activos(self):
+        _crear_unidad(numero_economico='ECO-FOR-2', tipo='FORANEA')
+        _crear_operador(nombre='Foraneo 2', tipo='FORANEO')
+        response = self.client.get(self.url)
+        form = response.context['form']
+        for unidad in form.fields['unidad'].queryset:
+            self.assertEqual(unidad.tipo, 'LOCAL')
+            self.assertTrue(unidad.activa)
+        for operador in form.fields['operador'].queryset:
+            self.assertEqual(operador.tipo, 'LOCAL')
+            self.assertTrue(operador.activo)
+
+    def test_post_asigna_unidad_operador_y_sella_fecha(self):
+        antes = timezone.now()
+        response = self.client.post(self.url, data={
+            'unidad': self.unidad.pk,
+            'operador': self.operador_ligado.pk,
+        })
+        self.assertRedirects(
+            response, reverse('modulacion:detail', kwargs={'pk': self.modulacion.pk})
+        )
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.unidad, self.unidad)
+        self.assertEqual(self.modulacion.operador, self.operador_ligado)
+        self.assertIsNotNone(self.modulacion.fecha_asignacion)
+        self.assertGreaterEqual(self.modulacion.fecha_asignacion, antes)
+
+    def test_reasignar_solo_operador_conserva_unidad_y_fecha(self):
+        self.client.post(self.url, data={
+            'unidad': self.unidad.pk,
+            'operador': self.operador_ligado.pk,
+        })
+        self.modulacion.refresh_from_db()
+        fecha_original = self.modulacion.fecha_asignacion
+
+        self.client.post(self.url, data={
+            'unidad': self.unidad.pk,
+            'operador': self.operador_otro.pk,
+        })
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.operador, self.operador_otro)
+        self.assertEqual(self.modulacion.unidad, self.unidad)
+        self.assertEqual(self.modulacion.fecha_asignacion, fecha_original)
+
+    def test_post_sin_operador_no_asigna(self):
+        response = self.client.post(self.url, data={'unidad': self.unidad.pk})
+        self.assertEqual(response.status_code, 200)
+        self.modulacion.refresh_from_db()
+        self.assertIsNone(self.modulacion.operador_id)
+        self.assertIsNone(self.modulacion.fecha_asignacion)

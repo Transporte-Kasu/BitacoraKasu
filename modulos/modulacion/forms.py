@@ -63,6 +63,30 @@ class ModulacionForm(forms.ModelForm):
         self.fields['cliente'].required = False
 
 
+class AsignarUnidadOperadorForm(forms.ModelForm):
+    """
+    Asigna una unidad y un operador local a una Modulación desde una acción
+    dedicada en el detalle. El operador se auto-llena en el navegador cuando
+    la unidad elegida tiene un operador ligado (Operador.unidad_asignada),
+    pero sigue siendo editable: permite reasignar solamente el operador.
+    """
+
+    class Meta:
+        model = Modulacion
+        fields = ['unidad', 'operador']
+        widgets = {
+            'unidad': forms.Select(attrs={'class': 'form-control', 'id': 'id_unidad'}),
+            'operador': forms.Select(attrs={'class': 'form-control', 'id': 'id_operador'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['unidad'].queryset = Unidad.objects.filter(tipo='LOCAL', activa=True)
+        self.fields['unidad'].required = True
+        self.fields['operador'].queryset = Operador.objects.filter(tipo='LOCAL', activo=True)
+        self.fields['operador'].required = True
+
+
 class PromoverBitacoraForm(forms.Form):
     """
     Datos operativos requeridos para crear el BitacoraViaje (LOCAL) al

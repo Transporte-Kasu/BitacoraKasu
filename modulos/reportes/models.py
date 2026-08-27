@@ -12,6 +12,7 @@ class ConfiguracionReporte(models.Model):
         ('TALLER', 'Taller'),
         ('UNIDADES', 'Unidades'),
         ('FLOTA', 'Flota (Dollys / Equipos / Cajas Secas)'),
+        ('MODULACION', 'Modulación'),
     ]
 
     TIPO_CHOICES = [
@@ -30,6 +31,8 @@ class ConfiguracionReporte(models.Model):
         ('UNIDADES_BALANZA_UTILIDAD', 'Unidades — Balanza de utilidad/pérdida por unidad'),
         # Flota (dollys, equipos, cajas secas)
         ('FLOTA_VIGENCIAS',      'Flota — Vigencias de dollys, equipos y cajas secas'),
+        # Modulación
+        ('MODULACION_CONTENEDORES_OPERADOR', 'Modulación — Contenedores extraídos por operador'),
     ]
 
     FRECUENCIA_CHOICES = [

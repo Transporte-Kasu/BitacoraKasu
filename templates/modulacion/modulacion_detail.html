@@ -32,6 +32,11 @@
             <div><span class="text-gray-500">Cliente:</span> <span class="font-medium">{{ modulacion.cliente.nombre|default:"—" }}</span></div>
             <div><span class="text-gray-500">Pedimento:</span> <span class="font-medium">{{ modulacion.num_pedimento|default:"—" }}</span></div>
             <div><span class="text-gray-500">DODA:</span> <span class="font-medium">{{ modulacion.num_doda|default:"—" }}</span></div>
+            <div><span class="text-gray-500">Unidad asignada:</span> <span class="font-medium">{{ modulacion.unidad.numero_economico|default:"—" }}</span></div>
+            <div><span class="text-gray-500">Operador asignado:</span> <span class="font-medium">{{ modulacion.operador.nombre|default:"—" }}</span></div>
+            {% if modulacion.fecha_asignacion %}
+            <div><span class="text-gray-500">Fecha de asignación:</span> <span class="font-medium">{{ modulacion.fecha_asignacion|date:"d/m/Y H:i" }}</span></div>
+            {% endif %}
             {% if modulacion.transportista_externo %}
             <div><span class="text-gray-500">Transportista externo:</span> <span class="font-medium">{{ modulacion.transportista_externo }}</span></div>
             {% endif %}
@@ -57,6 +62,10 @@
         <div class="px-6 py-4 border-t border-gray-100 flex flex-wrap gap-3">
             <a href="{% url 'modulacion:update' modulacion.pk %}"
                class="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition">Editar</a>
+            <a href="{% url 'modulacion:asignar' modulacion.pk %}"
+               class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                {% if modulacion.operador_id %}Reasignar operador{% else %}Asignar unidad y operador{% endif %}
+            </a>
             <a href="{% url 'modulacion:delete' modulacion.pk %}"
                class="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition">Eliminar</a>
 
