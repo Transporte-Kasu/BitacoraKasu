@@ -1,0 +1,18 @@
+Estimados,
+
+El siguiente contenedor vacío presenta un retraso y requiere que se reasigne
+su fecha de entrega a la naviera.
+
+Vacío: {{ vacio.folio }}
+Contenedor: {{ vacio.contenedor }}
+Cliente: {{ vacio.cliente.nombre|default:"-" }}
+Naviera: {{ vacio.naviera.nombre|default:"-" }}
+
+Tipo de retraso: {{ retraso.get_tipo_display }}
+Motivo: {{ retraso.motivo }}
+Fecha comprometida anterior: {{ vacio.fecha_compromiso_naviera|date:"d/m/Y H:i"|default:"-" }}
+Nueva fecha estimada: {{ retraso.fecha_estimada_nueva|date:"d/m/Y" }}
+
+Por favor reasignen la fecha de entrega en su sistema.
+
+Transportes Kasu

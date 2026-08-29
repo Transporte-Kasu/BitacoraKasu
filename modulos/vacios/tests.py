@@ -384,3 +384,73 @@ class ReasignarFallbackTests(TestCase):
         _operador('Operador Libre RF')
         resp = self.client.get(reverse('vacios:detail', kwargs={'pk': self.vacio.pk}))
         self.assertNotContains(resp, 'No hay operadores libres.')
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class RetrasoTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('t', password='x')
+        self.client.force_login(self.user)
+        self.agencia = Agencia.objects.create(nombre='LOGINCO', email_contacto='avisos@loginco.mx')
+        self.vacio = Vacio.objects.create(
+            bitacora_viaje=_bitacora(),
+            contenedor='C1',
+            fecha_entrega_cliente=timezone.now(),
+            agencia=self.agencia,
+        )
+
+    def test_registrar_retraso_crea_evento_y_notifica(self):
+        mail.outbox = []
+        resp = self.client.post(
+            reverse('vacios:registrar_retraso', kwargs={'pk': self.vacio.pk}),
+            {'tipo': 'MANIOBRA', 'motivo': 'grúa descompuesta', 'fecha_estimada_nueva': '2026-09-20'},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.vacio.refresh_from_db()
+        self.assertTrue(self.vacio.tiene_retraso)
+        retraso = RetrasoVacio.objects.get()
+        self.assertEqual(retraso.tipo, 'MANIOBRA')
+        self.assertTrue(retraso.notificado_agencia)
+        self.assertIsNotNone(retraso.fecha_notificacion)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('avisos@loginco.mx', mail.outbox[0].to)
+
+    def test_sin_email_agencia_guarda_pero_no_notifica(self):
+        self.agencia.email_contacto = ''
+        self.agencia.save()
+        mail.outbox = []
+        self.client.post(
+            reverse('vacios:registrar_retraso', kwargs={'pk': self.vacio.pk}),
+            {'tipo': 'RETORNO', 'motivo': 'tráfico', 'fecha_estimada_nueva': '2026-09-21'},
+        )
+        retraso = RetrasoVacio.objects.get()
+        self.assertFalse(retraso.notificado_agencia)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_reenviar_aviso(self):
+        retraso = RetrasoVacio.objects.create(
+            vacio=self.vacio, tipo='MANIOBRA', motivo='x',
+            fecha_estimada_nueva=date(2026, 9, 20),
+        )
+        mail.outbox = []
+        resp = self.client.post(reverse('vacios:reenviar_aviso_retraso', kwargs={'pk': self.vacio.pk, 'rid': retraso.pk}))
+        self.assertEqual(resp.status_code, 302)
+        retraso.refresh_from_db()
+        self.assertTrue(retraso.notificado_agencia)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_notificar_retraso_agencia_devuelve_bool(self):
+        from modulos.vacios.notificaciones import notificar_retraso_agencia
+        retraso = RetrasoVacio.objects.create(
+            vacio=self.vacio, tipo='RETORNO', motivo='x',
+            fecha_estimada_nueva=date(2026, 9, 22),
+        )
+        self.assertIs(notificar_retraso_agencia(retraso), True)
+        self.vacio.agencia = None
+        self.vacio.save()
+        retraso2 = RetrasoVacio.objects.create(
+            vacio=self.vacio, tipo='RETORNO', motivo='y',
+            fecha_estimada_nueva=date(2026, 9, 23),
+        )
+        self.assertIs(notificar_retraso_agencia(retraso2), False)

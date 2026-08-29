@@ -13,9 +13,11 @@ from django.views.generic import DetailView, ListView, DeleteView, UpdateView
 from .forms import (
     AsignarUnidadOperadorVacioForm,
     ReasignarOperadorVacioForm,
+    RetrasoVacioForm,
     VacioUpdateForm,
 )
-from .models import CambioOperadorVacio, Naviera, Vacio
+from .models import CambioOperadorVacio, Naviera, RetrasoVacio, Vacio
+from .notificaciones import notificar_retraso_agencia
 
 _MESES = [
     (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
@@ -226,4 +228,55 @@ def registrar_entrega_naviera(request, pk):
     vacio.fecha_entrega_naviera = timezone.now()
     vacio.save()
     messages.success(request, f'{vacio.folio} entregado a la naviera.')
+    return redirect(reverse('vacios:detail', kwargs={'pk': pk}))
+
+
+class RegistrarRetrasoView(LoginRequiredMixin, UpdateView):
+    model = Vacio
+    form_class = RetrasoVacioForm
+    template_name = 'vacios/registrar_retraso.html'
+    context_object_name = 'vacio'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.pop('instance', None)  # el form es de RetrasoVacio, no de Vacio
+        return kwargs
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object.estado == 'ENTREGADO_NAVIERA':
+            messages.warning(request, 'El vacío ya fue entregado; no se registran retrasos.')
+            return redirect(reverse('vacios:detail', kwargs={'pk': self.object.pk}))
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        retraso = form.save(commit=False)
+        retraso.vacio = self.object
+        retraso.creado_por = self.request.user
+        retraso.save()
+
+        self.object.tiene_retraso = True
+        self.object.save(update_fields=['tiene_retraso'])
+
+        if notificar_retraso_agencia(retraso):
+            messages.success(self.request, 'Retraso registrado y agencia notificada por correo.')
+        else:
+            messages.warning(
+                self.request,
+                'Retraso registrado, pero no se pudo notificar a la agencia '
+                '(sin correo de contacto o falló el envío). Captura el correo en '
+                '"Editar datos" y usa "Reenviar aviso".',
+            )
+        return redirect(reverse('vacios:detail', kwargs={'pk': self.object.pk}))
+
+
+@login_required
+@require_POST
+def reenviar_aviso_retraso(request, pk, rid):
+    vacio = get_object_or_404(Vacio, pk=pk)
+    retraso = get_object_or_404(RetrasoVacio, pk=rid, vacio=vacio)
+    if notificar_retraso_agencia(retraso):
+        messages.success(request, 'Aviso reenviado a la agencia.')
+    else:
+        messages.error(request, 'No se pudo enviar el aviso. Revisa el correo de la agencia.')
     return redirect(reverse('vacios:detail', kwargs={'pk': pk}))

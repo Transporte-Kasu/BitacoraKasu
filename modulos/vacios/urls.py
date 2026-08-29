@@ -15,4 +15,6 @@ urlpatterns = [
     path('<int:pk>/reasignar/', views.reasignar_operador, name='reasignar_operador'),
     path('<int:pk>/salida-naviera/', views.registrar_salida_naviera, name='registrar_salida_naviera'),
     path('<int:pk>/entrega-naviera/', views.registrar_entrega_naviera, name='registrar_entrega_naviera'),
+    path('<int:pk>/retraso/', views.RegistrarRetrasoView.as_view(), name='registrar_retraso'),
+    path('<int:pk>/retraso/<int:rid>/reenviar/', views.reenviar_aviso_retraso, name='reenviar_aviso_retraso'),
 ]

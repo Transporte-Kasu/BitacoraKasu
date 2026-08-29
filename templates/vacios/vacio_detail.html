@@ -80,7 +80,7 @@
     {% endif %}
 
     {% if vacio.estado != 'ENTREGADO_NAVIERA' %}
-    <a href="#" {# Task 6 #} class="px-4 py-2 text-sm text-red-700 border border-red-200 rounded-lg hover:bg-red-50">Registrar retraso</a>
+    <a href="{% url 'vacios:registrar_retraso' vacio.pk %}" class="px-4 py-2 text-sm text-red-700 border border-red-200 rounded-lg hover:bg-red-50">Registrar retraso</a>
     {% endif %}
   </div>
 </div>
@@ -95,6 +95,12 @@
         {% if r.notificado_agencia %}Agencia notificada {{ r.fecha_notificacion|date:"d/m/Y H:i" }}{% else %}<span class="text-red-600">Agencia sin notificar</span>{% endif %}
       </div>
       <div class="text-gray-600">{{ r.motivo }}</div>
+      {% if not r.notificado_agencia %}
+      <form method="post" action="{% url 'vacios:reenviar_aviso_retraso' vacio.pk r.pk %}" class="mt-1">
+        {% csrf_token %}
+        <button class="text-xs text-blue-600 hover:underline">Reenviar aviso a la agencia</button>
+      </form>
+      {% endif %}
     </div>
     {% empty %}
     <p class="text-sm text-gray-400">Sin retrasos.</p>
