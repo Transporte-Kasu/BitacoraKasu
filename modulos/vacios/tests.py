@@ -142,3 +142,50 @@ class SignalCreacionTests(TestCase):
         b.fecha_hora_entrega = timezone.now()
         b.save()
         self.assertEqual(Vacio.objects.get().agencia, agencia)
+
+
+from modulos.vacios.services import operadores_libres
+
+
+class OperadoresLibresTests(TestCase):
+    def test_incluye_local_activo_sin_ocupacion(self):
+        op = _operador('Libre')
+        self.assertIn(op, list(operadores_libres()))
+
+    def test_excluye_no_local_y_inactivo(self):
+        foraneo = _operador('Foráneo', tipo='FORANEO')
+        inactivo = _operador('Inactivo')
+        inactivo.activo = False
+        inactivo.save()
+        libres = list(operadores_libres())
+        self.assertNotIn(foraneo, libres)
+        self.assertNotIn(inactivo, libres)
+
+    def test_excluye_ocupado_en_modulacion_activa(self):
+        op = _operador('EnModulacion')
+        Modulacion.objects.create(
+            agencia=Agencia.objects.create(nombre='LOGINCO'),
+            terminal_portuaria=TerminalPortuaria.objects.create(nombre='TIMSA'),
+            tipo_contenedor='40HC',
+            peso_toneladas=Decimal('18.00'),
+            contenedor='X',
+            operador=op,
+            estado='EN_PATIO_ESPERANZA',
+        )
+        self.assertNotIn(op, list(operadores_libres()))
+
+    def test_excluye_ocupado_en_vacio_asignado(self):
+        op = _operador('EnVacio')
+        Vacio.objects.create(
+            bitacora_viaje=_bitacora(),
+            contenedor='A',
+            fecha_entrega_cliente=timezone.now(),
+            estado='ASIGNADO',
+            operador=op,
+        )
+        self.assertNotIn(op, list(operadores_libres()))
+
+    def test_excluye_ocupado_en_bitacora_en_curso(self):
+        op = _operador('EnBitacora', unidad=_unidad('ECO-X'))
+        _bitacora(operador=op, unidad=op.unidad_asignada)  # completado=False por defecto
+        self.assertNotIn(op, list(operadores_libres()))
