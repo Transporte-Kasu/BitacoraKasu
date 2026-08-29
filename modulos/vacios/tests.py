@@ -3,8 +3,11 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.core import mail
+from django.db import connection
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
@@ -126,6 +129,24 @@ class SignalCreacionTests(TestCase):
 
     def test_sin_fecha_entrega_no_crea_vacio(self):
         _bitacora()
+        self.assertEqual(Vacio.objects.count(), 0)
+
+    def test_save_sin_entrega_no_consulta_modulacion(self):
+        """La señal no debe tocar la tabla de modulación en el hot path."""
+        with CaptureQueriesContext(connection) as ctx:
+            _bitacora()  # sin fechas de entrega
+        self.assertEqual(Vacio.objects.count(), 0)
+        self.assertFalse(
+            any('modulacion' in q['sql'].lower() for q in ctx.captured_queries),
+            'La señal consultó la tabla de modulación en un save sin entrega.',
+        )
+
+    def test_raw_save_no_crea_vacio(self):
+        """Un save con raw=True (loaddata) no debe crear Vacío."""
+        from modulos.vacios.signals import crear_vacios_por_entrega
+        b = _bitacora()
+        b.fecha_hora_entrega = timezone.now()
+        crear_vacios_por_entrega(BitacoraViaje, b, raw=True)
         self.assertEqual(Vacio.objects.count(), 0)
 
     def test_autollena_agencia_desde_modulacion(self):
@@ -506,3 +527,36 @@ class DashboardPrincipalTests(TestCase):
         self.assertEqual(resp.context['vacios_por_vaciar'], 1)
         self.assertEqual(resp.context['vacios_en_patio'], 1)
         self.assertEqual(resp.context['vacios_retrasos_abiertos'], 0)
+
+
+class BitacoraDeleteConVacioTests(TestCase):
+    """Fix: borrar una bitácora con Vacío asociado no debe tirar 500."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('del', password='x')
+        self.client.force_login(self.user)
+
+    def test_no_borra_bitacora_con_vacio_y_avisa(self):
+        b = _bitacora()
+        b.fecha_hora_entrega = timezone.now()
+        b.save()  # la señal crea el Vacío (FK PROTECT)
+        self.assertEqual(Vacio.objects.filter(bitacora_viaje=b).count(), 1)
+
+        resp = self.client.post(reverse('bitacoras:delete', kwargs={'pk': b.pk}))
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], reverse('bitacoras:detail', kwargs={'pk': b.pk}))
+        self.assertTrue(BitacoraViaje.objects.filter(pk=b.pk).exists())
+        mensajes = [m.message for m in get_messages(resp.wsgi_request)]
+        self.assertTrue(any('no se puede eliminar' in m.lower() for m in mensajes))
+
+    def test_borra_bitacora_sin_vacio(self):
+        b = _bitacora()  # sin fecha de entrega → sin Vacío
+        self.assertEqual(Vacio.objects.filter(bitacora_viaje=b).count(), 0)
+
+        resp = self.client.post(reverse('bitacoras:delete', kwargs={'pk': b.pk}))
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], reverse('bitacoras:list'))
+        self.assertFalse(BitacoraViaje.objects.filter(pk=b.pk).exists())

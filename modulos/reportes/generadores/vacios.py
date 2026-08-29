@@ -90,16 +90,18 @@ def generar_entregas_por_operador(periodo_inicio: date, periodo_fin: date) -> di
     ]
     cambios_operador_total = sum(por_causa.values())
 
-    # Snapshot de pendientes (no depende del rango)
+    # Snapshot de pendientes (no depende del rango). Acotado a 100 filas para
+    # que no crezca sin límite en pantalla ni en el payload programado.
     ahora = timezone.now()
-    pendientes = (
+    pendientes_qs = (
         Vacio.objects
         .exclude(estado='ENTREGADO_NAVIERA')
         .select_related('cliente', 'operador')
         .order_by('fecha_entrega_cliente')
     )
+    vacios_pendientes_total = pendientes_qs.count()
     filas_pendientes = []
-    for v in pendientes:
+    for v in pendientes_qs[:100]:
         dias = (ahora - v.fecha_entrega_cliente).days
         filas_pendientes.append({
             'folio': v.folio,
@@ -133,7 +135,8 @@ def generar_entregas_por_operador(periodo_inicio: date, periodo_fin: date) -> di
             'entregas_operador_top': entregas_operador_top,
             'promedio_por_operador': promedio_por_operador,
             'cambios_operador_total': cambios_operador_total,
-            'vacios_pendientes': len(filas_pendientes),
+            'vacios_pendientes': vacios_pendientes_total,
+            'vacios_pendientes_mostrados': len(filas_pendientes),
         },
         'filas': filas,
         'tablas': {

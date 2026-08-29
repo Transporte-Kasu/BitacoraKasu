@@ -55,7 +55,6 @@
     {% endif %}
 
     {% if vacio.estado == 'ASIGNADO' %}
-    <a href="{% url 'vacios:asignar' vacio.pk %}" class="px-4 py-2 text-sm border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50">Reasignar (vía asignar)</a>
     <form method="post" action="{% url 'vacios:reasignar_operador' vacio.pk %}" class="flex flex-wrap gap-2 items-end border-l border-gray-100 pl-3">
       {% csrf_token %}
       {% if reasignar_form.sin_operadores_libres %}

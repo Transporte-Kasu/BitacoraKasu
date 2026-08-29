@@ -6,6 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from modulos.bitacoras.models import BitacoraViaje
+from modulos.modulacion.models import Modulacion
 
 from .models import Vacio
 
@@ -16,23 +17,29 @@ def _agencia_de(bitacora):
     """Agencia ligada vía Modulación (OneToOne inverso), o None."""
     try:
         return bitacora.modulacion.agencia
-    except Exception:
+    except (Modulacion.DoesNotExist, AttributeError):
         return None
 
 
 @receiver(post_save, sender=BitacoraViaje)
-def crear_vacios_por_entrega(sender, instance, **kwargs):
+def crear_vacios_por_entrega(sender, instance, raw=False, **kwargs):
     """
     Por cada contenedor del viaje con fecha de entrega registrada y sin Vacío
     aún, crea el Vacío. Solo crea: nunca borra ni revierte.
     """
-    agencia = _agencia_de(instance)
+    if raw:
+        return
 
     contenedores = [
         ('1', instance.fecha_hora_entrega, instance.contenedor, instance.cliente),
         ('2', instance.fecha_hora_entrega_2, instance.contenedor_2,
          instance.cliente_2 or instance.cliente),
     ]
+
+    if not any(fecha for _, fecha, _, _ in contenedores):
+        return
+
+    agencia = _agencia_de(instance)
 
     for numero, fecha_entrega, contenedor, cliente in contenedores:
         if not fecha_entrega:

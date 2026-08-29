@@ -189,6 +189,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'apikey'  # Cambiar
 EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD')  # Usar App Password de Gmail
+EMAIL_TIMEOUT = 10  # segundos — evita que un envío SMTP lento cuelgue la request
 DEFAULT_FROM_EMAIL = 'bitacora@transporteskasu.com.mx'
 
 # ---------------------------------------------------------------------------

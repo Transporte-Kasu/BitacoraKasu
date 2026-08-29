@@ -80,6 +80,7 @@ class EntregasPorOperadorTests(TestCase):
         hasta = timezone.now().date()
         datos = generar_entregas_por_operador(desde, hasta)
         self.assertEqual(datos['resumen']['vacios_pendientes'], 1)
+        self.assertEqual(datos['resumen']['vacios_pendientes_mostrados'], 1)
         self.assertEqual(len(datos['tablas']['Aún sin entregar']), 1)
 
 

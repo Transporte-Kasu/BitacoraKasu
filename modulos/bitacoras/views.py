@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum
+from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from .models import BitacoraViaje, Cliente
@@ -203,9 +204,18 @@ class BitacoraDeleteView(LoginRequiredMixin, DeleteView):
         return reverse_lazy('bitacoras:list')
 
     def post(self, request, *args, **kwargs):
-        bitacora = self.get_object()
-        messages.success(request, f'Bitácora #{bitacora.id} eliminada exitosamente.')
-        return super().post(request, *args, **kwargs)
+        self.object = self.get_object()
+        try:
+            response = super().post(request, *args, **kwargs)
+        except ProtectedError:
+            messages.error(
+                request,
+                f'No se puede eliminar la bitácora #{self.object.id}: tiene vacíos '
+                f'asociados. Elimina primero los vacíos del viaje.'
+            )
+            return redirect('bitacoras:detail', pk=self.object.pk)
+        messages.success(request, f'Bitácora #{self.object.id} eliminada exitosamente.')
+        return response
 
 
 # ============================================================================

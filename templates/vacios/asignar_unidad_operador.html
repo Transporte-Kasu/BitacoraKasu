@@ -2,9 +2,7 @@
 {% block title %}Asignar unidad y operador — {{ vacio.folio }}{% endblock %}
 {% block content %}
 <div class="max-w-xl mx-auto bg-white rounded-xl border border-gray-100 p-6">
-  <h1 class="text-lg font-bold text-gray-900">
-    {% if vacio.operador_id %}Reasignar{% else %}Asignar unidad y operador{% endif %}
-  </h1>
+  <h1 class="text-lg font-bold text-gray-900">Asignar unidad y operador</h1>
   <p class="text-sm text-gray-500 mb-4">{{ vacio.folio }} — {{ vacio.contenedor }}. Al elegir una unidad con operador ligado, el operador se llena solo; puedes cambiarlo.</p>
   <form method="post" class="space-y-4">
     {% csrf_token %}
