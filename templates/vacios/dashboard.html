@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Vacíos{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Vacíos</h1>
+  <p class="text-sm text-gray-500">Retorno de contenedores vacíos a la naviera.</p>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+  <div class="bg-white rounded-xl border border-gray-100 p-4">
+    <div class="text-2xl font-bold text-gray-900">{{ por_vaciar }}</div>
+    <div class="text-xs text-gray-500 mt-1">Por vaciar</div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 p-4">
+    <div class="text-2xl font-bold text-gray-900">{{ en_patio_esperanza }}</div>
+    <div class="text-xs text-gray-500 mt-1">En Patio Esperanza</div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 p-4">
+    <div class="text-2xl font-bold text-gray-900">{{ asignados }}</div>
+    <div class="text-xs text-gray-500 mt-1">Asignados</div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 p-4">
+    <div class="text-2xl font-bold text-gray-900">{{ entregados_naviera }}</div>
+    <div class="text-xs text-gray-500 mt-1">Entregados a naviera</div>
+  </div>
+  <div class="bg-white rounded-xl border border-red-100 p-4">
+    <div class="text-2xl font-bold text-red-600">{{ retrasos_abiertos }}</div>
+    <div class="text-xs text-gray-500 mt-1">Retrasos abiertos</div>
+  </div>
+</div>
+
+<div class="flex justify-between items-center mb-3">
+  <h2 class="text-lg font-semibold text-gray-800">Recientes</h2>
+  <a href="{% url 'vacios:list' %}" class="text-sm text-blue-600 hover:underline">Ver lista completa</a>
+</div>
+<div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+      <tr>
+        <th class="text-left px-4 py-2">Folio</th>
+        <th class="text-left px-4 py-2">Contenedor</th>
+        <th class="text-left px-4 py-2">Cliente</th>
+        <th class="text-left px-4 py-2">Estado</th>
+        <th class="text-left px-4 py-2">Entrega cliente</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in recientes %}
+      <tr class="border-t border-gray-100">
+        <td class="px-4 py-2"><a href="{% url 'vacios:detail' v.pk %}" class="text-blue-600 hover:underline">{{ v.folio }}</a></td>
+        <td class="px-4 py-2">{{ v.contenedor }}</td>
+        <td class="px-4 py-2">{{ v.cliente.nombre|default:"—" }}</td>
+        <td class="px-4 py-2">{{ v.get_estado_display }}</td>
+        <td class="px-4 py-2">{{ v.fecha_entrega_cliente|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Sin vacíos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

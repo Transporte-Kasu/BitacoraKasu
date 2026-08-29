@@ -39,6 +39,7 @@ urlpatterns = [
     path('dollys/', include('modulos.dollys.urls')),
     path('caja-seca/', include('modulos.caja_seca.urls')),
     path('modulacion/', include('modulos.modulacion.urls')),
+    path('vacios/', include('modulos.vacios.urls')),
 ]
 
 # Servir archivos media en desarrollo

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Vacíos — Lista{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+  <h1 class="text-2xl font-bold text-gray-900">Vacíos</h1>
+  {# Task 7: catálogo de navieras aún no implementado #}
+  <a href="#" class="text-sm text-blue-600 hover:underline">Catálogo de navieras</a>
+</div>
+
+<form method="get" class="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex flex-wrap gap-3 items-end">
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Mes</label>
+    <select name="mes" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+      {% for num, nombre in meses_disponibles %}
+      <option value="{{ num }}" {% if num == mes_actual %}selected{% endif %}>{{ nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Año</label>
+    <select name="anio" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+      {% for a in anios_disponibles %}
+      <option value="{{ a }}" {% if a == anio_actual %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Estado</label>
+    <select name="estado" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+      <option value="">Todos</option>
+      {% for val, label in estado_choices %}
+      <option value="{{ val }}" {% if request.GET.estado == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Naviera</label>
+    <select name="naviera" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+      <option value="">Todas</option>
+      {% for n in navieras_list %}
+      <option value="{{ n.id }}" {% if request.GET.naviera == n.id|stringformat:'s' %}selected{% endif %}>{{ n.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Buscar</label>
+    <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Folio, contenedor, cliente"
+           class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+  </div>
+  <button type="submit" class="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Filtrar</button>
+</form>
+
+<div class="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+      <tr>
+        <th class="text-left px-4 py-2">Folio</th>
+        <th class="text-left px-4 py-2">Contenedor</th>
+        <th class="text-left px-4 py-2">Cliente</th>
+        <th class="text-left px-4 py-2">Estado</th>
+        <th class="text-left px-4 py-2">Naviera</th>
+        <th class="text-left px-4 py-2">Operador</th>
+        <th class="text-left px-4 py-2">Entrega cliente</th>
+        <th class="px-4 py-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in vacios %}
+      <tr class="border-t border-gray-100">
+        <td class="px-4 py-2">
+          <a href="{% url 'vacios:detail' v.pk %}" class="text-blue-600 hover:underline">{{ v.folio }}</a>
+          {% if v.tiene_retraso %}<span class="ml-1 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">retraso</span>{% endif %}
+        </td>
+        <td class="px-4 py-2">{{ v.contenedor }}</td>
+        <td class="px-4 py-2">{{ v.cliente.nombre|default:"—" }}</td>
+        <td class="px-4 py-2">{{ v.get_estado_display }}</td>
+        <td class="px-4 py-2">{{ v.naviera.nombre|default:"—" }}</td>
+        <td class="px-4 py-2">{{ v.operador.nombre|default:"—" }}</td>
+        <td class="px-4 py-2">{{ v.fecha_entrega_cliente|date:"d/m/Y H:i" }}</td>
+        <td class="px-4 py-2 text-right"><a href="{% url 'vacios:detail' v.pk %}" class="text-xs text-blue-600 hover:underline">Ver</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="px-4 py-6 text-center text-gray-400">Sin vacíos en el periodo seleccionado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+<div class="mt-4 flex gap-2 text-sm">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 border rounded-lg">Anterior</a>{% endif %}
+  <span class="px-3 py-1">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 border rounded-lg">Siguiente</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

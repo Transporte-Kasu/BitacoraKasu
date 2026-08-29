@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ vacio.folio }}{% endblock %}
+
+{% block content %}
+<nav class="text-sm text-gray-500 mb-4">
+  <a href="{% url 'vacios:dashboard' %}" class="hover:text-blue-600">Vacíos</a>
+  <span class="mx-2">/</span>
+  <a href="{% url 'vacios:list' %}" class="hover:text-blue-600">Lista</a>
+  <span class="mx-2">/</span>
+  <span class="text-gray-800 font-medium">{{ vacio.folio }}</span>
+</nav>
+
+{% if messages %}
+  {% for m in messages %}
+  <div class="mb-3 px-4 py-2 rounded-lg text-sm
+      {% if m.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+      {% elif m.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200
+      {% else %}bg-green-50 text-green-700 border border-green-200{% endif %}">{{ m }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="bg-white rounded-xl border border-gray-100 p-6 mb-6">
+  <div class="flex justify-between items-start">
+    <div>
+      <h1 class="text-xl font-bold text-gray-900">{{ vacio.folio }} — {{ vacio.contenedor }}</h1>
+      <span class="inline-block mt-2 px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">{{ vacio.get_estado_display }}</span>
+      {% if vacio.tiene_retraso %}<span class="ml-1 px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">Con retraso</span>{% endif %}
+    </div>
+    <div class="flex gap-2">
+      {# Task 5/7: vistas de edición y borrado de Vacío aún no implementadas #}
+      <a href="#" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Editar datos</a>
+      <a href="#" class="px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50">Eliminar</a>
+    </div>
+  </div>
+
+  <dl class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 text-sm">
+    <div><dt class="text-gray-500">Cliente</dt><dd>{{ vacio.cliente.nombre|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Tipo</dt><dd>{{ vacio.get_tipo_contenedor_display }}</dd></div>
+    <div><dt class="text-gray-500">Naviera</dt><dd>{{ vacio.naviera.nombre|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Agencia</dt><dd>{{ vacio.agencia.nombre|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Bitácora origen</dt><dd><a href="{% url 'bitacoras:detail' vacio.bitacora_viaje.pk %}" class="text-blue-600 hover:underline">Viaje #{{ vacio.bitacora_viaje.pk }}</a></dd></div>
+    <div><dt class="text-gray-500">Entrega al cliente</dt><dd>{{ vacio.fecha_entrega_cliente|date:"d/m/Y H:i" }}</dd></div>
+    <div><dt class="text-gray-500">Retorno a patio</dt><dd>{{ vacio.fecha_retorno_patio|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Operador</dt><dd>{{ vacio.operador.nombre|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Unidad</dt><dd>{{ vacio.unidad.numero_economico|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Compromiso naviera</dt><dd>{{ vacio.fecha_compromiso_naviera|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Salida a naviera</dt><dd>{{ vacio.fecha_salida_naviera|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Entrega a naviera</dt><dd>{{ vacio.fecha_entrega_naviera|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+  </dl>
+  {% if vacio.observaciones %}<p class="mt-4 text-sm text-gray-600">{{ vacio.observaciones }}</p>{% endif %}
+</div>
+
+<!-- Bloque de acciones: se completa en Task 5 y Task 6 -->
+{% block acciones_vacio %}{% endblock %}
+
+<div class="grid md:grid-cols-2 gap-6">
+  <div class="bg-white rounded-xl border border-gray-100 p-4">
+    <h2 class="text-sm font-semibold text-gray-800 mb-3">Retrasos</h2>
+    {% for r in retrasos %}
+    <div class="border-t border-gray-100 py-2 text-sm">
+      <div class="font-medium">{{ r.get_tipo_display }}</div>
+      <div class="text-gray-500">Nueva fecha: {{ r.fecha_estimada_nueva|date:"d/m/Y" }} ·
+        {% if r.notificado_agencia %}Agencia notificada {{ r.fecha_notificacion|date:"d/m/Y H:i" }}{% else %}<span class="text-red-600">Agencia sin notificar</span>{% endif %}
+      </div>
+      <div class="text-gray-600">{{ r.motivo }}</div>
+    </div>
+    {% empty %}
+    <p class="text-sm text-gray-400">Sin retrasos.</p>
+    {% endfor %}
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 p-4">
+    <h2 class="text-sm font-semibold text-gray-800 mb-3">Cambios de operador</h2>
+    {% for c in cambios_operador %}
+    <div class="border-t border-gray-100 py-2 text-sm">
+      <div class="font-medium">{{ c.get_causa_display }}</div>
+      <div class="text-gray-500">
+        {{ c.operador_saliente.nombre|default:"—" }} → {{ c.operador_entrante.nombre|default:"—" }}
+        · {{ c.created_at|date:"d/m/Y H:i" }}
+      </div>
+      {% if c.motivo %}<div class="text-gray-600">{{ c.motivo }}</div>{% endif %}
+    </div>
+    {% empty %}
+    <p class="text-sm text-gray-400">Sin cambios.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

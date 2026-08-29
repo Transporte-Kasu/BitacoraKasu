@@ -147,6 +147,48 @@ class SignalCreacionTests(TestCase):
 from modulos.vacios.services import operadores_libres
 
 
+class VistasLecturaTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('tester', password='x')
+        self.client.force_login(self.user)
+        self.vacio = Vacio.objects.create(
+            bitacora_viaje=_bitacora(),
+            contenedor='MSCU1111111',
+            fecha_entrega_cliente=timezone.now(),
+        )
+
+    def test_dashboard_200(self):
+        resp = self.client.get(reverse('vacios:dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Vacíos')
+
+    def test_lista_200_y_muestra_folio(self):
+        resp = self.client.get(reverse('vacios:list'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, self.vacio.folio)
+
+    def test_lista_filtra_por_mes_de_entrega(self):
+        viejo = Vacio.objects.create(
+            bitacora_viaje=_bitacora(),
+            contenedor='OLD',
+            fecha_entrega_cliente=timezone.now() - timedelta(days=90),
+        )
+        resp = self.client.get(reverse('vacios:list'))  # mes/año actual por defecto
+        self.assertContains(resp, self.vacio.folio)
+        self.assertNotContains(resp, viejo.folio)
+
+    def test_detalle_200(self):
+        resp = self.client.get(reverse('vacios:detail', kwargs={'pk': self.vacio.pk}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, self.vacio.contenedor)
+
+    def test_requiere_login(self):
+        self.client.logout()
+        resp = self.client.get(reverse('vacios:list'))
+        self.assertEqual(resp.status_code, 302)
+
+
 class OperadoresLibresTests(TestCase):
     def test_incluye_local_activo_sin_ocupacion(self):
         op = _operador('Libre')
