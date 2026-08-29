@@ -158,6 +158,18 @@
                         </a>
                     </li>
 
+                    <!-- Vacíos -->
+                    <li>
+                        <a href="{% url 'vacios:dashboard' %}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 cursor-pointer
+                                  {% if ns == 'vacios' %}nav-active{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-.966-.784-1.75-1.75-1.75h-14.5c-.966 0-1.75.784-1.75 1.75v10.5c0 .966.784 1.75 1.75 1.75h14.5c.966 0 1.75-.784 1.75-1.75V8.25ZM3 8.25 12 3l9 5.25M7.5 12h9M7.5 15.75h5"/>
+                            </svg>
+                            <span>Vacíos</span>
+                        </a>
+                    </li>
+
                     <!-- Combustible (con badge de alertas) -->
                     <li>
                         <a href="{% url 'combustible:dashboard' %}"

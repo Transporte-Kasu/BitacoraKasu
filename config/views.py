@@ -11,6 +11,7 @@ from modulos.combustible.models import CargaCombustible
 from modulos.compras.models import Requisicion, OrdenCompra, Proveedor
 from modulos.almacen.models import ProductoAlmacen, AlertaStock
 from modulos.taller.models import OrdenTrabajo
+from modulos.vacios.models import Vacio
 
 
 class IndexView(LoginRequiredMixin, TemplateView):
@@ -165,5 +166,13 @@ class IndexView(LoginRequiredMixin, TemplateView):
             resuelta=False,
             tipo_alerta__in=['STOCK_AGOTADO', 'CADUCADO']
         ).select_related('producto_almacen')[:5]
+
+        # ========== Estadísticas de Vacíos ==========
+        vacios_qs = Vacio.objects.all()
+        context['vacios_por_vaciar'] = vacios_qs.filter(estado='POR_VACIAR').count()
+        context['vacios_en_patio'] = vacios_qs.filter(estado='EN_PATIO_ESPERANZA').count()
+        context['vacios_retrasos_abiertos'] = (
+            vacios_qs.filter(tiene_retraso=True).exclude(estado='ENTREGADO_NAVIERA').count()
+        )
 
         return context

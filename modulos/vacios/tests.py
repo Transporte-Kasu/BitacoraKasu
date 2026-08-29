@@ -488,3 +488,21 @@ class RetrasoTests(TestCase):
             fecha_estimada_nueva=date(2026, 9, 23),
         )
         self.assertIs(notificar_retraso_agencia(retraso2), False)
+
+
+class DashboardPrincipalTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.client.force_login(User.objects.create_user('t', password='x'))
+
+    def test_index_incluye_conteos_de_vacios(self):
+        Vacio.objects.create(bitacora_viaje=_bitacora(), contenedor='A', fecha_entrega_cliente=timezone.now())
+        Vacio.objects.create(
+            bitacora_viaje=_bitacora(), contenedor='B', fecha_entrega_cliente=timezone.now(),
+            estado='EN_PATIO_ESPERANZA',
+        )
+        resp = self.client.get(reverse('inicio'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['vacios_por_vaciar'], 1)
+        self.assertEqual(resp.context['vacios_en_patio'], 1)
+        self.assertEqual(resp.context['vacios_retrasos_abiertos'], 0)

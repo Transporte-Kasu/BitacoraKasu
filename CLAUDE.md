@@ -53,7 +53,8 @@ modulos/                    # Business domain Django apps
 ├── combustible/
 ├── taller/
 ├── compras/
-└── almacen/
+├── almacen/
+└── vacios/
 
 templates/                  # HTML templates (79 total)
 static/                     # CSS, JS, images
@@ -67,7 +68,7 @@ Each module in `modulos/` follows standard Django app structure:
 - `urls.py` - URL routing
 - `forms.py` - Django ModelForms with validation
 - `admin.py` - Django admin configuration
-- `signals.py` - Auto-update logic (combustible, taller, almacen only)
+- `signals.py` - Auto-update logic (combustible, taller, almacen, vacios only)
 
 ### Core Modules
 
@@ -80,6 +81,7 @@ Each module in `modulos/` follows standard Django app structure:
 | **taller** | Workshop orders | `OrdenTrabajo`, `PiezaRequerida`, `TipoMantenimiento`, `SeguimientoOrden`, `HistorialMantenimiento` |
 | **compras** | Purchasing | `Requisicion`, `OrdenCompra`, `Proveedor`, `Producto`, `Inventario` |
 | **almacen** | Warehouse | `ProductoAlmacen`, `EntradaAlmacen`, `SolicitudSalida`, `SalidaAlmacen`, `MovimientoAlmacen`, `AlertaStock`, `SalidaRapidaConsumible` |
+| **vacios** | Retorno de contenedores vacíos a la naviera | `Vacio`, `Naviera`, `RetrasoVacio`, `CambioOperadorVacio` |
 
 ### URL Structure
 ```
@@ -93,6 +95,7 @@ Each module in `modulos/` follows standard Django app structure:
 /taller/                → taller app
 /compras/               → compras app
 /almacen/               → almacen app (51 URL patterns)
+/vacios/                → vacios app
 ```
 
 ## Key Services
@@ -180,6 +183,9 @@ Available blocks: `title`, `extra_css`, `breadcrumb`, `content`, `extra_js`
 - Reduce stock when `ItemSalidaAlmacen` or `SalidaRapidaConsumible` is created
 - Increase stock when `ItemEntradaAlmacen` is added
 
+**vacios/signals.py:**
+- `post_save` sobre `BitacoraViaje`: crea un `Vacio` por contenedor con fecha de entrega registrada (`fecha_hora_entrega` / `fecha_hora_entrega_2`). Idempotente; solo crea, nunca borra.
+
 **storage_backends.py signals:**
 - `post_delete`: auto-delete files from storage when model is deleted
 - `pre_save`: delete old file when file field is updated
@@ -192,6 +198,7 @@ Available blocks: `title`, `extra_css`, `breadcrumb`, `content`, `extra_js`
 - `SolicitudSalida`: `SOL-YYYYMMDD-XXX`
 - `SalidaAlmacen`: `SAL-YYYYMMDD-XXX`
 - `SalidaRapidaConsumible`: `CON-YYYYMMDD-XXX`
+- `Vacio`: `VAC-YYYYMMDD-XXX`
 
 ### Status Workflows
 
@@ -204,6 +211,8 @@ Available blocks: `title`, `extra_css`, `breadcrumb`, `content`, `extra_js`
 **compras/orden:** PENDIENTE → ENVIADA → CONFIRMADA → EN_TRANSITO → RECIBIDA / CANCELADA
 
 **almacen/solicitud:** PENDIENTE → AUTORIZADA → PROCESADA / RECHAZADA / CANCELADA
+
+**vacios:** POR_VACIAR → EN_PATIO_ESPERANZA → ASIGNADO → ENTREGADO_NAVIERA
 
 ### Context Processors
 `config/context_processors.py`: Injects `alertas_combustible_pendientes` count into every template for superusers.
