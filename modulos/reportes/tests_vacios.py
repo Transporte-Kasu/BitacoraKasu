@@ -2,7 +2,9 @@ import itertools
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from modulos.bitacoras.models import BitacoraViaje, Cliente
@@ -96,6 +98,24 @@ class RetrasosReporteTests(TestCase):
         self.assertEqual(datos['resumen']['total_retrasos'], 2)
         self.assertEqual(datos['resumen']['retrasos_maniobra'], 1)
         self.assertEqual(datos['resumen']['pct_notificados'], 50.0)
+
+
+class VistaEntregasVaciosTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.client.force_login(User.objects.create_user('t', password='x'))
+
+    def test_vista_200_default(self):
+        resp = self.client.get(reverse('reportes:entregas_vacios_por_operador'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Entregas de vacíos')
+
+    def test_vista_200_con_rango(self):
+        resp = self.client.get(
+            reverse('reportes:entregas_vacios_por_operador'),
+            {'desde': '2026-08-01', 'hasta': '2026-08-28'},
+        )
+        self.assertEqual(resp.status_code, 200)
 
 
 class RegistroReportesTests(TestCase):

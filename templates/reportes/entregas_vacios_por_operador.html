@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Entregas de vacíos por operador{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-1">Entregas de vacíos por operador</h1>
+<p class="text-sm text-gray-500 mb-4">{{ datos.titulo }}</p>
+
+<form method="get" class="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex gap-3 items-end">
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Desde</label>
+    <input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+  </div>
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Hasta</label>
+    <input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+  </div>
+  <button type="submit" class="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Actualizar</button>
+</form>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-gray-100 p-4"><div class="text-2xl font-bold">{{ datos.resumen.total_entregados }}</div><div class="text-xs text-gray-500">Entregados</div></div>
+  <div class="bg-white rounded-xl border border-gray-100 p-4"><div class="text-2xl font-bold">{{ datos.resumen.operadores_activos }}</div><div class="text-xs text-gray-500">Operadores activos</div></div>
+  <div class="bg-white rounded-xl border border-gray-100 p-4"><div class="text-2xl font-bold">{{ datos.resumen.cambios_operador_total }}</div><div class="text-xs text-gray-500">Cambios de operador</div></div>
+  <div class="bg-white rounded-xl border border-gray-100 p-4"><div class="text-2xl font-bold">{{ datos.resumen.vacios_pendientes }}</div><div class="text-xs text-gray-500">Aún sin entregar</div></div>
+</div>
+
+{% for nombre_tabla, filas in datos.tablas.items %}
+<h2 class="text-sm font-semibold text-gray-800 mt-6 mb-2">{{ nombre_tabla }}</h2>
+<div class="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+  <table class="w-full text-sm">
+    {% if filas %}
+    <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+      <tr>{% for k in filas.0.keys %}<th class="text-left px-4 py-2">{{ k }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for fila in filas %}
+      <tr class="border-t border-gray-100">{% for v in fila.values %}<td class="px-4 py-2">{{ v }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+    {% else %}
+    <tbody><tr><td class="px-4 py-6 text-center text-gray-400">Sin datos.</td></tr></tbody>
+    {% endif %}
+  </table>
+</div>
+{% endfor %}
+{% endblock %}

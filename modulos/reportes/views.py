@@ -9,6 +9,7 @@ from django.utils import timezone
 from .models import ConfiguracionReporte, ReporteGenerado
 from .forms import ConfiguracionReporteForm
 from .generadores.modulacion import generar_contenedores_por_operador
+from .generadores.vacios import generar_entregas_por_operador
 
 
 class HistorialReportesView(LoginRequiredMixin, ListView):
@@ -79,6 +80,41 @@ class ContenedoresPorOperadorView(LoginRequiredMixin, TemplateView):
             desde, hasta = hasta, desde
 
         ctx['datos'] = generar_contenedores_por_operador(desde, hasta)
+        ctx['desde'] = desde
+        ctx['hasta'] = hasta
+        return ctx
+
+
+class EntregasVaciosPorOperadorView(LoginRequiredMixin, TemplateView):
+    """Vista bajo demanda del reporte de entregas de vacíos por operador."""
+    template_name = 'reportes/entregas_vacios_por_operador.html'
+
+    def _parse_fecha(self, valor):
+        try:
+            return datetime.strptime(valor, '%Y-%m-%d').date()
+        except (TypeError, ValueError):
+            return None
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        hoy = timezone.localdate()
+        default_hasta = hoy - timedelta(days=1)
+        default_desde = default_hasta - timedelta(days=6)
+
+        desde = self._parse_fecha(self.request.GET.get('desde'))
+        hasta = self._parse_fecha(self.request.GET.get('hasta'))
+
+        if self.request.GET and (desde is None or hasta is None):
+            messages.warning(self.request, 'Rango de fechas inválido; se muestra la última semana.')
+
+        if desde is None:
+            desde = default_desde
+        if hasta is None:
+            hasta = default_hasta
+        if desde > hasta:
+            desde, hasta = hasta, desde
+
+        ctx['datos'] = generar_entregas_por_operador(desde, hasta)
         ctx['desde'] = desde
         ctx['hasta'] = hasta
         return ctx

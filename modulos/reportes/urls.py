@@ -10,6 +10,11 @@ urlpatterns = [
         views.ContenedoresPorOperadorView.as_view(),
         name='contenedores_por_operador',
     ),
+    path(
+        'vacios/entregas-por-operador/',
+        views.EntregasVaciosPorOperadorView.as_view(),
+        name='entregas_vacios_por_operador',
+    ),
 
     # Historial de reportes generados
     path('historial/', views.HistorialReportesView.as_view(), name='historial'),
