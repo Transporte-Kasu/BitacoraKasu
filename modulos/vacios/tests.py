@@ -12,6 +12,7 @@ from modulos.bitacoras.models import BitacoraViaje, Cliente
 from modulos.modulacion.models import Agencia, Modulacion, TerminalPortuaria
 from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
+from modulos.vacios.forms import ReasignarOperadorVacioForm
 from modulos.vacios.models import CambioOperadorVacio, Naviera, RetrasoVacio, Vacio
 
 
@@ -327,3 +328,59 @@ class TransicionesTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.vacio.refresh_from_db()
         self.assertEqual(self.vacio.naviera, naviera)
+
+
+class ReasignarFallbackTests(TestCase):
+    """Fix round 1: fallback explícito de operador_entrante + aviso en la UI."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('rf', password='x')
+        self.client.force_login(self.user)
+        self.vacio = Vacio.objects.create(
+            bitacora_viaje=_bitacora(),
+            contenedor='RF1',
+            fecha_entrega_cliente=timezone.now(),
+            estado='ASIGNADO',
+        )
+
+    def _ocupa_todos_los_locales(self):
+        """Deja sin operadores LOCAL libres: un Vacío ASIGNADO por cada uno."""
+        for op in list(operadores_libres()):
+            Vacio.objects.create(
+                bitacora_viaje=_bitacora(),
+                contenedor=f'OCU-{op.pk}',
+                fecha_entrega_cliente=timezone.now(),
+                estado='ASIGNADO',
+                operador=op,
+            )
+
+    def test_flag_false_y_queryset_solo_libres_cuando_hay_operador_libre(self):
+        libre = _operador('Operador Libre RF')
+        form = ReasignarOperadorVacioForm(vacio=self.vacio)
+        self.assertFalse(form.sin_operadores_libres)
+        qs = form.fields['operador_entrante'].queryset
+        self.assertIn(libre, list(qs))
+        self.assertEqual(set(qs), set(operadores_libres()))
+
+    def test_flag_true_y_fallback_a_todos_los_locales_activos(self):
+        _operador('Operador Libre RF')
+        self._ocupa_todos_los_locales()
+        self.assertFalse(operadores_libres().exists())
+        form = ReasignarOperadorVacioForm(vacio=self.vacio)
+        self.assertTrue(form.sin_operadores_libres)
+        self.assertEqual(
+            set(form.fields['operador_entrante'].queryset),
+            set(Operador.objects.filter(tipo='LOCAL', activo=True)),
+        )
+
+    def test_detalle_muestra_aviso_ambar_sin_operadores_libres(self):
+        self._ocupa_todos_los_locales()
+        self.assertFalse(operadores_libres().exists())
+        resp = self.client.get(reverse('vacios:detail', kwargs={'pk': self.vacio.pk}))
+        self.assertContains(resp, 'No hay operadores libres.')
+
+    def test_detalle_sin_aviso_cuando_hay_operador_libre(self):
+        _operador('Operador Libre RF')
+        resp = self.client.get(reverse('vacios:detail', kwargs={'pk': self.vacio.pk}))
+        self.assertNotContains(resp, 'No hay operadores libres.')

@@ -58,6 +58,11 @@
     <a href="{% url 'vacios:asignar' vacio.pk %}" class="px-4 py-2 text-sm border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50">Reasignar (vía asignar)</a>
     <form method="post" action="{% url 'vacios:reasignar_operador' vacio.pk %}" class="flex flex-wrap gap-2 items-end border-l border-gray-100 pl-3">
       {% csrf_token %}
+      {% if reasignar_form.sin_operadores_libres %}
+      <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2">
+        No hay operadores libres. Se muestran todos los operadores locales activos; verifica disponibilidad antes de asignar.
+      </p>
+      {% endif %}
       <div><label class="block text-xs text-gray-500">Unidad entrante</label>{{ reasignar_form.unidad_entrante }}</div>
       <div><label class="block text-xs text-gray-500">Operador entrante</label>{{ reasignar_form.operador_entrante }}</div>
       <div><label class="block text-xs text-gray-500">Causa</label>{{ reasignar_form.causa }}</div>

@@ -81,12 +81,16 @@ class ReasignarOperadorVacioForm(forms.Form):
 
     def __init__(self, *args, vacio=None, **kwargs):
         super().__init__(*args, **kwargs)
-        # El operador saliente debe seguir siendo seleccionable si aplica; para
-        # el entrante ofrecemos los libres + (por si acaso) todos los LOCAL activos.
-        libres_ids = list(operadores_libres().values_list('id', flat=True))
-        self.fields['operador_entrante'].queryset = Operador.objects.filter(
-            tipo='LOCAL', activo=True
-        ).filter(id__in=libres_ids) or Operador.objects.filter(tipo='LOCAL', activo=True)
+        libres = operadores_libres()
+        self.sin_operadores_libres = not libres.exists()
+        if self.sin_operadores_libres:
+            # Sin operadores libres: se ofrecen todos los LOCAL activos como
+            # último recurso; la plantilla avisa de la situación.
+            self.fields['operador_entrante'].queryset = Operador.objects.filter(
+                tipo='LOCAL', activo=True
+            )
+        else:
+            self.fields['operador_entrante'].queryset = libres
 
 
 class RetrasoVacioForm(forms.ModelForm):

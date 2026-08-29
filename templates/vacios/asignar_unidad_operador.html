@@ -32,8 +32,16 @@
     var operador = document.getElementById('id_operador');
     if (!unidad || !operador) return;
     unidad.addEventListener('change', function () {
-      var op = mapa[unidad.value];
-      if (op) operador.value = op;
+      var ligado = mapa[unidad.value];
+      if (ligado === undefined || ligado === null) { return; }
+      var valor = String(ligado);
+      // Solo asigna si esa opción existe en el select (operador LOCAL activo).
+      for (var i = 0; i < operador.options.length; i++) {
+        if (operador.options[i].value === valor) {
+          operador.value = valor;
+          break;
+        }
+      }
     });
   })();
 </script>
