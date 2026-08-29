@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Navieras{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+  <h1 class="text-2xl font-bold text-gray-900">Navieras</h1>
+  <a href="{% url 'vacios:naviera_create' %}" class="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700">Nueva naviera</a>
+</div>
+<div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+      <tr><th class="text-left px-4 py-2">Nombre</th><th class="text-left px-4 py-2">Dirección de retorno</th><th class="text-left px-4 py-2">Activo</th><th class="px-4 py-2"></th></tr>
+    </thead>
+    <tbody>
+      {% for n in navieras %}
+      <tr class="border-t border-gray-100">
+        <td class="px-4 py-2">{{ n.nombre }}</td>
+        <td class="px-4 py-2 text-gray-500">{{ n.direccion_retorno|default:"—"|truncatechars:60 }}</td>
+        <td class="px-4 py-2">{{ n.activo|yesno:"Sí,No" }}</td>
+        <td class="px-4 py-2 text-right">
+          <a href="{% url 'vacios:naviera_update' n.pk %}" class="text-xs text-blue-600 hover:underline">Editar</a>
+          <a href="{% url 'vacios:naviera_delete' n.pk %}" class="text-xs text-red-600 hover:underline ml-2">Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">Sin navieras.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

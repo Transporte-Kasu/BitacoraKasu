@@ -8,10 +8,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.views.generic import DetailView, ListView, DeleteView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, DeleteView, UpdateView
 
 from .forms import (
     AsignarUnidadOperadorVacioForm,
+    NavieraForm,
     ReasignarOperadorVacioForm,
     RetrasoVacioForm,
     VacioUpdateForm,
@@ -280,3 +281,45 @@ def reenviar_aviso_retraso(request, pk, rid):
     else:
         messages.error(request, 'No se pudo enviar el aviso. Revisa el correo de la agencia.')
     return redirect(reverse('vacios:detail', kwargs={'pk': pk}))
+
+
+# ============================================================================
+# CATÁLOGO: NAVIERA
+# ============================================================================
+
+class NavieraListView(LoginRequiredMixin, ListView):
+    model = Naviera
+    template_name = 'vacios/naviera_list.html'
+    context_object_name = 'navieras'
+
+
+class NavieraCreateView(LoginRequiredMixin, CreateView):
+    model = Naviera
+    form_class = NavieraForm
+    template_name = 'vacios/naviera_form.html'
+    success_url = reverse_lazy('vacios:naviera_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Naviera creada.')
+        return super().form_valid(form)
+
+
+class NavieraUpdateView(LoginRequiredMixin, UpdateView):
+    model = Naviera
+    form_class = NavieraForm
+    template_name = 'vacios/naviera_form.html'
+    success_url = reverse_lazy('vacios:naviera_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Naviera actualizada.')
+        return super().form_valid(form)
+
+
+class NavieraDeleteView(LoginRequiredMixin, DeleteView):
+    model = Naviera
+    template_name = 'vacios/naviera_confirm_delete.html'
+    success_url = reverse_lazy('vacios:naviera_list')
+
+    def post(self, request, *args, **kwargs):
+        messages.success(request, 'Naviera eliminada.')
+        return super().post(request, *args, **kwargs)

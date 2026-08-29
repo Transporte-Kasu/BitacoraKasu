@@ -17,4 +17,9 @@ urlpatterns = [
     path('<int:pk>/entrega-naviera/', views.registrar_entrega_naviera, name='registrar_entrega_naviera'),
     path('<int:pk>/retraso/', views.RegistrarRetrasoView.as_view(), name='registrar_retraso'),
     path('<int:pk>/retraso/<int:rid>/reenviar/', views.reenviar_aviso_retraso, name='reenviar_aviso_retraso'),
+    # Catálogo: navieras
+    path('navieras/', views.NavieraListView.as_view(), name='naviera_list'),
+    path('navieras/nueva/', views.NavieraCreateView.as_view(), name='naviera_create'),
+    path('navieras/<int:pk>/editar/', views.NavieraUpdateView.as_view(), name='naviera_update'),
+    path('navieras/<int:pk>/eliminar/', views.NavieraDeleteView.as_view(), name='naviera_delete'),
 ]

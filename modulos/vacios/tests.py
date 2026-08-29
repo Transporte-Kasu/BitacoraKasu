@@ -386,6 +386,40 @@ class ReasignarFallbackTests(TestCase):
         self.assertNotContains(resp, 'No hay operadores libres.')
 
 
+class NavieraCrudTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.client.force_login(User.objects.create_user('t', password='x'))
+
+    def test_list_200(self):
+        Naviera.objects.create(nombre='MSC')
+        resp = self.client.get(reverse('vacios:naviera_list'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'MSC')
+
+    def test_create(self):
+        resp = self.client.post(
+            reverse('vacios:naviera_create'),
+            {'nombre': 'MAERSK', 'direccion_retorno': 'Patio 3', 'activo': 'on'},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(Naviera.objects.filter(nombre='MAERSK').exists())
+
+    def test_update(self):
+        n = Naviera.objects.create(nombre='CMA')
+        self.client.post(
+            reverse('vacios:naviera_update', kwargs={'pk': n.pk}),
+            {'nombre': 'CMA CGM', 'direccion_retorno': '', 'activo': 'on'},
+        )
+        n.refresh_from_db()
+        self.assertEqual(n.nombre, 'CMA CGM')
+
+    def test_delete(self):
+        n = Naviera.objects.create(nombre='ONE')
+        self.client.post(reverse('vacios:naviera_delete', kwargs={'pk': n.pk}))
+        self.assertFalse(Naviera.objects.filter(pk=n.pk).exists())
+
+
 @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 class RetrasoTests(TestCase):
     def setUp(self):

@@ -4,8 +4,7 @@
 {% block content %}
 <div class="flex justify-between items-center mb-4">
   <h1 class="text-2xl font-bold text-gray-900">Vacíos</h1>
-  {# Task 7: catálogo de navieras aún no implementado #}
-  <a href="#" class="text-sm text-blue-600 hover:underline">Catálogo de navieras</a>
+  <a href="{% url 'vacios:naviera_list' %}" class="text-sm text-blue-600 hover:underline">Catálogo de navieras</a>
 </div>
 
 <form method="get" class="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex flex-wrap gap-3 items-end">
