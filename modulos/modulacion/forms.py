@@ -10,9 +10,10 @@ from .models import Agencia, Modulacion, TerminalPortuaria
 class AgenciaForm(forms.ModelForm):
     class Meta:
         model = Agencia
-        fields = ['nombre', 'activo']
+        fields = ['nombre', 'email_contacto', 'activo']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la agencia'}),
+            'email_contacto': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'avisos@agencia.com'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 

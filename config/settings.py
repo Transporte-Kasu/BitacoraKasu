@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'modulos.caja_seca',
     'modulos.finanzas',
     'modulos.modulacion',
+    'modulos.vacios',
 ]
 
 MIDDLEWARE = [

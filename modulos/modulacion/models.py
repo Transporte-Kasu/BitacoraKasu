@@ -10,6 +10,11 @@ class Agencia(models.Model):
     """Agente aduanal/despachante que gestiona la operación (ej. LOGINCO)."""
     nombre = models.CharField(max_length=120, unique=True, verbose_name="Nombre")
     activo = models.BooleanField(default=True, verbose_name="Activo")
+    email_contacto = models.EmailField(
+        blank=True,
+        verbose_name="Correo de contacto",
+        help_text="Destino de los avisos automáticos de retraso de vacíos.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
