@@ -27,6 +27,7 @@ from modulos.reportes.models import ConfiguracionReporte, ReporteGenerado
 from modulos.reportes.generadores import almacen as gen_almacen
 from modulos.reportes.generadores import combustible as gen_combustible
 from modulos.reportes.generadores import unidades as gen_unidades
+from modulos.reportes.generadores import vacios as gen_vacios
 from config.services.whatsapp_service import enviar_mensaje as _wa_enviar
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ GENERADORES = {
     **gen_almacen.GENERADORES,
     **gen_combustible.GENERADORES,
     **gen_unidades.GENERADORES,
+    **gen_vacios.GENERADORES,
 }
 
 

@@ -13,6 +13,7 @@ class ConfiguracionReporte(models.Model):
         ('UNIDADES', 'Unidades'),
         ('FLOTA', 'Flota (Dollys / Equipos / Cajas Secas)'),
         ('MODULACION', 'Modulación'),
+        ('VACIOS', 'Vacíos'),
     ]
 
     TIPO_CHOICES = [
@@ -34,6 +35,9 @@ class ConfiguracionReporte(models.Model):
         # Modulación
         ('MODULACION_CONTENEDORES_OPERADOR', 'Modulación — Contenedores extraídos por operador'),
         ('MODULACION_RETIROS_PATIO', 'Modulación — Retiros de Patio Esperanza'),
+        # Vacíos
+        ('VACIOS_ENTREGAS_SEMANAL', 'Vacíos — Entregas por operador (semanal)'),
+        ('VACIOS_RETRASOS', 'Vacíos — Retrasos del período'),
     ]
 
     FRECUENCIA_CHOICES = [

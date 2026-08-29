@@ -41,6 +41,8 @@ _NOMBRES_REPORTE = {
     'UNIDADES_BALANZA_UTILIDAD': 'Balanza de utilidad/pérdida por unidad',
     'MODULACION_CONTENEDORES_OPERADOR': 'Contenedores extraídos por operador (modulación)',
     'MODULACION_RETIROS_PATIO': 'Retiros de Patio Esperanza (Transportes Kasu, externos y en espera)',
+    'VACIOS_ENTREGAS_SEMANAL': 'Entregas de vacíos por operador (semanal)',
+    'VACIOS_RETRASOS': 'Retrasos de vacíos (maniobra y retorno)',
 }
 
 

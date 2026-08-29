@@ -9,6 +9,7 @@ from modulos.bitacoras.models import BitacoraViaje, Cliente
 from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
 from modulos.vacios.models import CambioOperadorVacio, RetrasoVacio, Vacio
+from modulos.reportes.models import ConfiguracionReporte
 from modulos.reportes.generadores.vacios import (
     generar_entregas_por_operador,
     generar_retrasos,
@@ -95,3 +96,17 @@ class RetrasosReporteTests(TestCase):
         self.assertEqual(datos['resumen']['total_retrasos'], 2)
         self.assertEqual(datos['resumen']['retrasos_maniobra'], 1)
         self.assertEqual(datos['resumen']['pct_notificados'], 50.0)
+
+
+class RegistroReportesTests(TestCase):
+    def test_choices_incluyen_vacios(self):
+        modulos = dict(ConfiguracionReporte.MODULO_CHOICES)
+        tipos = dict(ConfiguracionReporte.TIPO_CHOICES)
+        self.assertIn('VACIOS', modulos)
+        self.assertIn('VACIOS_ENTREGAS_SEMANAL', tipos)
+        self.assertIn('VACIOS_RETRASOS', tipos)
+
+    def test_comando_conoce_los_generadores(self):
+        from modulos.reportes.management.commands.generar_reportes import GENERADORES
+        self.assertIn('VACIOS_ENTREGAS_SEMANAL', GENERADORES)
+        self.assertIn('VACIOS_RETRASOS', GENERADORES)
