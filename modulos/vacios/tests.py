@@ -81,3 +81,64 @@ class VacioModelTests(TestCase):
     def test_agencia_email_contacto(self):
         a = Agencia.objects.create(nombre='LOGINCO', email_contacto='avisos@loginco.mx')
         self.assertEqual(Agencia.objects.get(pk=a.pk).email_contacto, 'avisos@loginco.mx')
+
+
+class SignalCreacionTests(TestCase):
+    def test_crea_un_vacio_al_registrar_entrega(self):
+        b = _bitacora()
+        self.assertEqual(Vacio.objects.count(), 0)
+        b.fecha_hora_entrega = timezone.now()
+        b.save()
+        self.assertEqual(Vacio.objects.count(), 1)
+        v = Vacio.objects.get()
+        self.assertEqual(v.numero_contenedor, '1')
+        self.assertEqual(v.contenedor, b.contenedor)
+        self.assertEqual(v.cliente, b.cliente)
+        self.assertEqual(v.estado, 'POR_VACIAR')
+
+    def test_full_con_dos_entregas_crea_dos_vacios(self):
+        b = _bitacora(
+            modalidad='FULL',
+            contenedor='AAAA1111111',
+            contenedor_2='BBBB2222222',
+            peso_2=Decimal('10.00'),
+        )
+        b.fecha_hora_entrega = timezone.now()
+        b.fecha_hora_entrega_2 = timezone.now()
+        b.save()
+        self.assertEqual(Vacio.objects.count(), 2)
+        self.assertEqual(
+            set(Vacio.objects.values_list('numero_contenedor', flat=True)),
+            {'1', '2'},
+        )
+        v2 = Vacio.objects.get(numero_contenedor='2')
+        self.assertEqual(v2.contenedor, 'BBBB2222222')
+
+    def test_es_idempotente(self):
+        b = _bitacora()
+        b.fecha_hora_entrega = timezone.now()
+        b.save()
+        b.save()
+        b.observaciones = 'otra edición'
+        b.save()
+        self.assertEqual(Vacio.objects.count(), 1)
+
+    def test_sin_fecha_entrega_no_crea_vacio(self):
+        _bitacora()
+        self.assertEqual(Vacio.objects.count(), 0)
+
+    def test_autollena_agencia_desde_modulacion(self):
+        agencia = Agencia.objects.create(nombre='LOGINCO', email_contacto='a@b.mx')
+        terminal = TerminalPortuaria.objects.create(nombre='TIMSA')
+        b = _bitacora()
+        Modulacion.objects.create(
+            agencia=agencia,
+            terminal_portuaria=terminal,
+            tipo_contenedor='40HC',
+            peso_toneladas=Decimal('18.00'),
+            contenedor='MSCU1111111',
+            bitacora_viaje=b,
+        )
+        b.fecha_hora_entrega = timezone.now()
+        b.save()
+        self.assertEqual(Vacio.objects.get().agencia, agencia)
