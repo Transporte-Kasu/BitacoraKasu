@@ -205,16 +205,19 @@ class BitacoraDeleteView(LoginRequiredMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        # Se guarda el id antes de borrar: super().post() anula el pk de la
+        # instancia, así que no se puede interpolar self.object.id después.
+        bitacora_id = self.object.id
         try:
             response = super().post(request, *args, **kwargs)
         except ProtectedError:
             messages.error(
                 request,
-                f'No se puede eliminar la bitácora #{self.object.id}: tiene vacíos '
+                f'No se puede eliminar la bitácora #{bitacora_id}: tiene vacíos '
                 f'asociados. Elimina primero los vacíos del viaje.'
             )
             return redirect('bitacoras:detail', pk=self.object.pk)
-        messages.success(request, f'Bitácora #{self.object.id} eliminada exitosamente.')
+        messages.success(request, f'Bitácora #{bitacora_id} eliminada exitosamente.')
         return response
 
 

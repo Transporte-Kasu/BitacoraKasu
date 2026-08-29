@@ -555,8 +555,11 @@ class BitacoraDeleteConVacioTests(TestCase):
         b = _bitacora()  # sin fecha de entrega → sin Vacío
         self.assertEqual(Vacio.objects.filter(bitacora_viaje=b).count(), 0)
 
+        bid = b.id
         resp = self.client.post(reverse('bitacoras:delete', kwargs={'pk': b.pk}))
 
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp['Location'], reverse('bitacoras:list'))
         self.assertFalse(BitacoraViaje.objects.filter(pk=b.pk).exists())
+        mensajes = [m.message for m in get_messages(resp.wsgi_request)]
+        self.assertTrue(any(f'#{bid} eliminada' in m for m in mensajes))
