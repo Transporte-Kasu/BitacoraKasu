@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Eliminar {{ vacio.folio }}{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto bg-white rounded-xl border border-gray-100 p-6">
+  <h1 class="text-lg font-bold text-gray-900 mb-2">Eliminar {{ vacio.folio }}</h1>
+  <p class="text-sm text-gray-600 mb-4">Esta acción no se puede deshacer.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex justify-end gap-3">
+      <a href="{% url 'vacios:detail' vacio.pk %}" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</a>
+      <button type="submit" class="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700">Eliminar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

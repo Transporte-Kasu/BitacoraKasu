@@ -231,3 +231,99 @@ class OperadoresLibresTests(TestCase):
         op = _operador('EnBitacora', unidad=_unidad('ECO-X'))
         _bitacora(operador=op, unidad=op.unidad_asignada)  # completado=False por defecto
         self.assertNotIn(op, list(operadores_libres()))
+
+
+class TransicionesTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('t', password='x')
+        self.client.force_login(self.user)
+        self.unidad = _unidad('ECO-100')
+        self.operador = _operador('Op Libre', unidad=self.unidad)
+        self.vacio = Vacio.objects.create(
+            bitacora_viaje=_bitacora(),
+            contenedor='C1',
+            fecha_entrega_cliente=timezone.now(),
+        )
+
+    def _post(self, name, **data):
+        return self.client.post(reverse(name, kwargs={'pk': self.vacio.pk}), data)
+
+    def test_retorno_a_patio(self):
+        resp = self._post('vacios:registrar_retorno_patio')
+        self.vacio.refresh_from_db()
+        self.assertEqual(self.vacio.estado, 'EN_PATIO_ESPERANZA')
+        self.assertIsNotNone(self.vacio.fecha_retorno_patio)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_retorno_a_patio_rechazado_si_no_por_vaciar(self):
+        self.vacio.estado = 'ASIGNADO'
+        self.vacio.save()
+        self._post('vacios:registrar_retorno_patio')
+        self.vacio.refresh_from_db()
+        self.assertEqual(self.vacio.estado, 'ASIGNADO')
+
+    def test_asignar_unidad_operador(self):
+        self.vacio.estado = 'EN_PATIO_ESPERANZA'
+        self.vacio.save()
+        self._post('vacios:asignar', unidad=self.unidad.pk, operador=self.operador.pk)
+        self.vacio.refresh_from_db()
+        self.assertEqual(self.vacio.estado, 'ASIGNADO')
+        self.assertEqual(self.vacio.operador, self.operador)
+        self.assertIsNotNone(self.vacio.fecha_asignacion)
+
+    def test_fecha_asignacion_no_se_resella(self):
+        self.vacio.estado = 'EN_PATIO_ESPERANZA'
+        self.vacio.save()
+        self._post('vacios:asignar', unidad=self.unidad.pk, operador=self.operador.pk)
+        self.vacio.refresh_from_db()
+        primera = self.vacio.fecha_asignacion
+        otra = _operador('Op 2', unidad=_unidad('ECO-200'))
+        self.client.post(
+            reverse('vacios:reasignar_operador', kwargs={'pk': self.vacio.pk}),
+            {'unidad_entrante': otra.unidad_asignada.pk, 'operador_entrante': otra.pk, 'causa': 'NO_CONFIRMA'},
+        )
+        self.vacio.refresh_from_db()
+        self.assertEqual(self.vacio.fecha_asignacion, primera)
+
+    def test_reasignar_crea_historial(self):
+        self.vacio.estado = 'ASIGNADO'
+        self.vacio.unidad = self.unidad
+        self.vacio.operador = self.operador
+        self.vacio.save()
+        nueva_unidad = _unidad('ECO-300')
+        nuevo_operador = _operador('Op Nuevo', unidad=nueva_unidad)
+        self.client.post(
+            reverse('vacios:reasignar_operador', kwargs={'pk': self.vacio.pk}),
+            {'unidad_entrante': nueva_unidad.pk, 'operador_entrante': nuevo_operador.pk,
+             'causa': 'SE_NIEGA', 'motivo': 'no quiso'},
+        )
+        self.vacio.refresh_from_db()
+        self.assertEqual(self.vacio.operador, nuevo_operador)
+        self.assertEqual(self.vacio.unidad, nueva_unidad)
+        cambio = CambioOperadorVacio.objects.get()
+        self.assertEqual(cambio.operador_saliente, self.operador)
+        self.assertEqual(cambio.operador_entrante, nuevo_operador)
+        self.assertEqual(cambio.causa, 'SE_NIEGA')
+
+    def test_salida_y_entrega_a_naviera(self):
+        self.vacio.estado = 'ASIGNADO'
+        self.vacio.save()
+        self._post('vacios:registrar_salida_naviera')
+        self.vacio.refresh_from_db()
+        self.assertIsNotNone(self.vacio.fecha_salida_naviera)
+        self.assertEqual(self.vacio.estado, 'ASIGNADO')
+        self._post('vacios:registrar_entrega_naviera')
+        self.vacio.refresh_from_db()
+        self.assertEqual(self.vacio.estado, 'ENTREGADO_NAVIERA')
+        self.assertIsNotNone(self.vacio.fecha_entrega_naviera)
+
+    def test_editar_datos_naviera_y_compromiso(self):
+        naviera = Naviera.objects.create(nombre='MSC')
+        resp = self.client.post(
+            reverse('vacios:update', kwargs={'pk': self.vacio.pk}),
+            {'naviera': naviera.pk, 'fecha_compromiso_naviera': '2026-09-15T10:00', 'observaciones': 'ok'},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.vacio.refresh_from_db()
+        self.assertEqual(self.vacio.naviera, naviera)
