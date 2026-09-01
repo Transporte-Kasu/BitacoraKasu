@@ -90,16 +90,18 @@ class AsignarUnidadOperadorForm(forms.ModelForm):
 
 class PromoverBitacoraForm(forms.Form):
     """
-    Datos operativos requeridos para crear el BitacoraViaje (LOCAL) al
-    promover una Modulación: operador, unidad, destino y fechas — los datos
-    del contenedor (cliente, contenedor, peso, tipo) ya vienen de la Modulación.
+    Datos operativos requeridos para crear el BitacoraViaje (modalidad
+    SENCILLO / foráneo) al promover una Modulación: operador, unidad, destino
+    y fechas — los datos del contenedor (cliente, contenedor, peso, tipo) ya
+    vienen de la Modulación. Operador y unidad se listan solo entre los
+    foráneos.
     """
     operador = forms.ModelChoiceField(
-        queryset=Operador.objects.filter(tipo='LOCAL', activo=True),
+        queryset=Operador.objects.filter(tipo='FORANEO', activo=True),
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
     unidad = forms.ModelChoiceField(
-        queryset=Unidad.objects.filter(tipo='LOCAL', activa=True),
+        queryset=Unidad.objects.filter(tipo='FORANEA', activa=True),
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
     fecha_carga = forms.DateTimeField(

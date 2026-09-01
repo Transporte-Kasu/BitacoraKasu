@@ -36,13 +36,14 @@ def _mapear_tipo_contenedor(tipo_contenedor):
 
 def _crear_bitacora_desde_modulacion(modulacion, datos):
     """
-    Crea (sin guardar) un BitacoraViaje modalidad LOCAL con los datos del
-    contenedor tomados de la Modulación y los datos operativos (operador,
-    unidad, destino, fechas) capturados en `datos` (cleaned_data del form).
+    Crea (sin guardar) un BitacoraViaje modalidad SENCILLO (foráneo) con los
+    datos del contenedor tomados de la Modulación y los datos operativos
+    (operador, unidad, destino, fechas) capturados en `datos` (cleaned_data
+    del form).
     """
     bitacora = BitacoraViaje(
         cliente=modulacion.cliente,
-        modalidad='LOCAL',
+        modalidad='SENCILLO',
         operador=datos['operador'],
         unidad=datos['unidad'],
         contenedor=modulacion.contenedor,

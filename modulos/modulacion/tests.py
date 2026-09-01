@@ -282,8 +282,9 @@ class EnviarABitacoraViewTests(TestCase):
         self.cliente = Cliente.objects.create(nombre='Cliente Demo')
         # El flujo es lineal: solo se envía a Bitácora desde Patio Esperanza.
         self.modulacion = _crear_modulacion(cliente=self.cliente, estado='EN_PATIO_ESPERANZA')
-        self.operador = _crear_operador()
-        self.unidad = _crear_unidad()
+        # El viaje generado es foráneo (modalidad SENCILLO): operador y unidad foráneos.
+        self.operador = _crear_operador(tipo='FORANEO')
+        self.unidad = _crear_unidad(tipo='FORANEA')
 
     def test_get_muestra_formulario(self):
         url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
@@ -291,7 +292,21 @@ class EnviarABitacoraViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'operador')
 
-    def test_post_crea_bitacora_local_y_liga_modulacion(self):
+    def test_listas_solo_muestran_operador_y_unidad_foraneos(self):
+        operador_local = _crear_operador(nombre='Local López', tipo='LOCAL')
+        unidad_local = _crear_unidad(numero_economico='ECO-LOC-1', tipo='LOCAL')
+
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
+        form = self.client.get(url).context['form']
+
+        operadores = list(form.fields['operador'].queryset)
+        unidades = list(form.fields['unidad'].queryset)
+        self.assertIn(self.operador, operadores)
+        self.assertNotIn(operador_local, operadores)
+        self.assertIn(self.unidad, unidades)
+        self.assertNotIn(unidad_local, unidades)
+
+    def test_post_crea_bitacora_sencillo_foranea_y_liga_modulacion(self):
         url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
         ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
         response = self.client.post(url, data={
@@ -308,7 +323,7 @@ class EnviarABitacoraViewTests(TestCase):
         self.assertIsNotNone(self.modulacion.bitacora_viaje)
 
         bitacora = self.modulacion.bitacora_viaje
-        self.assertEqual(bitacora.modalidad, 'LOCAL')
+        self.assertEqual(bitacora.modalidad, 'SENCILLO')
         self.assertEqual(bitacora.contenedor, self.modulacion.contenedor)
         self.assertEqual(bitacora.peso, self.modulacion.peso_toneladas)
         self.assertEqual(bitacora.tipo_contenedor, '40')
