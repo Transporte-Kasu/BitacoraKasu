@@ -130,7 +130,8 @@ def fusionar_en_full(sencillo_existente, datos_segundo, *, tipo_full):
     contenedor. Conserva todos los datos del primer contenedor (fechas,
     destino, kilometraje, diésel, tipo). Guarda con full_clean().
 
-    `datos_segundo`: {contenedor, peso, sellos, cliente, cp_destino}.
+    `datos_segundo`: {contenedor, peso, sellos, cliente, cp_destino,
+    fecha_hora_entrega (opcional)}.
     `tipo_full`: 'directo' (mismo destino) o 'reparto' (dos destinos).
 
     El borrado del segundo registro y el ligado de la Modulación son
@@ -141,6 +142,8 @@ def fusionar_en_full(sencillo_existente, datos_segundo, *, tipo_full):
     s.contenedor_2 = (datos_segundo.get('contenedor') or '').strip().upper()
     s.peso_2 = datos_segundo.get('peso')
     s.sellos_2 = datos_segundo.get('sellos') or ''
+    if datos_segundo.get('fecha_hora_entrega'):
+        s.fecha_hora_entrega_2 = datos_segundo['fecha_hora_entrega']
 
     if tipo_full == 'reparto':
         s.reparto = True

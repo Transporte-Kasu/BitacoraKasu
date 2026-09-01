@@ -418,6 +418,42 @@ class BitacoraUpdateFusionViewTests(TestCase):
         self.assertEqual(existente.contenedor_2, 'BBBU2222222')
         self.assertFalse(BitacoraViaje.objects.filter(pk=editado.pk).exists())
 
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_editado_con_vacio_asociado_reasigna_al_full_y_no_revienta(self, _maps):
+        from modulos.vacios.models import Vacio
+
+        existente = _viaje(self.unidad, self.op, cliente=self.cli_a,
+                           cp_destino='40810', contenedor='AAAU1111111')
+        editado = _viaje(self.unidad, self.op2, cliente=self.cli_a,
+                         cp_destino='40810', contenedor='BBBU2222222')
+        # El viaje editado ya registró la entrega -> la señal le crea un Vacío
+        # (PROTECT), que hacía reventar el borrado con ProtectedError.
+        editado.fecha_hora_entrega = timezone.now()
+        editado.save()
+        self.assertEqual(Vacio.objects.filter(bitacora_viaje=editado).count(), 1)
+
+        ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        url = reverse('bitacoras:update', kwargs={'pk': editado.pk})
+        r = self.client.post(url, data={
+            'cliente': self.cli_a.pk, 'modalidad': 'SENCILLO',
+            'operador': self.op.pk, 'unidad': self.unidad.pk,
+            'fecha_carga': ahora, 'fecha_salida': ahora,
+            'fecha_hora_entrega': ahora,
+            'contenedor': 'BBBU2222222', 'tipo_contenedor': '40',
+            'cp_origen': '40812', 'cp_destino': '40810', 'destino': 'Z',
+            'confirmar_full': '1',
+        })
+        self.assertRedirects(r, reverse('bitacoras:detail', kwargs={'pk': existente.pk}))
+        existente.refresh_from_db()
+        self.assertEqual(existente.modalidad, 'FULL')
+        self.assertEqual(existente.contenedor_2, 'BBBU2222222')
+        self.assertFalse(BitacoraViaje.objects.filter(pk=editado.pk).exists())
+        # El Vacío se conserva, ahora colgado del FULL como contenedor 2.
+        vacio = Vacio.objects.get()
+        self.assertEqual(vacio.bitacora_viaje_id, existente.pk)
+        self.assertEqual(vacio.numero_contenedor, '2')
+        self.assertIsNotNone(existente.fecha_hora_entrega_2)
+
 
 class BitacoraFormModalMarkupTests(TestCase):
     def setUp(self):

@@ -97,6 +97,24 @@ class BitacoraDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
+def _reasignar_relaciones_a_full(origen, destino):
+    """
+    Antes de borrar el viaje `origen` (que se funde como contenedor 2 del FULL
+    `destino`), mueve a `destino` sus relaciones que impedirían el borrado o
+    quedarían huérfanas: los `Vacio` (FK PROTECT) pasan a `destino` como
+    contenedor 2, y la `Modulacion` ligada se repunta si `destino` no tiene una.
+    """
+    from modulos.vacios.models import Vacio
+    from modulos.modulacion.models import Modulacion
+
+    Vacio.objects.filter(bitacora_viaje=origen).update(
+        bitacora_viaje=destino, numero_contenedor='2',
+    )
+
+    if not Modulacion.objects.filter(bitacora_viaje=destino).exists():
+        Modulacion.objects.filter(bitacora_viaje=origen).update(bitacora_viaje=destino)
+
+
 def _form_context(excluir_pk=None):
     """Contexto compartido entre Create y Update: listas de unidades y operadores."""
     from modulos.operadores.models import Operador
@@ -133,6 +151,7 @@ class BitacoraCreateView(LoginRequiredMixin, CreateView):
                 'sellos': cd.get('sellos'),
                 'cliente': cd.get('cliente'),
                 'cp_destino': cd.get('cp_destino'),
+                'fecha_hora_entrega': cd.get('fecha_hora_entrega'),
             }
             with transaction.atomic():
                 full = fusionar_en_full(
@@ -215,17 +234,24 @@ class BitacoraUpdateView(LoginRequiredMixin, UpdateView):
         res = form.fusion_result
         if res and res['accion'] == 'ofrecer_full' and form.cleaned_data.get('confirmar_full'):
             cd = form.cleaned_data
+            sencillo = res['sencillo']
             datos_segundo = {
                 'contenedor': cd.get('contenedor'),
                 'peso': cd.get('peso'),
                 'sellos': cd.get('sellos'),
                 'cliente': cd.get('cliente'),
                 'cp_destino': cd.get('cp_destino'),
+                'fecha_hora_entrega': cd.get('fecha_hora_entrega'),
             }
             with transaction.atomic():
-                full = fusionar_en_full(
-                    res['sencillo'], datos_segundo, tipo_full=res['tipo_full'])
+                # El viaje editado desaparece: primero se repuntan al viaje
+                # superviviente sus relaciones protegidas (Vacío) o su
+                # Modulación ligada, para que el delete no reviente ni deje
+                # registros huérfanos.
+                _reasignar_relaciones_a_full(self.object, sencillo)
                 self.object.delete()
+                full = fusionar_en_full(
+                    sencillo, datos_segundo, tipo_full=res['tipo_full'])
             messages.success(
                 self.request,
                 f'Full generado: el viaje #{full.pk} ahora lleva 2 contenedores.')
