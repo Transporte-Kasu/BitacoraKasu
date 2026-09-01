@@ -97,12 +97,15 @@ class BitacoraDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-def _form_context():
+def _form_context(excluir_pk=None):
     """Contexto compartido entre Create y Update: listas de unidades y operadores."""
     from modulos.operadores.models import Operador
     from modulos.unidades.models import Unidad
+    from .services_full import unidades_bloqueadas_ids
+
+    bloqueadas = unidades_bloqueadas_ids(excluir_pk=excluir_pk)
     return {
-        'unidades_form': Unidad.objects.filter(activa=True).order_by('numero_economico'),
+        'unidades_form': Unidad.objects.filter(activa=True).exclude(id__in=bloqueadas).order_by('numero_economico'),
         'operadores_form': Operador.objects.filter(activo=True).order_by('nombre'),
     }
 
@@ -175,7 +178,7 @@ class BitacoraUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(_form_context())
+        context.update(_form_context(self.object.pk))
         return context
 
     def get_success_url(self):

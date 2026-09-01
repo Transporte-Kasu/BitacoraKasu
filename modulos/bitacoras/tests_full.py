@@ -275,3 +275,145 @@ class VerificarFullEndpointTests(TestCase):
         self.client.logout()
         r = self.client.get(self.url, {'unidad': self.unidad.pk, 'operador': self.op.pk})
         self.assertEqual(r.status_code, 302)
+
+
+class BitacoraViajeFormFusionTests(TestCase):
+    def setUp(self):
+        self.unidad = _unidad()
+        self.op = _operador()
+        self.cli_a = Cliente.objects.create(nombre='Cliente A')
+
+    def _post(self, **over):
+        ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        data = {
+            'cliente': self.cli_a.pk, 'modalidad': 'SENCILLO',
+            'operador': self.op.pk, 'unidad': self.unidad.pk,
+            'fecha_carga': ahora, 'fecha_salida': ahora,
+            'contenedor': 'AAAU1111111', 'tipo_contenedor': '40',
+            'cp_origen': '40812', 'cp_destino': '40810', 'destino': 'X',
+        }
+        data.update(over)
+        return data
+
+    def test_sin_sencillo_previo_es_valido_y_fusion_result_ninguna(self):
+        from modulos.bitacoras.forms import BitacoraViajeForm
+        form = BitacoraViajeForm(data=self._post())
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.fusion_result['accion'], 'ninguna')
+
+    def test_con_sencillo_apareable_sin_confirmar_es_invalido(self):
+        from modulos.bitacoras.forms import BitacoraViajeForm
+        _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810',
+               contenedor='BBBU2222222')
+        form = BitacoraViajeForm(data=self._post(contenedor='CCCU3333333'))
+        self.assertFalse(form.is_valid())
+
+    def test_con_sencillo_apareable_y_confirmar_full_es_valido(self):
+        from modulos.bitacoras.forms import BitacoraViajeForm
+        _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810',
+               contenedor='BBBU2222222')
+        form = BitacoraViajeForm(
+            data=self._post(contenedor='CCCU3333333', confirmar_full='1'))
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.fusion_result['accion'], 'ofrecer_full')
+
+    def test_operador_distinto_es_invalido_incluso_con_confirmar(self):
+        from modulos.bitacoras.forms import BitacoraViajeForm
+        _viaje(self.unidad, _operador('Pedro'), cliente=self.cli_a,
+               contenedor='BBBU2222222')
+        form = BitacoraViajeForm(data=self._post(
+            contenedor='CCCU3333333', confirmar_full='1'))
+        self.assertFalse(form.is_valid())
+
+    def test_unidad_bloqueada_fuera_del_queryset(self):
+        from modulos.bitacoras.forms import BitacoraViajeForm
+        _viaje(self.unidad, self.op, modalidad='FULL', contenedor='BBBU2222222')
+        form = BitacoraViajeForm()
+        self.assertNotIn(self.unidad, form.fields['unidad'].queryset)
+
+
+class BitacoraCreateFusionViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='t', password='p')
+        self.client.login(username='t', password='p')
+        self.url = reverse('bitacoras:create')
+        self.unidad = _unidad()
+        self.op = _operador()
+        self.cli_a = Cliente.objects.create(nombre='Cliente A')
+        self.cli_b = Cliente.objects.create(nombre='Cliente B')
+
+    def _post(self, **over):
+        ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        data = {
+            'cliente': self.cli_a.pk, 'modalidad': 'SENCILLO',
+            'operador': self.op.pk, 'unidad': self.unidad.pk,
+            'fecha_carga': ahora, 'fecha_salida': ahora,
+            'contenedor': 'CCCU3333333', 'tipo_contenedor': '40',
+            'cp_origen': '40812', 'cp_destino': '62520', 'destino': 'Y',
+        }
+        data.update(over)
+        return data
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_sin_confirmar_no_fusiona_y_responde_200(self, _maps):
+        s = _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810',
+                   contenedor='BBBU2222222')
+        r = self.client.post(self.url, data=self._post())
+        self.assertEqual(r.status_code, 200)  # re-render con error
+        s.refresh_from_db()
+        self.assertEqual(s.modalidad, 'SENCILLO')
+        self.assertEqual(BitacoraViaje.objects.count(), 1)
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_con_confirmar_full_fusiona_y_no_crea_registro(self, _maps):
+        s = _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810',
+                   contenedor='BBBU2222222')
+        r = self.client.post(self.url, data=self._post(confirmar_full='1'))
+        self.assertRedirects(r, reverse('bitacoras:detail', kwargs={'pk': s.pk}))
+        s.refresh_from_db()
+        self.assertEqual(s.modalidad, 'FULL')
+        self.assertEqual(s.contenedor_2, 'CCCU3333333')
+        self.assertTrue(s.reparto)
+        self.assertEqual(s.cliente_2, self.cli_a)  # cliente del 2º contenedor
+        self.assertEqual(s.cp_destino_2, '62520')
+        self.assertEqual(BitacoraViaje.objects.count(), 1)
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_unidad_libre_crea_sencillo_normal(self, _maps):
+        r = self.client.post(self.url, data=self._post())
+        self.assertEqual(BitacoraViaje.objects.count(), 1)
+        self.assertEqual(BitacoraViaje.objects.first().modalidad, 'SENCILLO')
+
+
+class BitacoraUpdateFusionViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='t', password='p')
+        self.client.login(username='t', password='p')
+        self.unidad = _unidad()
+        self.op = _operador()
+        self.op2 = _operador('Pedro')
+        self.cli_a = Cliente.objects.create(nombre='Cliente A')
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_editar_operador_para_aparear_fusiona_y_borra_editado(self, _maps):
+        existente = _viaje(self.unidad, self.op, cliente=self.cli_a,
+                           cp_destino='40810', contenedor='AAAU1111111')
+        editado = _viaje(self.unidad, self.op2, cliente=self.cli_a,
+                         cp_destino='40810', contenedor='BBBU2222222')
+        ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        url = reverse('bitacoras:update', kwargs={'pk': editado.pk})
+        r = self.client.post(url, data={
+            'cliente': self.cli_a.pk, 'modalidad': 'SENCILLO',
+            'operador': self.op.pk, 'unidad': self.unidad.pk,
+            'fecha_carga': ahora, 'fecha_salida': ahora,
+            'contenedor': 'BBBU2222222', 'tipo_contenedor': '40',
+            'cp_origen': '40812', 'cp_destino': '40810', 'destino': 'Z',
+            'confirmar_full': '1',
+        })
+        self.assertRedirects(r, reverse('bitacoras:detail', kwargs={'pk': existente.pk}))
+        existente.refresh_from_db()
+        self.assertEqual(existente.modalidad, 'FULL')
+        self.assertEqual(existente.contenedor_2, 'BBBU2222222')
+        self.assertFalse(BitacoraViaje.objects.filter(pk=editado.pk).exists())

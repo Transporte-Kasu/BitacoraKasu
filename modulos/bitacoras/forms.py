@@ -1,6 +1,7 @@
 import re
 from django import forms
 from .models import BitacoraViaje, Cliente
+from .services_full import evaluar_fusion, unidades_bloqueadas_ids
 
 
 class ClienteForm(forms.ModelForm):
@@ -19,6 +20,10 @@ _CONTAINER_RE = re.compile(r'^[A-Z]{3}U\d{7}$')
 
 class BitacoraViajeForm(forms.ModelForm):
     """Formulario para crear y editar bitácoras de viaje"""
+
+    # Confirmación explícita (desde el modal) de que dos sencillos con la misma
+    # unidad + operador deben unirse en un Full.
+    confirmar_full = forms.BooleanField(required=False, widget=forms.HiddenInput)
 
     class Meta:
         model = BitacoraViaje
@@ -154,12 +159,22 @@ class BitacoraViajeForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fusion_result = None
+
         modalidad_actual = self.instance.modalidad if self.instance and self.instance.pk else None
         if modalidad_actual not in ('LOCAL', 'LOCAL_FULL'):
             self.fields['modalidad'].choices = [
                 (valor, etiqueta) for valor, etiqueta in self.fields['modalidad'].choices
                 if valor not in ('LOCAL', 'LOCAL_FULL')
             ]
+
+        # Ocultar unidades que ya llegaron a su capacidad (2 contenedores en curso).
+        excluir_pk = self.instance.pk if self.instance and self.instance.pk else None
+        bloqueadas = unidades_bloqueadas_ids(excluir_pk=excluir_pk)
+        if bloqueadas:
+            self.fields['unidad'].queryset = self.fields['unidad'].queryset.exclude(
+                id__in=bloqueadas
+            )
 
     def _validar_numero_contenedor(self, valor, field_name):
         val = (valor or '').strip().upper()
@@ -196,6 +211,24 @@ class BitacoraViajeForm(forms.ModelForm):
 
         if reparto and not cp_destino_2:
             self.add_error('cp_destino_2', 'El reparto requiere el CP del segundo destino.')
+
+        # Detección de "generar Full": dos sencillos con misma unidad + operador.
+        if modalidad == 'SENCILLO':
+            unidad = cleaned_data.get('unidad')
+            operador = cleaned_data.get('operador')
+            cliente = cleaned_data.get('cliente')
+            cp_destino = cleaned_data.get('cp_destino') or ''
+            excluir_pk = self.instance.pk if self.instance and self.instance.pk else None
+            res = evaluar_fusion(unidad, operador, cliente, cp_destino, excluir_pk=excluir_pk)
+            self.fusion_result = res
+
+            if res['accion'] == 'bloqueo':
+                self.add_error('unidad', res['mensaje'])
+            elif res['accion'] == 'ofrecer_full' and not cleaned_data.get('confirmar_full'):
+                self.add_error(None, (
+                    'Esta unidad ya tiene un viaje sencillo en curso con este operador. '
+                    'Genere un Full para agregar el segundo contenedor.'
+                ))
 
         return cleaned_data
 
