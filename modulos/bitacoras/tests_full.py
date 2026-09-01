@@ -1,7 +1,9 @@
 from decimal import Decimal
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from modulos.bitacoras.models import BitacoraViaje, Cliente
@@ -219,3 +221,57 @@ class FusionarEnFullTests(TestCase):
         s.refresh_from_db()
         self.assertEqual(s.modalidad, 'FULL')
         self.assertEqual(s.contenedor_2, 'BBBU2222222')
+
+
+class VerificarFullEndpointTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='t', password='p')
+        self.client.login(username='t', password='p')
+        self.url = reverse('bitacoras:verificar_full')
+        self.unidad = _unidad()
+        self.op = _operador()
+        self.cli_a = Cliente.objects.create(nombre='Cliente A')
+        self.cli_b = Cliente.objects.create(nombre='Cliente B')
+
+    def test_ninguna_si_unidad_libre(self):
+        r = self.client.get(self.url, {
+            'unidad': self.unidad.pk, 'operador': self.op.pk,
+            'cliente': self.cli_a.pk, 'cp_destino': '40810',
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['accion'], 'ninguna')
+
+    def test_ofrecer_full_reparto(self):
+        _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810',
+               contenedor='AAAU1111111')
+        r = self.client.get(self.url, {
+            'unidad': self.unidad.pk, 'operador': self.op.pk,
+            'cliente': self.cli_b.pk, 'cp_destino': '62520',
+        })
+        data = r.json()
+        self.assertEqual(data['accion'], 'ofrecer_full')
+        self.assertEqual(data['tipo_full'], 'reparto')
+        self.assertEqual(data['sencillo']['contenedor'], 'AAAU1111111')
+        self.assertEqual(data['sencillo']['cliente'], 'Cliente A')
+        self.assertEqual(data['nuevo']['cliente'], 'Cliente B')
+
+    def test_bloqueo_operador_distinto(self):
+        _viaje(self.unidad, _operador('Pedro'), cliente=self.cli_a,
+               contenedor='AAAU1111111')
+        r = self.client.get(self.url, {
+            'unidad': self.unidad.pk, 'operador': self.op.pk,
+            'cliente': self.cli_a.pk, 'cp_destino': '40810',
+        })
+        data = r.json()
+        self.assertEqual(data['accion'], 'bloqueo')
+        self.assertIn('Pedro', data['mensaje'])
+
+    def test_ninguna_si_faltan_params(self):
+        r = self.client.get(self.url, {'unidad': self.unidad.pk})
+        self.assertEqual(r.json()['accion'], 'ninguna')
+
+    def test_requiere_login(self):
+        self.client.logout()
+        r = self.client.get(self.url, {'unidad': self.unidad.pk, 'operador': self.op.pk})
+        self.assertEqual(r.status_code, 302)

@@ -36,4 +36,5 @@ urlpatterns = [
     # AJAX utilitarios
     path('ajax/unidad-info/', views.unidad_info_ajax, name='unidad_info_ajax'),
     path('ajax/calcular-distancia/', views.calcular_distancia_preview_ajax, name='calcular_distancia_preview'),
+    path('ajax/verificar-full/', views.verificar_full, name='verificar_full'),
 ]

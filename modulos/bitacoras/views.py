@@ -815,3 +815,45 @@ def unidad_info_ajax(request):
         })
     except Unidad.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Unidad no encontrada'})
+
+
+@login_required
+def verificar_full(request):
+    """
+    Indica si al guardar un viaje SENCILLO con esta unidad+operador se debe
+    ofrecer generar un Full, bloquear, o nada. Alimenta el modal del formulario.
+    GET /bitacoras/ajax/verificar-full/?unidad=&operador=&cliente=&cp_destino=&excluir_pk=
+    """
+    from modulos.operadores.models import Operador
+    from modulos.unidades.models import Unidad
+    from .services_full import evaluar_fusion
+
+    unidad = Unidad.objects.filter(pk=request.GET.get('unidad') or 0).first()
+    operador = Operador.objects.filter(pk=request.GET.get('operador') or 0).first()
+    cliente = Cliente.objects.filter(pk=request.GET.get('cliente') or 0).first()
+    cp_destino = (request.GET.get('cp_destino') or '').strip()
+    excluir_pk = request.GET.get('excluir_pk') or None
+
+    res = evaluar_fusion(unidad, operador, cliente, cp_destino, excluir_pk=excluir_pk)
+
+    if res['accion'] == 'ofrecer_full':
+        s = res['sencillo']
+        return JsonResponse({
+            'accion': 'ofrecer_full',
+            'tipo_full': res['tipo_full'],
+            'sencillo': {
+                'id': s.pk,
+                'contenedor': s.contenedor,
+                'cliente': s.cliente.nombre if s.cliente else '',
+                'cp_destino': s.cp_destino or '',
+            },
+            'nuevo': {
+                'cliente': cliente.nombre if cliente else '',
+                'cp_destino': cp_destino,
+            },
+        })
+
+    if res['accion'] == 'bloqueo':
+        return JsonResponse({'accion': 'bloqueo', 'mensaje': res['mensaje']})
+
+    return JsonResponse({'accion': 'ninguna'})
