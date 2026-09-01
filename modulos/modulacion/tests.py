@@ -292,6 +292,12 @@ class EnviarABitacoraViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'operador')
 
+    def test_form_incluye_modal_generar_full(self):
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
+        r = self.client.get(url)
+        self.assertContains(r, 'id="modal-generar-full"')
+        self.assertContains(r, '/bitacoras/ajax/verificar-full/')
+
     def test_listas_solo_muestran_operador_y_unidad_foraneos(self):
         operador_local = _crear_operador(nombre='Local López', tipo='LOCAL')
         unidad_local = _crear_unidad(numero_economico='ECO-LOC-1', tipo='LOCAL')

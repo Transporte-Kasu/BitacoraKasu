@@ -80,4 +80,140 @@
         </form>
     </div>
 </div>
+
+<!-- Modal: advertencia de generación de Full -->
+<div id="modal-generar-full" style="display:none; position:fixed; inset:0; z-index:60;
+     background:rgba(15,23,42,.55);">
+  <div style="max-width:520px; margin:10vh auto 0; background:#fff; border-radius:14px;
+       box-shadow:0 20px 60px rgba(0,0,0,.25); overflow:hidden;">
+    <div style="padding:20px 24px; border-bottom:1px solid #f1f5f9;">
+      <h3 id="modal-full-titulo" style="margin:0; font-size:1.05rem; font-weight:700; color:#0f172a;">
+        Se generará un Full
+      </h3>
+    </div>
+    <div style="padding:20px 24px;" id="modal-full-cuerpo">
+      <p style="margin:0 0 12px; font-size:.9rem; color:#475569;" id="modal-full-intro">
+        Esta unidad ya tiene un viaje sencillo en curso con el mismo operador.
+        Al guardar se unirán en un solo viaje Full.
+      </p>
+      <table style="width:100%; border-collapse:collapse; font-size:.85rem;">
+        <thead>
+          <tr style="text-align:left; color:#64748b;">
+            <th style="padding:6px 8px;">&nbsp;</th>
+            <th style="padding:6px 8px;">Cliente</th>
+            <th style="padding:6px 8px;">CP destino</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:6px 8px; font-weight:600;">Contenedor 1</td>
+            <td style="padding:6px 8px;" id="modal-full-c1-cliente">—</td>
+            <td style="padding:6px 8px;" id="modal-full-c1-cp">—</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px; font-weight:600;">Contenedor 2</td>
+            <td style="padding:6px 8px;" id="modal-full-c2-cliente">—</td>
+            <td style="padding:6px 8px;" id="modal-full-c2-cp">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin:12px 0 0; font-size:.85rem; color:#0f172a;" id="modal-full-tipo"></p>
+    </div>
+    <div style="padding:16px 24px; border-top:1px solid #f1f5f9; display:flex; gap:10px; justify-content:flex-end;">
+      <button type="button" id="modal-full-cancelar"
+              style="padding:8px 16px; border:1px solid #cbd5e1; border-radius:8px; background:#fff;
+                     font-size:.85rem; color:#475569;">Cancelar</button>
+      <button type="button" id="modal-full-confirmar"
+              style="padding:8px 16px; border:0; border-radius:8px; background:#059669;
+                     font-size:.85rem; color:#fff; font-weight:600;">Generar Full</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: unidad bloqueada -->
+<div id="modal-full-bloqueo" style="display:none; position:fixed; inset:0; z-index:60;
+     background:rgba(15,23,42,.55);">
+  <div style="max-width:460px; margin:12vh auto 0; background:#fff; border-radius:14px;
+       box-shadow:0 20px 60px rgba(0,0,0,.25); padding:24px;">
+    <h3 style="margin:0 0 10px; font-size:1.05rem; font-weight:700; color:#b91c1c;">No se puede registrar</h3>
+    <p style="margin:0 0 18px; font-size:.9rem; color:#475569;" id="modal-full-bloqueo-msg"></p>
+    <div style="text-align:right;">
+      <button type="button" id="modal-full-bloqueo-ok"
+              style="padding:8px 16px; border:0; border-radius:8px; background:#0f172a; color:#fff; font-size:.85rem;">
+        Entendido</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const VERIFICAR_FULL_URL = "{% url 'bitacoras:verificar_full' %}";
+const MODULACION_CLIENTE_ID = "{{ modulacion.cliente.pk|default:'' }}";
+const formEnviar     = document.querySelector('form[method="post"]');
+const unidadSelect   = document.getElementById('id_unidad');
+const operadorSelect = document.getElementById('id_operador');
+const cpDestinoInput = document.getElementById('id_cp_destino');
+const modalFull      = document.getElementById('modal-generar-full');
+const modalBloqueo   = document.getElementById('modal-full-bloqueo');
+let fullCheckPassed  = false;
+
+function cerrarModalesFull() {
+    modalFull.style.display = 'none';
+    modalBloqueo.style.display = 'none';
+}
+document.getElementById('modal-full-cancelar').addEventListener('click', cerrarModalesFull);
+document.getElementById('modal-full-bloqueo-ok').addEventListener('click', cerrarModalesFull);
+
+document.getElementById('modal-full-confirmar').addEventListener('click', function () {
+    let hidden = formEnviar.querySelector('input[name="confirmar_full"]');
+    if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'confirmar_full';
+        formEnviar.appendChild(hidden);
+    }
+    hidden.value = '1';
+    fullCheckPassed = true;
+    cerrarModalesFull();
+    formEnviar.requestSubmit();
+});
+
+formEnviar.addEventListener('submit', function (e) {
+    if (fullCheckPassed) return;
+    const unidadId = unidadSelect.value;
+    const operadorId = operadorSelect.value;
+    if (!unidadId || !operadorId) return;
+
+    e.preventDefault();
+    const params = new URLSearchParams({
+        unidad: unidadId,
+        operador: operadorId,
+        cliente: MODULACION_CLIENTE_ID,
+        cp_destino: cpDestinoInput ? (cpDestinoInput.value || '') : '',
+    });
+    fetch(VERIFICAR_FULL_URL + '?' + params.toString(), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.accion === 'ninguna') { fullCheckPassed = true; formEnviar.requestSubmit(); return; }
+            if (data.accion === 'bloqueo') {
+                document.getElementById('modal-full-bloqueo-msg').textContent = data.mensaje;
+                modalBloqueo.style.display = 'block';
+                return;
+            }
+            document.getElementById('modal-full-c1-cliente').textContent = data.sencillo.cliente || '—';
+            document.getElementById('modal-full-c1-cp').textContent = data.sencillo.cp_destino || '—';
+            document.getElementById('modal-full-c2-cliente').textContent = data.nuevo.cliente || '—';
+            document.getElementById('modal-full-c2-cp').textContent = data.nuevo.cp_destino || '—';
+            document.getElementById('modal-full-tipo').textContent =
+                data.tipo_full === 'reparto'
+                    ? 'Se generará un Full con reparto (dos destinos distintos).'
+                    : 'Se generará un Full directo (mismo cliente y destino).';
+            modalFull.style.display = 'block';
+        })
+        .catch(() => { fullCheckPassed = true; formEnviar.requestSubmit(); });
+});
+</script>
 {% endblock %}
