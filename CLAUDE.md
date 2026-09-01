@@ -168,6 +168,11 @@ Available blocks: `title`, `extra_css`, `breadcrumb`, `content`, `extra_js`
 - Sets `completado=True` when `fecha_llegada` is provided
 - Updates `unidad.kilometraje_actual`
 
+### Fusión de Sencillos en Full (`modulos/bitacoras/services_full.py`)
+- Al guardar/editar un viaje `SENCILLO` cuya unidad ya tiene otro `SENCILLO` en curso con el **mismo operador**, se ofrece (modal JS + endpoint `bitacoras:verificar_full`) fusionarlos en un `FULL`: `directo` si coinciden `cliente` y `cp_destino`, `reparto` si difieren (llena `cliente_2`/`cp_destino_2`).
+- Capacidad por unidad: máx. 2 contenedores en curso (SENCILLO=1, FULL=2). Unidad llena → fuera del selector (`unidades_bloqueadas_ids`). Operador distinto sobre una unidad con sencillo en curso → bloqueado (no se permiten dos sencillos separados).
+- Aplica a alta manual (`BitacoraCreateView`), edición (`BitacoraUpdateView`) y `EnviarABitacoraView` de modulación (esta liga la Modulación al FULL sin crear un 2º `BitacoraViaje`). La carga masiva no pasa por aquí.
+
 ### Django Signals
 
 **combustible/signals.py:**
