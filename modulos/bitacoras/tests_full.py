@@ -417,3 +417,15 @@ class BitacoraUpdateFusionViewTests(TestCase):
         self.assertEqual(existente.modalidad, 'FULL')
         self.assertEqual(existente.contenedor_2, 'BBBU2222222')
         self.assertFalse(BitacoraViaje.objects.filter(pk=editado.pk).exists())
+
+
+class BitacoraFormModalMarkupTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='t', password='p')
+        self.client.login(username='t', password='p')
+
+    def test_form_incluye_modal_y_url_endpoint(self):
+        r = self.client.get(reverse('bitacoras:create'))
+        self.assertContains(r, 'id="modal-generar-full"')
+        self.assertContains(r, '/bitacoras/ajax/verificar-full/')
