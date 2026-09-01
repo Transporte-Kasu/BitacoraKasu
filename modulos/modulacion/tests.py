@@ -332,6 +332,63 @@ class EnviarABitacoraViewTests(TestCase):
         self.assertEqual(bitacora.unidad, self.unidad)
         self.assertRedirects(response, reverse('bitacoras:detail', kwargs={'pk': bitacora.pk}))
 
+    def _sencillo_en_curso(self, cliente, cp_destino='62520', contenedor='AAAU1111111'):
+        ahora = timezone.now()
+        return BitacoraViaje.objects.create(
+            cliente=cliente, modalidad='SENCILLO', operador=self.operador,
+            unidad=self.unidad, contenedor=contenedor, fecha_carga=ahora,
+            fecha_salida=ahora, destino='Prev', cp_destino=cp_destino,
+        )
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_confirmar_full_liga_modulacion_al_full_sin_crear_segundo_viaje(self, _maps):
+        previo = self._sencillo_en_curso(cliente=self.cliente, cp_destino='62520')
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
+        ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        r = self.client.post(url, data={
+            'operador': self.operador.pk, 'unidad': self.unidad.pk,
+            'fecha_carga': ahora, 'fecha_salida': ahora,
+            'destino': 'Calle 1', 'cp_destino': '62520', 'confirmar_full': '1',
+        })
+        self.assertRedirects(r, reverse('bitacoras:detail', kwargs={'pk': previo.pk}))
+        previo.refresh_from_db()
+        self.assertEqual(previo.modalidad, 'FULL')
+        self.assertEqual(previo.contenedor_2, self.modulacion.contenedor)
+        self.assertFalse(previo.reparto)  # mismo cliente y CP
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.bitacora_viaje_id, previo.pk)
+        self.assertEqual(self.modulacion.estado, 'ENVIADO_BITACORA')
+        self.assertEqual(BitacoraViaje.objects.count(), 1)
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_confirmar_full_reparto_si_cliente_distinto(self, _maps):
+        otro_cliente = Cliente.objects.create(nombre='Otro Cliente')
+        previo = self._sencillo_en_curso(cliente=otro_cliente, cp_destino='11111')
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
+        ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        self.client.post(url, data={
+            'operador': self.operador.pk, 'unidad': self.unidad.pk,
+            'fecha_carga': ahora, 'fecha_salida': ahora,
+            'destino': 'Calle 1', 'cp_destino': '62520', 'confirmar_full': '1',
+        })
+        previo.refresh_from_db()
+        self.assertTrue(previo.reparto)
+        self.assertEqual(previo.cliente_2, self.cliente)
+        self.assertEqual(previo.cp_destino_2, '62520')
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_sin_sencillo_previo_crea_sencillo_normal(self, _maps):
+        url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
+        ahora = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        self.client.post(url, data={
+            'operador': self.operador.pk, 'unidad': self.unidad.pk,
+            'fecha_carga': ahora, 'fecha_salida': ahora,
+            'destino': 'Calle 1', 'cp_destino': '62520',
+        })
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.estado, 'ENVIADO_BITACORA')
+        self.assertEqual(self.modulacion.bitacora_viaje.modalidad, 'SENCILLO')
+
     def test_post_incompleto_no_crea_bitacora(self):
         url = reverse('modulacion:enviar_a_bitacora', kwargs={'pk': self.modulacion.pk})
         response = self.client.post(url, data={'operador': self.operador.pk})

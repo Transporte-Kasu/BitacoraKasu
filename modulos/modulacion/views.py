@@ -265,6 +265,46 @@ class EnviarABitacoraView(LoginRequiredMixin, View):
         if not form.is_valid():
             return render(request, self.template_name, {'modulacion': modulacion, 'form': form})
 
+        # ¿La unidad + operador ya tienen un sencillo en curso? Ofrecer/forzar Full.
+        from django.db import transaction
+        from modulos.bitacoras.services_full import evaluar_fusion, fusionar_en_full
+
+        cd = form.cleaned_data
+        res = evaluar_fusion(
+            cd['unidad'], cd['operador'], modulacion.cliente, cd.get('cp_destino') or '',
+        )
+
+        if res['accion'] == 'bloqueo':
+            messages.warning(request, res['mensaje'])
+            return render(request, self.template_name, {'modulacion': modulacion, 'form': form})
+
+        if res['accion'] == 'ofrecer_full' and request.POST.get('confirmar_full') == '1':
+            datos_segundo = {
+                'contenedor': modulacion.contenedor,
+                'peso': modulacion.peso_toneladas,
+                'sellos': '',
+                'cliente': modulacion.cliente,
+                'cp_destino': cd.get('cp_destino') or '',
+            }
+            with transaction.atomic():
+                full = fusionar_en_full(
+                    res['sencillo'], datos_segundo, tipo_full=res['tipo_full'])
+                modulacion.bitacora_viaje = full
+                modulacion.estado = 'ENVIADO_BITACORA'
+                modulacion.fecha_retiro = timezone.now()
+                modulacion.save()
+            messages.success(
+                request,
+                f'Modulación {modulacion.folio} unida al Full #{full.pk} (2 contenedores).')
+            return redirect(reverse('bitacoras:detail', kwargs={'pk': full.pk}))
+
+        if res['accion'] == 'ofrecer_full':
+            messages.warning(
+                request,
+                'Esta unidad ya tiene un viaje sencillo en curso con este operador. '
+                'Confirme la generación del Full para continuar.')
+            return render(request, self.template_name, {'modulacion': modulacion, 'form': form})
+
         bitacora = _crear_bitacora_desde_modulacion(modulacion, form.cleaned_data)
         bitacora.full_clean()
         bitacora.save()

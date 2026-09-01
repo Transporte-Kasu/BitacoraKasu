@@ -122,6 +122,16 @@ class PromoverBitacoraForm(forms.Form):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Código postal de destino'}),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ocultar unidades con 2 contenedores en curso (capacidad llena).
+        from modulos.bitacoras.services_full import unidades_bloqueadas_ids
+        bloqueadas = unidades_bloqueadas_ids()
+        if bloqueadas:
+            self.fields['unidad'].queryset = self.fields['unidad'].queryset.exclude(
+                id__in=bloqueadas
+            )
+
     def clean(self):
         cleaned_data = super().clean()
         fecha_carga = cleaned_data.get('fecha_carga')
