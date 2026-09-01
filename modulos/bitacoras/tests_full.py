@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -159,3 +160,62 @@ class EvaluarFusionTests(TestCase):
             self.unidad, _operador('Pedro'), self.cli_a, '40810')
         self.assertEqual(res['accion'], 'bloqueo')
         self.assertIn('2 contenedores', res['mensaje'])
+
+
+class FusionarEnFullTests(TestCase):
+    def setUp(self):
+        self.unidad = _unidad()
+        self.op = _operador()
+        self.cli_a = Cliente.objects.create(nombre='Cliente A')
+        self.cli_b = Cliente.objects.create(nombre='Cliente B')
+
+    def _datos_segundo(self, **over):
+        base = {
+            'contenedor': 'bbbu2222222',
+            'peso': Decimal('12.00'),
+            'sellos': 'S-99',
+            'cliente': self.cli_b,
+            'cp_destino': '62520',
+        }
+        base.update(over)
+        return base
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_fusion_directa_no_llena_contenedor_2_cliente(self, _maps):
+        s = _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810',
+                   contenedor='AAAU1111111')
+        full = services_full.fusionar_en_full(
+            s, self._datos_segundo(cliente=self.cli_a, cp_destino='40810'),
+            tipo_full='directo')
+        self.assertEqual(full.modalidad, 'FULL')
+        self.assertEqual(full.contenedor_2, 'BBBU2222222')
+        self.assertEqual(full.peso_2, Decimal('12.00'))
+        self.assertEqual(full.sellos_2, 'S-99')
+        self.assertFalse(full.reparto)
+        self.assertIsNone(full.cliente_2)
+        self.assertEqual(full.cp_destino_2, '')
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_fusion_con_reparto_llena_cliente_2_y_cp_2(self, _maps):
+        s = _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810',
+                   contenedor='AAAU1111111')
+        full = services_full.fusionar_en_full(
+            s, self._datos_segundo(), tipo_full='reparto')
+        self.assertTrue(full.reparto)
+        self.assertEqual(full.cliente_2, self.cli_b)
+        self.assertEqual(full.cp_destino_2, '62520')
+
+    @patch.dict('os.environ', {'GOOGLE_MAPS_API_KEY': 'x'})
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_fusion_reparto_recalcula_distancia(self, maps):
+        s = _viaje(self.unidad, self.op, cliente=self.cli_a, contenedor='AAAU1111111')
+        services_full.fusionar_en_full(s, self._datos_segundo(), tipo_full='reparto')
+        maps.assert_called_once()
+
+    @patch('modulos.bitacoras.models.BitacoraViaje.calcular_distancia_google')
+    def test_fusion_persiste_en_bd(self, _maps):
+        s = _viaje(self.unidad, self.op, cliente=self.cli_a, contenedor='AAAU1111111')
+        services_full.fusionar_en_full(s, self._datos_segundo(), tipo_full='reparto')
+        s.refresh_from_db()
+        self.assertEqual(s.modalidad, 'FULL')
+        self.assertEqual(s.contenedor_2, 'BBBU2222222')

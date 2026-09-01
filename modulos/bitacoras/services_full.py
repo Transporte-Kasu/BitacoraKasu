@@ -122,3 +122,39 @@ def evaluar_fusion(unidad, operador, cliente, cp_destino, *, excluir_pk=None):
         )}
 
     return {'accion': 'ninguna'}
+
+
+def fusionar_en_full(sencillo_existente, datos_segundo, *, tipo_full):
+    """
+    Convierte `sencillo_existente` en un viaje FULL absorbiendo el segundo
+    contenedor. Conserva todos los datos del primer contenedor (fechas,
+    destino, kilometraje, diésel, tipo). Guarda con full_clean().
+
+    `datos_segundo`: {contenedor, peso, sellos, cliente, cp_destino}.
+    `tipo_full`: 'directo' (mismo destino) o 'reparto' (dos destinos).
+
+    El borrado del segundo registro y el ligado de la Modulación son
+    responsabilidad de quien llama.
+    """
+    s = sencillo_existente
+    s.modalidad = 'FULL'
+    s.contenedor_2 = (datos_segundo.get('contenedor') or '').strip().upper()
+    s.peso_2 = datos_segundo.get('peso')
+    s.sellos_2 = datos_segundo.get('sellos') or ''
+
+    if tipo_full == 'reparto':
+        s.reparto = True
+        s.cliente_2 = datos_segundo.get('cliente')
+        s.cp_destino_2 = (datos_segundo.get('cp_destino') or '').strip()
+    else:
+        s.reparto = False
+        s.cliente_2 = None
+        s.cp_destino_2 = ''
+
+    s.full_clean()
+    s.save()
+
+    if s.reparto and s.cp_destino_2 and os.environ.get('GOOGLE_MAPS_API_KEY'):
+        s.calcular_distancia_google()
+
+    return s
