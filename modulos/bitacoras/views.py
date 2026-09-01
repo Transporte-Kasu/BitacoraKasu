@@ -209,6 +209,28 @@ class BitacoraUpdateView(LoginRequiredMixin, UpdateView):
         return reverse('bitacoras:detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
+        from django.db import transaction
+        from .services_full import fusionar_en_full
+
+        res = form.fusion_result
+        if res and res['accion'] == 'ofrecer_full' and form.cleaned_data.get('confirmar_full'):
+            cd = form.cleaned_data
+            datos_segundo = {
+                'contenedor': cd.get('contenedor'),
+                'peso': cd.get('peso'),
+                'sellos': cd.get('sellos'),
+                'cliente': cd.get('cliente'),
+                'cp_destino': cd.get('cp_destino'),
+            }
+            with transaction.atomic():
+                full = fusionar_en_full(
+                    res['sencillo'], datos_segundo, tipo_full=res['tipo_full'])
+                self.object.delete()
+            messages.success(
+                self.request,
+                f'Full generado: el viaje #{full.pk} ahora lleva 2 contenedores.')
+            return redirect(reverse('bitacoras:detail', kwargs={'pk': full.pk}))
+
         messages.success(self.request, 'Bitácora actualizada exitosamente.')
         return super().form_valid(form)
 
