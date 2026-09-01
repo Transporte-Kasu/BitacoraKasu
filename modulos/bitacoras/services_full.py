@@ -59,3 +59,66 @@ def unidades_bloqueadas_ids(*, excluir_pk=None):
             )))
             .filter(carga__gte=CAPACIDAD_UNIDAD))
     return {row['unidad_id'] for row in qs}
+
+
+def sencillo_apareable(unidad, operador, *, excluir_pk=None):
+    """
+    Viaje SENCILLO en curso de la misma unidad y el mismo operador con el que
+    se puede formar un Full. El más reciente por fecha_carga si hubiera varios.
+    """
+    if unidad is None or operador is None:
+        return None
+    candidatos = [
+        v for v in viajes_en_curso(unidad, excluir_pk=excluir_pk)
+        if v.modalidad == 'SENCILLO' and v.operador_id == operador.pk
+    ]
+    if not candidatos:
+        return None
+    return max(candidatos, key=lambda v: v.fecha_carga)
+
+
+def _mismo_destino(sencillo, cliente, cp_destino):
+    """True si el sencillo va al mismo cliente y CP que los datos dados."""
+    cliente_pk = cliente.pk if cliente is not None else None
+    mismo_cliente = sencillo.cliente_id == cliente_pk
+    mismo_cp = (sencillo.cp_destino or '').strip() == (cp_destino or '').strip()
+    return mismo_cliente and mismo_cp
+
+
+def evaluar_fusion(unidad, operador, cliente, cp_destino, *, excluir_pk=None):
+    """
+    Decide qué hacer al guardar/editar un viaje SENCILLO. Devuelve un dict con
+    'accion' en {'ninguna', 'bloqueo', 'ofrecer_full'}.
+
+    `cliente` es instancia de Cliente o None; `cp_destino` es str.
+    """
+    if unidad is None or operador is None:
+        return {'accion': 'ninguna'}
+
+    apareable = sencillo_apareable(unidad, operador, excluir_pk=excluir_pk)
+    if apareable is not None:
+        tipo = 'directo' if _mismo_destino(apareable, cliente, cp_destino) else 'reparto'
+        return {'accion': 'ofrecer_full', 'sencillo': apareable, 'tipo_full': tipo}
+
+    en_curso = viajes_en_curso(unidad, excluir_pk=excluir_pk)
+
+    sencillo_otro_op = next(
+        (v for v in en_curso
+         if v.modalidad == 'SENCILLO' and v.operador_id != operador.pk),
+        None,
+    )
+    if sencillo_otro_op is not None:
+        return {'accion': 'bloqueo', 'mensaje': (
+            f'La unidad {unidad.numero_economico} ya tiene un viaje sencillo en '
+            f'curso con el operador {sencillo_otro_op.operador.nombre}. Una unidad '
+            f'no puede llevar dos sencillos por separado; para un segundo '
+            f'contenedor genere un Full con el mismo operador.'
+        )}
+
+    carga = sum(CARGA_POR_MODALIDAD.get(v.modalidad, 1) for v in en_curso)
+    if carga >= CAPACIDAD_UNIDAD:
+        return {'accion': 'bloqueo', 'mensaje': (
+            f'La unidad {unidad.numero_economico} ya tiene 2 contenedores en curso.'
+        )}
+
+    return {'accion': 'ninguna'}

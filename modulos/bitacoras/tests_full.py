@@ -84,3 +84,78 @@ class CapacidadUnidadTests(TestCase):
     def test_unidades_bloqueadas_ids_respeta_excluir_pk(self):
         v = _viaje(self.unidad, self.op, modalidad='FULL')
         self.assertEqual(services_full.unidades_bloqueadas_ids(excluir_pk=v.pk), set())
+
+
+class SencilloApareableTests(TestCase):
+    def setUp(self):
+        self.unidad = _unidad()
+        self.op = _operador()
+
+    def test_devuelve_sencillo_mismo_operador_en_curso(self):
+        v = _viaje(self.unidad, self.op, modalidad='SENCILLO')
+        self.assertEqual(
+            services_full.sencillo_apareable(self.unidad, self.op), v)
+
+    def test_none_si_operador_distinto(self):
+        _viaje(self.unidad, self.op, modalidad='SENCILLO')
+        self.assertIsNone(
+            services_full.sencillo_apareable(self.unidad, _operador('Otro')))
+
+    def test_none_si_completado(self):
+        _viaje(self.unidad, self.op, modalidad='SENCILLO', completado=True)
+        self.assertIsNone(services_full.sencillo_apareable(self.unidad, self.op))
+
+    def test_none_si_es_full(self):
+        _viaje(self.unidad, self.op, modalidad='FULL')
+        self.assertIsNone(services_full.sencillo_apareable(self.unidad, self.op))
+
+    def test_respeta_excluir_pk(self):
+        v = _viaje(self.unidad, self.op, modalidad='SENCILLO')
+        self.assertIsNone(
+            services_full.sencillo_apareable(self.unidad, self.op, excluir_pk=v.pk))
+
+
+class EvaluarFusionTests(TestCase):
+    def setUp(self):
+        self.unidad = _unidad()
+        self.op = _operador()
+        self.cli_a = Cliente.objects.create(nombre='Cliente A')
+        self.cli_b = Cliente.objects.create(nombre='Cliente B')
+
+    def test_ninguna_si_unidad_libre(self):
+        res = services_full.evaluar_fusion(self.unidad, self.op, self.cli_a, '40810')
+        self.assertEqual(res['accion'], 'ninguna')
+
+    def test_ninguna_si_faltan_datos(self):
+        res = services_full.evaluar_fusion(None, None, None, '')
+        self.assertEqual(res['accion'], 'ninguna')
+
+    def test_ofrecer_full_directo_mismo_cliente_y_cp(self):
+        _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810')
+        res = services_full.evaluar_fusion(self.unidad, self.op, self.cli_a, '40810')
+        self.assertEqual(res['accion'], 'ofrecer_full')
+        self.assertEqual(res['tipo_full'], 'directo')
+
+    def test_ofrecer_full_reparto_si_cambia_cliente(self):
+        _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810')
+        res = services_full.evaluar_fusion(self.unidad, self.op, self.cli_b, '40810')
+        self.assertEqual(res['tipo_full'], 'reparto')
+
+    def test_ofrecer_full_reparto_si_cambia_cp(self):
+        _viaje(self.unidad, self.op, cliente=self.cli_a, cp_destino='40810')
+        res = services_full.evaluar_fusion(self.unidad, self.op, self.cli_a, '62520')
+        self.assertEqual(res['tipo_full'], 'reparto')
+
+    def test_bloqueo_si_operador_distinto(self):
+        _viaje(self.unidad, self.op, cliente=self.cli_a)
+        res = services_full.evaluar_fusion(
+            self.unidad, _operador('Pedro'), self.cli_a, '40810')
+        self.assertEqual(res['accion'], 'bloqueo')
+        self.assertIn('sencillo', res['mensaje'].lower())
+
+    def test_bloqueo_si_unidad_llena_con_full(self):
+        _viaje(self.unidad, self.op, modalidad='FULL')
+        res = services_full.evaluar_fusion(
+            self.unidad, _operador('Pedro'), self.cli_a, '40810')
+        self.assertEqual(res['accion'], 'bloqueo')
+        self.assertIn('2 contenedores', res['mensaje'])
