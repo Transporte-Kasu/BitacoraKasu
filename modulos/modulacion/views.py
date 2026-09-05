@@ -442,3 +442,8 @@ class TerminalPortuariaDeleteView(LoginRequiredMixin, DeleteView):
     def post(self, request, *args, **kwargs):
         messages.success(request, 'Terminal portuaria eliminada.')
         return super().post(request, *args, **kwargs)
+
+
+def completar_datos_terminal(request, token):
+    from django.http import HttpResponse
+    return HttpResponse(status=501)

@@ -249,6 +249,43 @@ class RecibirModulacionApiTests(TestCase):
         modulacion = Modulacion.objects.latest('id')
         self.assertEqual(modulacion.agencia_id, agencia.id)
 
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_terminal_sin_requiere_datos_extra_no_incluye_link(self):
+        response = self._post(self.payload)  # terminal 'TIMSA', nace con banderas en False
+        data = json.loads(response.content)
+        self.assertNotIn('completar_datos_url', data)
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_terminal_con_requiere_datos_extra_incluye_link(self):
+        terminal = _crear_terminal('LC Terminal Portuaria')
+        terminal.requiere_datos_extra = True
+        terminal.save()
+        payload = dict(self.payload, terminal_portuaria='LC Terminal Portuaria')
+
+        response = self._post(payload)
+        data = json.loads(response.content)
+        modulacion = Modulacion.objects.get(pk=data['id'])
+
+        self.assertIn('completar_datos_url', data)
+        prefijo = reverse('modulacion:completar_datos_terminal', args=['x']).replace('x/', '')
+        self.assertIn(prefijo, data['completar_datos_url'])
+        token = data['completar_datos_url'].rstrip('/').rsplit('/', 1)[-1]
+        self.assertEqual(resolver_modulacion(token).pk, modulacion.pk)
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_duplicado_con_requiere_datos_extra_incluye_link(self):
+        terminal = _crear_terminal('LC Terminal Portuaria')
+        terminal.requiere_datos_extra = True
+        terminal.save()
+        payload = dict(self.payload, terminal_portuaria='LC Terminal Portuaria')
+
+        self._post(payload)
+        segunda = self._post(payload)
+        data = json.loads(segunda.content)
+
+        self.assertTrue(data.get('duplicado'))
+        self.assertIn('completar_datos_url', data)
+
     def test_get_no_permitido(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)

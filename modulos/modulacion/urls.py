@@ -33,6 +33,9 @@ urlpatterns = [
     path('terminales/<int:pk>/editar/', views.TerminalPortuariaUpdateView.as_view(), name='terminal_update'),
     path('terminales/<int:pk>/eliminar/', views.TerminalPortuariaDeleteView.as_view(), name='terminal_delete'),
 
+    # Formulario público (sin login) para completar datos de terminal
+    path('completar/<str:token>/', views.completar_datos_terminal, name='completar_datos_terminal'),
+
     # API de recepción (HAL9MIL)
     path('api/recibir/', views_api.recibir_modulacion, name='api_recibir'),
 ]

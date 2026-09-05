@@ -3,6 +3,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.http import JsonResponse
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -10,6 +11,7 @@ from django.views.decorators.http import require_POST
 from modulos.bitacoras.models import Cliente
 
 from .models import Agencia, Modulacion, TerminalPortuaria
+from .tokens import generar_token
 
 REQUIRED_FIELDS = ['agencia', 'terminal_portuaria', 'tipo_contenedor', 'peso_toneladas', 'contenedor', 'cliente']
 
@@ -30,6 +32,17 @@ def _parsear_fecha_doda(valor):
         return timezone.make_aware(datetime.strptime(valor, '%Y-%m-%d'))
     except ValueError:
         return None
+
+
+def _completar_datos_url(request, modulacion):
+    """Link firmado para completar carril/horarios, o None si la terminal
+    de esta modulación no requiere datos extra."""
+    if not modulacion.terminal_portuaria.requiere_datos_extra:
+        return None
+    token = generar_token(modulacion)
+    return request.build_absolute_uri(
+        reverse('modulacion:completar_datos_terminal', args=[token])
+    )
 
 
 @csrf_exempt
@@ -72,9 +85,15 @@ def recibir_modulacion(request):
     contenedor = str(payload['contenedor']).strip().upper()
 
     if num_doda:
-        existente = Modulacion.objects.filter(num_doda=num_doda, contenedor=contenedor).first()
+        existente = Modulacion.objects.select_related('terminal_portuaria').filter(
+            num_doda=num_doda, contenedor=contenedor
+        ).first()
         if existente:
-            return JsonResponse({'success': True, 'id': existente.id, 'folio': existente.folio, 'duplicado': True}, status=200)
+            data = {'success': True, 'id': existente.id, 'folio': existente.folio, 'duplicado': True}
+            url = _completar_datos_url(request, existente)
+            if url:
+                data['completar_datos_url'] = url
+            return JsonResponse(data, status=200)
 
     try:
         peso_toneladas = payload['peso_toneladas']
@@ -105,4 +124,8 @@ def recibir_modulacion(request):
     except Exception as exc:
         return JsonResponse({'success': False, 'error': f'No se pudo crear la modulación: {exc}'}, status=400)
 
-    return JsonResponse({'success': True, 'id': modulacion.id, 'folio': modulacion.folio}, status=201)
+    data = {'success': True, 'id': modulacion.id, 'folio': modulacion.folio}
+    url = _completar_datos_url(request, modulacion)
+    if url:
+        data['completar_datos_url'] = url
+    return JsonResponse(data, status=201)
