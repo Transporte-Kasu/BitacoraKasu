@@ -15,6 +15,7 @@ from modulos.unidades.models import Unidad
 
 from .models import Agencia, Modulacion, TerminalPortuaria
 from .tokens import generar_token, resolver_modulacion
+from .forms import DatosTerminalForm
 
 
 def _crear_agencia(nombre='LOGINCO'):
@@ -167,6 +168,56 @@ class TokensCompletarDatosTests(TestCase):
         modulacion.delete()
         with self.assertRaises(Modulacion.DoesNotExist):
             resolver_modulacion(token)
+
+
+class DatosTerminalFormTests(TestCase):
+    def test_terminal_sin_banderas_solo_expone_campos_comunes(self):
+        terminal = _crear_terminal('APM Terminal Lazaro Cardenas')
+        terminal.requiere_datos_extra = True
+        terminal.save()
+        modulacion = _crear_modulacion(terminal_portuaria=terminal)
+
+        form = DatosTerminalForm(instance=modulacion, terminal=terminal)
+
+        self.assertEqual(set(form.fields), {'hora_registro', 'fecha_modulacion_aduana'})
+
+    def test_terminal_con_todas_las_banderas_expone_los_5_campos(self):
+        terminal = _crear_terminal('LC Terminal Portuaria')
+        terminal.requiere_datos_extra = True
+        terminal.requiere_carril = True
+        terminal.requiere_hora_ingreso = True
+        terminal.requiere_hora_carga = True
+        terminal.save()
+        modulacion = _crear_modulacion(terminal_portuaria=terminal)
+
+        form = DatosTerminalForm(instance=modulacion, terminal=terminal)
+
+        self.assertEqual(
+            set(form.fields),
+            {'carril', 'hora_registro', 'hora_ingreso', 'hora_carga', 'fecha_modulacion_aduana'},
+        )
+
+    def test_guardar_form_actualiza_la_modulacion(self):
+        terminal = _crear_terminal('LC Terminal Portuaria 2')
+        terminal.requiere_datos_extra = True
+        terminal.requiere_carril = True
+        terminal.requiere_hora_ingreso = True
+        terminal.requiere_hora_carga = True
+        terminal.save()
+        modulacion = _crear_modulacion(terminal_portuaria=terminal)
+
+        form = DatosTerminalForm(data={
+            'carril': '3',
+            'hora_registro': '2026-09-05T08:00',
+            'hora_ingreso': '2026-09-05T09:00',
+            'hora_carga': '2026-09-05T10:00',
+            'fecha_modulacion_aduana': '2026-09-05',
+        }, instance=modulacion, terminal=terminal)
+
+        self.assertTrue(form.is_valid(), form.errors)
+        guardada = form.save()
+        self.assertEqual(guardada.carril, '3')
+        self.assertIsNotNone(guardada.hora_ingreso)
 
 
 class RecibirModulacionApiTests(TestCase):

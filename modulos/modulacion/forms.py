@@ -154,3 +154,33 @@ class RetiroExternoForm(forms.Form):
         max_length=120,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del transportista'}),
     )
+
+
+class DatosTerminalForm(forms.ModelForm):
+    """Formulario público (sin login) para que el capturista de HAL9MIL
+    complete carril/horarios de terminal. Solo expone estos 5 campos de
+    Modulacion — nunca estado, unidad, operador, etc."""
+
+    class Meta:
+        model = Modulacion
+        fields = ['carril', 'hora_registro', 'hora_ingreso', 'hora_carga', 'fecha_modulacion_aduana']
+        widgets = {
+            'carril': forms.TextInput(attrs={'class': 'form-input'}),
+            'hora_registro': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
+                'class': 'form-input', 'type': 'datetime-local'}),
+            'hora_ingreso': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
+                'class': 'form-input', 'type': 'datetime-local'}),
+            'hora_carga': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
+                'class': 'form-input', 'type': 'datetime-local'}),
+            'fecha_modulacion_aduana': forms.DateInput(format='%Y-%m-%d', attrs={
+                'class': 'form-input', 'type': 'date'}),
+        }
+
+    def __init__(self, *args, terminal, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not terminal.requiere_carril:
+            del self.fields['carril']
+        if not terminal.requiere_hora_ingreso:
+            del self.fields['hora_ingreso']
+        if not terminal.requiere_hora_carga:
+            del self.fields['hora_carga']
