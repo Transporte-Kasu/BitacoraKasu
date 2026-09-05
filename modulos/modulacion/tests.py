@@ -14,6 +14,7 @@ from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
 
 from .models import Agencia, Modulacion, TerminalPortuaria
+from .tokens import generar_token, resolver_modulacion
 
 
 def _crear_agencia(nombre='LOGINCO'):
@@ -145,6 +146,27 @@ class DatosTerminalCamposTests(TestCase):
         self.assertFalse(terminal.requiere_carril)
         self.assertFalse(terminal.requiere_hora_ingreso)
         self.assertFalse(terminal.requiere_hora_carga)
+
+
+class TokensCompletarDatosTests(TestCase):
+    def test_generar_y_resolver_token_valido(self):
+        modulacion = _crear_modulacion()
+        token = generar_token(modulacion)
+        resuelto = resolver_modulacion(token)
+        self.assertEqual(resuelto.pk, modulacion.pk)
+
+    def test_token_manipulado_levanta_does_not_exist(self):
+        modulacion = _crear_modulacion()
+        token = generar_token(modulacion)
+        with self.assertRaises(Modulacion.DoesNotExist):
+            resolver_modulacion(token + 'x')
+
+    def test_token_de_modulacion_borrada_levanta_does_not_exist(self):
+        modulacion = _crear_modulacion()
+        token = generar_token(modulacion)
+        modulacion.delete()
+        with self.assertRaises(Modulacion.DoesNotExist):
+            resolver_modulacion(token)
 
 
 class RecibirModulacionApiTests(TestCase):
