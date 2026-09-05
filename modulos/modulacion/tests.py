@@ -220,6 +220,63 @@ class DatosTerminalFormTests(TestCase):
         self.assertIsNotNone(guardada.hora_ingreso)
 
 
+class CompletarDatosTerminalViewTests(TestCase):
+    def setUp(self):
+        self.terminal = _crear_terminal('LC Terminal Portuaria 3')
+        self.terminal.requiere_datos_extra = True
+        self.terminal.requiere_carril = True
+        self.terminal.requiere_hora_ingreso = True
+        self.terminal.requiere_hora_carga = True
+        self.terminal.save()
+        self.modulacion = _crear_modulacion(terminal_portuaria=self.terminal)
+        from .tokens import generar_token
+        self.token = generar_token(self.modulacion)
+        self.url = reverse('modulacion:completar_datos_terminal', args=[self.token])
+
+    def test_token_invalido_devuelve_404(self):
+        url = reverse('modulacion:completar_datos_terminal', args=['token-invalido'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_terminal_sin_requiere_datos_extra_devuelve_404(self):
+        self.terminal.requiere_datos_extra = False
+        self.terminal.save()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_estado_no_pendiente_muestra_mensaje_cerrado(self):
+        self.modulacion.estado = 'MODULADO'
+        self.modulacion.save()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ya no admite cambios')
+
+    def test_get_muestra_formulario_con_campos_de_la_terminal(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="carril"')
+        self.assertContains(response, 'name="hora_ingreso"')
+
+    def test_post_valido_guarda_y_muestra_gracias(self):
+        response = self.client.post(self.url, data={
+            'carril': '5',
+            'hora_registro': '2026-09-05T08:00',
+            'hora_ingreso': '2026-09-05T09:00',
+            'hora_carga': '2026-09-05T10:00',
+            'fecha_modulacion_aduana': '2026-09-05',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Datos guardados')
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.carril, '5')
+
+    def test_no_permite_editar_estado_ni_otros_campos(self):
+        response = self.client.get(self.url)
+        self.assertNotContains(response, 'name="estado"')
+        self.assertNotContains(response, 'name="unidad"')
+        self.assertNotContains(response, 'name="operador"')
+
+
 class RecibirModulacionApiTests(TestCase):
     def setUp(self):
         self.url = reverse('modulacion:api_recibir')

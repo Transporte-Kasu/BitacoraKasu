@@ -18,12 +18,14 @@ from modulos.operadores.models import Operador
 from .forms import (
     AgenciaForm,
     AsignarUnidadOperadorForm,
+    DatosTerminalForm,
     ModulacionForm,
     PromoverBitacoraForm,
     RetiroExternoForm,
     TerminalPortuariaForm,
 )
 from .models import Agencia, Modulacion, TerminalPortuaria
+from .tokens import resolver_modulacion
 
 
 def _mapear_tipo_contenedor(tipo_contenedor):
@@ -445,5 +447,33 @@ class TerminalPortuariaDeleteView(LoginRequiredMixin, DeleteView):
 
 
 def completar_datos_terminal(request, token):
-    from django.http import HttpResponse
-    return HttpResponse(status=501)
+    """Vista pública (sin login): el capturista de HAL9MIL completa carril
+    y horarios de terminal de un contenedor ya recibido. El token firmado
+    (tokens.py) apunta a un único registro; el acceso se cierra en cuanto
+    Modulacion.estado deja de ser 'PENDIENTE'."""
+    try:
+        modulacion = resolver_modulacion(token)
+    except Modulacion.DoesNotExist:
+        return render(request, 'modulacion/completar_datos_mensaje.html',
+                      {'tipo': 'invalido'}, status=404)
+
+    if not modulacion.terminal_portuaria.requiere_datos_extra:
+        return render(request, 'modulacion/completar_datos_mensaje.html',
+                      {'tipo': 'invalido'}, status=404)
+
+    if modulacion.estado != 'PENDIENTE':
+        return render(request, 'modulacion/completar_datos_mensaje.html',
+                       {'tipo': 'cerrado', 'modulacion': modulacion})
+
+    if request.method == 'POST':
+        form = DatosTerminalForm(request.POST, instance=modulacion, terminal=modulacion.terminal_portuaria)
+        if form.is_valid():
+            form.save()
+            return render(request, 'modulacion/completar_datos_mensaje.html',
+                           {'tipo': 'gracias', 'modulacion': modulacion})
+    else:
+        form = DatosTerminalForm(instance=modulacion, terminal=modulacion.terminal_portuaria)
+
+    return render(request, 'modulacion/completar_datos_terminal.html', {
+        'form': form, 'modulacion': modulacion,
+    })

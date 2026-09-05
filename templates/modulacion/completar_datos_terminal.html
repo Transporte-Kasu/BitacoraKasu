@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completar datos de terminal - BitacoraKasu</title>
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+    <style>
+        :root { --primary-color: #2C3E50; --dark-color: #2C3E50; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            margin: 0;
+        }
+        .card {
+            background: white; border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 2.5rem; width: 100%; max-width: 480px; margin: 1rem;
+        }
+        .card-header { text-align: center; margin-bottom: 1.5rem; }
+        .card-logo { height: 60px; margin-bottom: 1rem; }
+        .card-title { color: var(--primary-color); font-size: 1.35rem; font-weight: 600; margin: 0; }
+        .datos-modulacion {
+            background: #f9fafb; border-radius: 0.5rem; padding: 1rem;
+            margin-bottom: 1.5rem; font-size: 0.875rem; color: #374151;
+        }
+        .datos-modulacion strong { color: var(--dark-color); }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label {
+            display: block; color: var(--dark-color); font-weight: 500;
+            margin-bottom: 0.5rem; font-size: 0.875rem;
+        }
+        .form-input {
+            width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db;
+            border-radius: 0.5rem; font-size: 1rem; box-sizing: border-box;
+        }
+        .btn-guardar {
+            width: 100%; padding: 0.875rem; background-color: var(--primary-color);
+            color: white; border: none; border-radius: 0.5rem; font-size: 1rem;
+            font-weight: 600; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <img src="{% static 'img/logo.png' %}" alt="Logo Kasu" class="card-logo">
+            <h1 class="card-title">Completar datos de terminal</h1>
+        </div>
+
+        <div class="datos-modulacion">
+            <strong>Folio:</strong> {{ modulacion.folio }}<br>
+            <strong>Contenedor:</strong> {{ modulacion.contenedor }}<br>
+            <strong>Terminal:</strong> {{ modulacion.terminal_portuaria.nombre }}<br>
+            <strong>Cliente:</strong> {{ modulacion.cliente.nombre|default:"—" }}
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}
+                <p style="color:#E74C3C; font-size:0.8rem; margin-top:0.25rem;">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn-guardar">Guardar</button>
+        </form>
+    </div>
+</body>
+</html>
