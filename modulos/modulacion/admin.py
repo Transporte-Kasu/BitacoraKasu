@@ -12,8 +12,11 @@ class AgenciaAdmin(admin.ModelAdmin):
 
 @admin.register(TerminalPortuaria)
 class TerminalPortuariaAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'activo', 'created_at']
-    list_filter = ['activo']
+    list_display = [
+        'nombre', 'activo', 'requiere_datos_extra',
+        'requiere_carril', 'requiere_hora_ingreso', 'requiere_hora_carga', 'created_at',
+    ]
+    list_filter = ['activo', 'requiere_datos_extra']
     search_fields = ['nombre']
 
 

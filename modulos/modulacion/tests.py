@@ -115,6 +115,38 @@ class ModulacionModelTests(TestCase):
         self.assertEqual(modulacion.folio, 'MOD-20251120-001')
 
 
+class DatosTerminalCamposTests(TestCase):
+    def test_modulacion_nace_sin_datos_de_terminal(self):
+        modulacion = _crear_modulacion()
+        self.assertEqual(modulacion.carril, '')
+        self.assertIsNone(modulacion.hora_registro)
+        self.assertIsNone(modulacion.hora_ingreso)
+        self.assertIsNone(modulacion.hora_carga)
+        self.assertIsNone(modulacion.fecha_modulacion_aduana)
+
+    def test_modulacion_guarda_datos_de_terminal(self):
+        modulacion = _crear_modulacion(
+            carril='7',
+            hora_registro=timezone.now(),
+            hora_ingreso=timezone.now(),
+            hora_carga=timezone.now(),
+            fecha_modulacion_aduana=timezone.localdate(),
+        )
+        modulacion.refresh_from_db()
+        self.assertEqual(modulacion.carril, '7')
+        self.assertIsNotNone(modulacion.hora_registro)
+        self.assertIsNotNone(modulacion.hora_ingreso)
+        self.assertIsNotNone(modulacion.hora_carga)
+        self.assertIsNotNone(modulacion.fecha_modulacion_aduana)
+
+    def test_terminal_portuaria_banderas_default_false(self):
+        terminal = _crear_terminal('Terminal Sin Config')
+        self.assertFalse(terminal.requiere_datos_extra)
+        self.assertFalse(terminal.requiere_carril)
+        self.assertFalse(terminal.requiere_hora_ingreso)
+        self.assertFalse(terminal.requiere_hora_carga)
+
+
 class RecibirModulacionApiTests(TestCase):
     def setUp(self):
         self.url = reverse('modulacion:api_recibir')

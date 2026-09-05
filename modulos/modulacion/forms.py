@@ -21,10 +21,17 @@ class AgenciaForm(forms.ModelForm):
 class TerminalPortuariaForm(forms.ModelForm):
     class Meta:
         model = TerminalPortuaria
-        fields = ['nombre', 'activo']
+        fields = [
+            'nombre', 'activo', 'requiere_datos_extra',
+            'requiere_carril', 'requiere_hora_ingreso', 'requiere_hora_carga',
+        ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la terminal'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'requiere_datos_extra': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'requiere_carril': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'requiere_hora_ingreso': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'requiere_hora_carga': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 

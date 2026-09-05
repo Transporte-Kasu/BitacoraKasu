@@ -30,6 +30,15 @@ class TerminalPortuaria(models.Model):
     """Recinto fiscalizado/terminal portuaria donde se encuentra el contenedor."""
     nombre = models.CharField(max_length=120, unique=True, verbose_name="Nombre")
     activo = models.BooleanField(default=True, verbose_name="Activo")
+    requiere_datos_extra = models.BooleanField(
+        default=False,
+        verbose_name="Requiere datos de terminal",
+        help_text="Si está activo, el correo de HAL9MIL incluye un link para "
+                   "que el capturista complete carril/horarios de este contenedor.",
+    )
+    requiere_carril = models.BooleanField(default=False, verbose_name="Requiere carril")
+    requiere_hora_ingreso = models.BooleanField(default=False, verbose_name="Requiere hora de ingreso")
+    requiere_hora_carga = models.BooleanField(default=False, verbose_name="Requiere hora de carga")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -149,6 +158,14 @@ class Modulacion(models.Model):
         help_text="Se sella la primera vez que el contenedor se manda a Patio Esperanza.",
     )
     fecha_retiro = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de retiro")
+
+    carril = models.CharField(max_length=10, blank=True, verbose_name="Carril")
+    hora_registro = models.DateTimeField(null=True, blank=True, verbose_name="Hora de registro")
+    hora_ingreso = models.DateTimeField(null=True, blank=True, verbose_name="Hora de ingreso")
+    hora_carga = models.DateTimeField(null=True, blank=True, verbose_name="Hora de carga")
+    fecha_modulacion_aduana = models.DateField(
+        null=True, blank=True, verbose_name="Fecha de modulación ante aduana",
+    )
 
     observaciones = models.TextField(blank=True, verbose_name="Observaciones")
 
