@@ -184,3 +184,5 @@ class DatosTerminalForm(forms.ModelForm):
             del self.fields['hora_ingreso']
         if not terminal.requiere_hora_carga:
             del self.fields['hora_carga']
+        for field in self.fields.values():
+            field.required = True

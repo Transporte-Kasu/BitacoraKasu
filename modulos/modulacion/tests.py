@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import patch
+from urllib.parse import urlparse
 
 from django.contrib.auth import get_user_model
 from django.db.models import QuerySet
@@ -13,9 +14,9 @@ from modulos.bitacoras.models import BitacoraViaje, Cliente
 from modulos.operadores.models import Operador
 from modulos.unidades.models import Unidad
 
+from .forms import DatosTerminalForm
 from .models import Agencia, Modulacion, TerminalPortuaria
 from .tokens import generar_token, resolver_modulacion
-from .forms import DatosTerminalForm
 
 
 def _crear_agencia(nombre='LOGINCO'):
@@ -219,6 +220,18 @@ class DatosTerminalFormTests(TestCase):
         self.assertEqual(guardada.carril, '3')
         self.assertIsNotNone(guardada.hora_ingreso)
 
+    def test_datos_vacios_es_invalido_para_campos_siempre_presentes(self):
+        terminal = _crear_terminal('LC Terminal Portuaria 3 Vacio')
+        terminal.requiere_datos_extra = True
+        terminal.save()
+        modulacion = _crear_modulacion(terminal_portuaria=terminal)
+
+        form = DatosTerminalForm(data={}, instance=modulacion, terminal=terminal)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('hora_registro', form.errors)
+        self.assertIn('fecha_modulacion_aduana', form.errors)
+
 
 class CompletarDatosTerminalViewTests(TestCase):
     def setUp(self):
@@ -229,7 +242,6 @@ class CompletarDatosTerminalViewTests(TestCase):
         self.terminal.requiere_hora_carga = True
         self.terminal.save()
         self.modulacion = _crear_modulacion(terminal_portuaria=self.terminal)
-        from .tokens import generar_token
         self.token = generar_token(self.modulacion)
         self.url = reverse('modulacion:completar_datos_terminal', args=[self.token])
 
@@ -275,6 +287,87 @@ class CompletarDatosTerminalViewTests(TestCase):
         self.assertNotContains(response, 'name="estado"')
         self.assertNotContains(response, 'name="unidad"')
         self.assertNotContains(response, 'name="operador"')
+
+    def test_post_a_modulacion_cerrada_no_escribe_nada(self):
+        self.modulacion.estado = 'MODULADO'
+        self.modulacion.save()
+
+        response = self.client.post(self.url, data={
+            'carril': '5',
+            'hora_registro': '2026-09-05T08:00',
+            'hora_ingreso': '2026-09-05T09:00',
+            'hora_carga': '2026-09-05T10:00',
+            'fecha_modulacion_aduana': '2026-09-05',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ya no admite cambios')
+        self.assertNotContains(response, 'Datos guardados')
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.carril, '')
+
+    def test_post_con_campos_extra_ignora_estado_unidad_operador(self):
+        unidad = _crear_unidad()
+        operador = _crear_operador()
+        response = self.client.post(self.url, data={
+            'carril': '5',
+            'hora_registro': '2026-09-05T08:00',
+            'hora_ingreso': '2026-09-05T09:00',
+            'hora_carga': '2026-09-05T10:00',
+            'fecha_modulacion_aduana': '2026-09-05',
+            'estado': 'MODULADO',
+            'unidad': unidad.pk,
+            'operador': operador.pk,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Datos guardados')
+        self.modulacion.refresh_from_db()
+        self.assertEqual(self.modulacion.estado, 'PENDIENTE')
+        self.assertIsNone(self.modulacion.unidad)
+        self.assertIsNone(self.modulacion.operador)
+
+
+class TerminalPortuariaUpdateViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tester-terminal', password='pass12345')
+        self.client.force_login(self.user)
+        self.terminal = _crear_terminal('Terminal Con Banderas')
+        self.terminal.requiere_datos_extra = True
+        self.terminal.requiere_carril = True
+        self.terminal.requiere_hora_ingreso = True
+        self.terminal.requiere_hora_carga = True
+        self.terminal.save()
+
+    def test_get_renderiza_los_4_checkboxes_de_banderas(self):
+        """Regresión directa del bug: el template solo renderizaba
+        form.nombre y form.activo, así que un navegador real jamás mandaba
+        estos 4 campos en el POST (un checkbox ausente del HTML no se manda,
+        a diferencia de uno presente pero desmarcado) y el guardado los
+        volvía False silenciosamente."""
+        url = reverse('modulacion:terminal_update', args=[self.terminal.pk])
+        response = self.client.get(url)
+        self.assertContains(response, 'name="requiere_datos_extra"')
+        self.assertContains(response, 'name="requiere_carril"')
+        self.assertContains(response, 'name="requiere_hora_ingreso"')
+        self.assertContains(response, 'name="requiere_hora_carga"')
+
+    def test_guardar_edicion_conserva_las_4_banderas(self):
+        url = reverse('modulacion:terminal_update', args=[self.terminal.pk])
+        response = self.client.post(url, data={
+            'nombre': self.terminal.nombre,
+            'activo': 'on',
+            'requiere_datos_extra': 'on',
+            'requiere_carril': 'on',
+            'requiere_hora_ingreso': 'on',
+            'requiere_hora_carga': 'on',
+        })
+        self.assertRedirects(response, reverse('modulacion:terminal_list'))
+        self.terminal.refresh_from_db()
+        self.assertTrue(self.terminal.requiere_datos_extra)
+        self.assertTrue(self.terminal.requiere_carril)
+        self.assertTrue(self.terminal.requiere_hora_ingreso)
+        self.assertTrue(self.terminal.requiere_hora_carga)
 
 
 class RecibirModulacionApiTests(TestCase):
@@ -394,6 +487,41 @@ class RecibirModulacionApiTests(TestCase):
         self.assertTrue(data.get('duplicado'))
         self.assertIn('completar_datos_url', data)
 
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_duplicado_no_pendiente_no_incluye_link(self):
+        """Un re-push de un contenedor ya modulado no debe regresar un link
+        que al abrirse solo muestra 'cerrado' — el capturista no gana nada
+        con eso y ya no puede escribir ahí."""
+        terminal = _crear_terminal('LC Terminal Portuaria')
+        terminal.requiere_datos_extra = True
+        terminal.save()
+        payload = dict(self.payload, terminal_portuaria='LC Terminal Portuaria')
+
+        primera = self._post(payload)
+        modulacion = Modulacion.objects.get(pk=json.loads(primera.content)['id'])
+        modulacion.estado = 'MODULADO'
+        modulacion.save()
+
+        segunda = self._post(payload)
+        data = json.loads(segunda.content)
+
+        self.assertTrue(data.get('duplicado'))
+        self.assertNotIn('completar_datos_url', data)
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test', PUBLIC_BASE_URL='https://bitacora.kasu.com.mx')
+    def test_public_base_url_configurado_se_usa_para_el_link(self):
+        terminal = _crear_terminal('LC Terminal Portuaria')
+        terminal.requiere_datos_extra = True
+        terminal.save()
+        payload = dict(self.payload, terminal_portuaria='LC Terminal Portuaria')
+
+        response = self._post(payload)
+        data = json.loads(response.content)
+
+        self.assertTrue(
+            data['completar_datos_url'].startswith('https://bitacora.kasu.com.mx/modulacion/completar/')
+        )
+
     def test_get_no_permitido(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)
@@ -424,6 +552,68 @@ class RecibirModulacionApiTests(TestCase):
 
         modulacion = Modulacion.objects.get(pk=json.loads(response.content)['id'])
         self.assertEqual(modulacion.fecha_recepcion.date(), timezone.now().date())
+
+
+class FlujoCompletoApiHastaCompletarDatosTests(TestCase):
+    """Camino real de HAL9MIL de punta a punta: la API mintea el link firmado,
+    el capturista lo abre (GET), lo llena (POST) y los datos quedan en la BD.
+    Ningún otro test recorre la cadena completa."""
+
+    @override_settings(BITACORAKASU_API_TOKEN='secreto-test')
+    def test_recibir_modulacion_get_completar_post_guarda_datos(self):
+        terminal = _crear_terminal('Terminal Flujo Completo')
+        terminal.requiere_datos_extra = True
+        terminal.requiere_carril = True
+        terminal.requiere_hora_ingreso = True
+        terminal.requiere_hora_carga = True
+        terminal.save()
+
+        payload = {
+            'agencia': 'LOGINCO',
+            'terminal_portuaria': 'Terminal Flujo Completo',
+            'tipo_contenedor': '40HC',
+            'peso_toneladas': '18.50',
+            'contenedor': 'flux1234567',
+            'cliente': 'Cliente Demo',
+            'num_pedimento': '25 12 3456 1234567',
+            'num_doda': 'D-9999',
+        }
+        api_response = self.client.post(
+            reverse('modulacion:api_recibir'),
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION='Token secreto-test',
+        )
+        self.assertEqual(api_response.status_code, 201)
+        data = json.loads(api_response.content)
+        self.assertIn('completar_datos_url', data)
+
+        path = urlparse(data['completar_datos_url']).path
+
+        get_response = self.client.get(path)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertContains(get_response, 'name="carril"')
+        self.assertContains(get_response, 'name="hora_ingreso"')
+        self.assertContains(get_response, 'name="hora_carga"')
+        self.assertContains(get_response, 'name="hora_registro"')
+        self.assertContains(get_response, 'name="fecha_modulacion_aduana"')
+
+        post_response = self.client.post(path, data={
+            'carril': '9',
+            'hora_registro': '2026-09-05T08:00',
+            'hora_ingreso': '2026-09-05T09:00',
+            'hora_carga': '2026-09-05T10:00',
+            'fecha_modulacion_aduana': '2026-09-05',
+        })
+        self.assertEqual(post_response.status_code, 200)
+        self.assertContains(post_response, 'Datos guardados')
+
+        modulacion = Modulacion.objects.get(pk=data['id'])
+        self.assertEqual(modulacion.carril, '9')
+        self.assertIsNotNone(modulacion.hora_registro)
+        self.assertIsNotNone(modulacion.hora_ingreso)
+        self.assertIsNotNone(modulacion.hora_carga)
+        self.assertIsNotNone(modulacion.fecha_modulacion_aduana)
 
 
 class ModulacionViewsAuthTests(TestCase):

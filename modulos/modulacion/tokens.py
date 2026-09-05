@@ -26,5 +26,5 @@ def resolver_modulacion(token):
         data = signing.loads(token, salt=_SALT)
         modulacion_id = data['modulacion_id']
     except (signing.BadSignature, KeyError, TypeError, ValueError):
-        raise Modulacion.DoesNotExist('Token inválido')
-    return Modulacion.objects.select_related('terminal_portuaria').get(pk=modulacion_id)
+        raise Modulacion.DoesNotExist('Token inválido') from None
+    return Modulacion.objects.select_related('terminal_portuaria', 'cliente').get(pk=modulacion_id)

@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
     <title>Completar datos de terminal - BitacoraKasu</title>
     <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
     <style>
@@ -59,6 +60,9 @@
 
         <form method="post">
             {% csrf_token %}
+            {% if form.non_field_errors %}
+            <p style="color:#E74C3C; font-size:0.85rem; margin-bottom:1rem;">{{ form.non_field_errors.0 }}</p>
+            {% endif %}
             {% for field in form %}
             <div class="form-group">
                 <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>

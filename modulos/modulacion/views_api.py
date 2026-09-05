@@ -36,13 +36,18 @@ def _parsear_fecha_doda(valor):
 
 def _completar_datos_url(request, modulacion):
     """Link firmado para completar carril/horarios, o None si la terminal
-    de esta modulación no requiere datos extra."""
+    de esta modulación no requiere datos extra.
+
+    Si PUBLIC_BASE_URL está configurado, se usa como base fija en vez de
+    confiar en el Host de la request (build_absolute_uri refleja ese Host, y
+    ALLOWED_HOSTS = ['*'] no lo valida)."""
     if not modulacion.terminal_portuaria.requiere_datos_extra:
         return None
     token = generar_token(modulacion)
-    return request.build_absolute_uri(
-        reverse('modulacion:completar_datos_terminal', args=[token])
-    )
+    path = reverse('modulacion:completar_datos_terminal', args=[token])
+    if settings.PUBLIC_BASE_URL:
+        return f"{settings.PUBLIC_BASE_URL.rstrip('/')}{path}"
+    return request.build_absolute_uri(path)
 
 
 @csrf_exempt
@@ -90,9 +95,10 @@ def recibir_modulacion(request):
         ).first()
         if existente:
             data = {'success': True, 'id': existente.id, 'folio': existente.folio, 'duplicado': True}
-            url = _completar_datos_url(request, existente)
-            if url:
-                data['completar_datos_url'] = url
+            if existente.estado == 'PENDIENTE':
+                url = _completar_datos_url(request, existente)
+                if url:
+                    data['completar_datos_url'] = url
             return JsonResponse(data, status=200)
 
     try:

@@ -263,6 +263,10 @@ LOGOUT_REDIRECT_URL = 'login'
 # Modulación — recepción de contenedores desde HAL9MIL (LOGINCO)
 # ---------------------------------------------------------------------------
 BITACORAKASU_API_TOKEN = env.str('BITACORAKASU_API_TOKEN', default='')
+# Base fija para el link público de "completar datos de terminal": si se
+# define, se usa en vez de confiar en el Host de la request (build_absolute_uri
+# refleja ese Host, y ALLOWED_HOSTS = ['*'] no lo valida).
+PUBLIC_BASE_URL = env.str('PUBLIC_BASE_URL', default='')
 
 # ─── Reportes automáticos ───────────────────────────────────────────────────
 # La configuración de reportes vive en la BD (ConfiguracionReporte).

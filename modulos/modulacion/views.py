@@ -468,7 +468,8 @@ def completar_datos_terminal(request, token):
     if request.method == 'POST':
         form = DatosTerminalForm(request.POST, instance=modulacion, terminal=modulacion.terminal_portuaria)
         if form.is_valid():
-            form.save()
+            modulacion = form.save(commit=False)
+            modulacion.save(update_fields=list(form.fields.keys()))
             return render(request, 'modulacion/completar_datos_mensaje.html',
                            {'tipo': 'gracias', 'modulacion': modulacion})
     else:
