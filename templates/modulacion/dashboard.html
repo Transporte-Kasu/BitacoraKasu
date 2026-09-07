@@ -98,7 +98,13 @@
                     <td class="px-4 py-3">{{ m.terminal_portuaria.nombre }}</td>
                     <td class="px-4 py-3">{{ m.cliente.nombre|default:"—" }}</td>
                     <td class="px-4 py-3">
-                        <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">{{ m.get_estado_display }}</span>
+                        {% if m.get_estado_display == "Pendiente de modulación" %}
+                            <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">{{ m.get_estado_display }}</span>
+                        {% elif m.get_estado_display == "Enviado a Bitácora de Viajes" %}
+                            <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">{{ m.get_estado_display }}</span>
+                        {% elif m.get_estado_display == "En Patio Esperanza" %}
+                            <span class="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">{{ m.get_estado_display }}</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
