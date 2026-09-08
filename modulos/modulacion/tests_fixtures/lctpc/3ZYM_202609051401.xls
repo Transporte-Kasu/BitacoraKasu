@@ -1,0 +1,33 @@
+<style type="text/css"> 
+  table{border-collapse:collapse;font-size: 10px;text-align:center;vertical-align:middle;width:100%}
+  table,th, td{border: 1px solid black;padding: 2px;text-align:center;vertical-align:middle;}
+  thead,thead th{background: #336699;color: #ffffff;}
+  tr:hover {background-color:#C0DCE9;border:1px solid #03476F;color:#000;}
+  #Celda_Head {background: #336699;color: #ffffff;}
+  #Linea_Par {background-color: #FFFFFF;color:#000;}
+  #Linea_Impar {background-color: #EEEEEE;color:#000;}
+  #Celda_Logo {height:70px;background-color:transparent;}
+  #table_Logo,#table_Logo th {border: 0px solid black;padding: 0px;background-color:transparent;}
+  .center {text-align:center;vertical-align:middle;}
+  .claro,.claro th {background: #ffffff;border: 0px;}
+  .oscuro,.oscuro th {background: #2B5782;color: #ffffff;text-align:left;vertical-align:middle;font-weight:bold;border: 0px;}
+</style><table id="table_Logo" >
+                                      <th id="Celda_Logo">
+                                          <img  src="https://xapps.lctpc.com.mx:7002/UtilitiesResources/res/logos/Logo_HutchisonPorts_LCTPC_291x81.png">
+                                      <th>
+                                 </table><br><table id="table_MyTable" class="center " >
+                                <thead><tr>
+                                        <th colspan="5"  class="oscuro" >Programación de contenedores a SPF, para el 07 September 2026</th>
+                                    </tr><tr><th>CONTENEDOR</th><th>TRANSPORTISTA</th><th>FOLIO</th><th>VENTANA DE REGISTRO</th><th>HORARIO DE CITA</th></tr>
+                            </thead>
+<tr id="Linea_Impar" ><td>GXYU5129072</td><td>3ZYM</td><td>617210</td><td>01:30-03:00</td><td>03:00-03:59</td></tr>
+<tr id="Linea_Par" ><td>BEAU6022010</td><td>3ZYM</td><td>618188</td><td>01:30-03:00</td><td>03:00-03:59</td></tr>
+<tr id="Linea_Impar" ><td>OOCU5731987</td><td>3ZYM</td><td>618189</td><td>01:30-03:00</td><td>03:00-03:59</td></tr>
+<tr id="Linea_Par" ><td>TCNU6862991</td><td>3ZYM</td><td>618190</td><td>01:30-03:00</td><td>03:00-03:59</td></tr>
+<tr id="Linea_Impar" ><td>FFAU3251430</td><td>3ZYM</td><td>618191</td><td>01:30-03:00</td><td>03:00-03:59</td></tr>
+<tr id="Linea_Par" ><td>OOCU8524411</td><td>3ZYM</td><td>618192</td><td>01:30-03:00</td><td>03:00-03:59</td></tr>
+<tr id="Linea_Impar" ><td>FSCU9316088</td><td>3ZYM</td><td>618187</td><td>02:30-04:00</td><td>04:00-04:59</td></tr>
+<tr id="Linea_Par" ><td>ECMU5129702</td><td>3ZYM</td><td>618066</td><td>04:30-06:00</td><td>06:00-06:59</td></tr>
+<tr id="Linea_Impar" ><td>DFSU7614410</td><td>3ZYM</td><td>618132</td><td>06:30-08:00</td><td>08:00-08:59</td></tr>
+<tr id="Linea_Par" ><td>PCIU9208567</td><td>3ZYM</td><td>618131</td><td>07:30-09:00</td><td>09:00-09:59</td></tr>
+</table>

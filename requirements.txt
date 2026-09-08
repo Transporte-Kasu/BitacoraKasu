@@ -32,6 +32,7 @@ s3transfer==0.15.0
 sendgrid==6.12.5
 twilio==9.10.9
 six==1.17.0
+soupsieve==2.9.2
 sqlparse==0.5.3
 tzlocal==5.3.1
 urllib3==2.5.0
