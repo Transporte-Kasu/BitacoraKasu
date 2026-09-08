@@ -60,6 +60,7 @@ class Modulacion(models.Model):
     ORIGEN_CHOICES = [
         ('HAL9MIL', 'HAL9MIL / LOGINCO'),
         ('MANUAL', 'Captura manual'),
+        ('LCTPC', 'Programación LCTPC'),
     ]
 
     ESTADO_CHOICES = [
@@ -160,6 +161,20 @@ class Modulacion(models.Model):
     fecha_retiro = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de retiro")
 
     carril = models.CharField(max_length=10, blank=True, verbose_name="Carril")
+    tipo_cita = models.CharField(
+        max_length=10,
+        blank=True,
+        choices=[('FULL', 'Full'), ('SENCILLO', 'Sencillo')],
+        verbose_name="Tipo de cita",
+        help_text="Clasificación FULL/SENCILLO derivada de la programación de la terminal.",
+    )
+    grupo_cita = models.CharField(
+        max_length=32,
+        blank=True,
+        db_index=True,
+        verbose_name="Grupo de cita FULL",
+        help_text="Comparten valor los 2 contenedores de un mismo FULL.",
+    )
     hora_registro = models.DateTimeField(null=True, blank=True, verbose_name="Hora de registro")
     hora_ingreso = models.DateTimeField(null=True, blank=True, verbose_name="Hora de ingreso")
     hora_carga = models.DateTimeField(null=True, blank=True, verbose_name="Hora de carga")
@@ -228,3 +243,43 @@ class Modulacion(models.Model):
         raise IntegrityError(
             f'No se pudo generar un folio único para {fecha} después de varios intentos'
         ) from ultimo_error
+
+
+class ImportacionProgramacionLCTPC(models.Model):
+    """
+    Auditoría e idempotencia de cada correo de programación de citas de LCTPC
+    (`atencionspf@lctpc.com.mx`) procesado por el import automático.
+    Un registro = un correo. `graph_message_id` único evita reprocesar.
+    """
+    ESTADO_CHOICES = [
+        ('OK', 'Procesado sin avisos'),
+        ('OK_CON_AVISOS', 'Procesado con avisos'),
+        ('ERROR', 'Error al procesar'),
+    ]
+
+    graph_message_id = models.CharField(max_length=255, unique=True, verbose_name="ID de mensaje (Graph)")
+    asunto = models.CharField(max_length=300, verbose_name="Asunto")
+    fecha_recibido = models.DateTimeField(verbose_name="Fecha de recepción del correo")
+    fecha_modulacion_aduana = models.DateField(
+        null=True, blank=True, verbose_name="Fecha de modulación ante aduana",
+    )
+    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, verbose_name="Estado")
+    total_renglones = models.PositiveIntegerField(default=0, verbose_name="Renglones en el Excel")
+    creadas = models.PositiveIntegerField(default=0, verbose_name="Modulaciones creadas")
+    actualizadas = models.PositiveIntegerField(default=0, verbose_name="Modulaciones actualizadas")
+    ambiguas = models.PositiveIntegerField(default=0, verbose_name="Coincidencias ambiguas")
+    detalle = models.JSONField(
+        default=list, blank=True,
+        verbose_name="Detalle por contenedor",
+        help_text="[{contenedor, folio_lctpc, resultado, modulacion_id, tipo_cita}]",
+    )
+    mensaje_error = models.TextField(blank=True, verbose_name="Error / avisos")
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Importación de programación LCTPC"
+        verbose_name_plural = "Importaciones de programación LCTPC"
+        ordering = ['-fecha_recibido']
+
+    def __str__(self):
+        return f"{self.asunto} ({self.estado})"
