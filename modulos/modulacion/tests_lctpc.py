@@ -301,24 +301,27 @@ class ServicesGraphTests(SimpleTestCase):
 
     @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
     @patch('modulos.modulacion.services_graph.requests.get')
-    def test_listar_correos_para_al_salir_del_ano_en_curso(self, mock_get, _tok):
-        # Al toparse con un correo del año pasado deja de paginar y lo descarta.
+    def test_listar_correos_descarta_lo_anterior_al_ano_en_curso(self, mock_get, _tok):
+        # Graph NO garantiza orden por fecha; se recorren todas las páginas y el
+        # filtro por año es en cliente (un corte temprano se saltaría correos
+        # recientes que Graph pone después de otros viejos).
         mock_get.side_effect = [
             _resp(json_data={
                 '@odata.nextLink': 'https://graph.microsoft.com/v1.0/siguiente',
                 'value': [
-                    {'id': 'esteano', 'subject': 'a',
-                     'receivedDateTime': '2026-01-15T10:00:00Z'},
-                    {'id': 'aniopasado', 'subject': 'b',
+                    {'id': 'aniopasado', 'subject': 'a',
                      'receivedDateTime': '2025-12-30T10:00:00Z'},
+                    {'id': 'esteano_1', 'subject': 'b',
+                     'receivedDateTime': '2026-01-15T10:00:00Z'},
                 ],
             }),
-            _resp(json_data={'value': [{'id': 'no_deberia_pedirse', 'subject': 'c',
-                                        'receivedDateTime': '2025-11-01T10:00:00Z'}]}),
+            _resp(json_data={'value': [{'id': 'esteano_2', 'subject': 'c',
+                                        'receivedDateTime': '2026-09-05T10:00:00Z'}]}),
         ]
         correos = listar_correos()
-        self.assertEqual([c.id for c in correos], ['esteano'])
-        self.assertEqual(mock_get.call_count, 1)  # no siguió al nextLink
+        # descarta 2025, conserva 2026 y los ordena desc en cliente
+        self.assertEqual([c.id for c in correos], ['esteano_2', 'esteano_1'])
+        self.assertEqual(mock_get.call_count, 2)  # sí siguió el nextLink
 
     @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
     @patch('modulos.modulacion.services_graph.requests.get')

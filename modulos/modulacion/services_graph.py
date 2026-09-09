@@ -7,6 +7,7 @@ de token o de HTTP se traduce a `GraphError`.
 """
 import base64
 import datetime
+import logging
 import time
 from dataclasses import dataclass
 from urllib.parse import quote
@@ -15,11 +16,14 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
+logger = logging.getLogger('modulos.modulacion')
+
 _GRAPH = 'https://graph.microsoft.com/v1.0'
 _token_cache = {'valor': None, 'expira': 0.0}
 
 # Tope de páginas al recorrer @odata.nextLink (cada página son $top correos).
-_PAGINAS_MAX = 20
+# El remitente manda ~1 correo/día, así que 40 x 50 = 2000 cubre varios años.
+_PAGINAS_MAX = 40
 
 
 class GraphError(Exception):
@@ -107,13 +111,15 @@ def _parsear_dt(valor):
 def listar_correos(remitente: str | None = None) -> list[CorreoLCTPC]:
     """Correos del remitente recibidos en el año en curso, del más nuevo al más viejo.
 
-    Solo se importa el año en curso: se pagina con `@odata.nextLink` hasta que la
-    página más vieja ya cae antes del 1 de enero (o hasta `_PAGINAS_MAX`).
+    Se recorren TODAS las páginas del remitente vía `@odata.nextLink` (hasta el
+    tope `_PAGINAS_MAX`) y luego se filtra por fecha en cliente. No se asume
+    ningún orden del servidor: Graph, sin `$orderby`, no garantiza
+    receivedDateTime desc y de hecho suele devolver los más viejos primero, así
+    que un corte temprano por fecha se saltaría correos recientes.
 
     No se manda `$orderby`: combinar un `$filter` sobre `from/emailAddress/address`
     con `$orderby receivedDateTime` hace que Graph responda 400 "InefficientFilter"
-    (no hay índice compuesto). El orden por defecto de `/messages` ya es
-    receivedDateTime desc; de todos modos reordenamos en cliente.
+    (no hay índice compuesto). El reordenamiento por fecha se hace en cliente.
     """
     remitente = remitente or settings.MODULACION_LCTPC_REMITENTE
     mailbox = settings.MODULACION_LCTPC_MAILBOX
@@ -128,22 +134,26 @@ def listar_correos(remitente: str | None = None) -> list[CorreoLCTPC]:
 
     correos: list[CorreoLCTPC] = []
     data = _get(f'/users/{mailbox}/messages', params=params)
-    for _ in range(_PAGINAS_MAX):
-        lote = [
+    paginas = 0
+    while True:
+        paginas += 1
+        correos.extend(
             CorreoLCTPC(
                 id=item['id'],
                 asunto=item.get('subject', '') or '',
                 recibido=_parsear_dt(item.get('receivedDateTime')),
             )
             for item in data.get('value', [])
-        ]
-        correos.extend(lote)
-        # La página viene de más nuevo a más viejo: si el último ya es del año
-        # pasado, no hace falta seguir paginando.
-        if lote and lote[-1].recibido is not None and lote[-1].recibido < desde:
-            break
+        )
         siguiente = data.get('@odata.nextLink')
         if not siguiente:
+            break
+        if paginas >= _PAGINAS_MAX:
+            logger.warning(
+                'listar_correos: se alcanzó el tope de %s páginas para %s; '
+                'puede haber correos antiguos sin revisar.',
+                _PAGINAS_MAX, remitente,
+            )
             break
         data = _get(siguiente)
 
