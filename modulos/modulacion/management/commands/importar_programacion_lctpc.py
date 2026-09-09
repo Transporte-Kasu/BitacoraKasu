@@ -18,6 +18,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         r = importar_programaciones_lctpc()
+        if r.error_listado:
+            self.stderr.write(
+                f'No se pudo consultar el buzón LCTPC: {r.error_listado}'
+            )
         self.stdout.write(
             'Programación LCTPC: '
             f'{r.correos_procesados} correo(s) procesado(s), '

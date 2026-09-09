@@ -148,7 +148,7 @@ def parsear_programacion(contenido: bytes, asunto: str) -> ProgramacionParseada:
     )
 
 
-def clasificar(renglones):
+def clasificar(renglones: list[RenglonLCTPC]) -> list[RenglonLCTPC]:
     """Marca cada RenglonLCTPC con tipo_cita ('FULL'/'SENCILLO') y grupo_cita.
 
     Regla del usuario: los renglones que comparten la hora de inicio de la

@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from .models import Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria
 from .services_graph import GraphError, descargar_adjunto_xls, listar_correos
-from .services_lctpc import ErrorParseoLCTPC, clasificar, parsear_programacion
+from .services_lctpc import clasificar, parsear_programacion
 
 logger = logging.getLogger('modulos.modulacion')
 
@@ -33,6 +33,9 @@ class ResumenImportacion:
     creadas: int = 0
     actualizadas: int = 0
     ambiguas: int = 0
+    # Mensaje de la falla al listar el buzón (Graph caído / token muerto). Si
+    # está poblado, no se llegó a procesar ningún correo y la UI debe avisarlo.
+    error_listado: str = ''
 
 
 def _aware(fecha, hora):
@@ -56,7 +59,7 @@ def _anexar_observacion(modulacion, r):
     )
 
 
-def _procesar_renglon(r, terminal, fecha):
+def _procesar_renglon(r, terminal, fecha, agencia_defecto):
     hora_reg = _aware(fecha, r.registro_inicio)
     hora_ing = _aware(fecha, r.cita_inicio)
 
@@ -77,9 +80,8 @@ def _procesar_renglon(r, terminal, fecha):
         m.save()
         resultado = 'ACTUALIZADA_AMBIGUA' if qs.count() > 1 else 'ACTUALIZADA'
     else:
-        agencia = Agencia.objects.get_or_create(nombre='POR DEFINIR')[0]
         m = Modulacion.objects.create(
-            agencia=agencia,
+            agencia=agencia_defecto,
             terminal_portuaria=terminal,
             tipo_contenedor='',
             peso_toneladas=Decimal('0'),
@@ -108,55 +110,82 @@ def _procesar_renglon(r, terminal, fecha):
     }
 
 
+def _fila_error(correo, mensaje):
+    """Crea la fila de auditoría ERROR. Debe llamarse FUERA de cualquier
+    `atomic()` que se haya revertido, para que la auditoría sí persista."""
+    ImportacionProgramacionLCTPC.objects.create(
+        graph_message_id=correo.id,
+        asunto=correo.asunto,
+        fecha_recibido=correo.recibido or timezone.now(),
+        estado='ERROR',
+        mensaje_error=str(mensaje)[:2000],
+    )
+
+
 def _procesar_correo(correo, resumen):
     try:
         xls = descargar_adjunto_xls(correo.id)
         prog = parsear_programacion(xls, correo.asunto)
         clasificar(prog.renglones)
-    except (GraphError, ErrorParseoLCTPC) as exc:
-        ImportacionProgramacionLCTPC.objects.create(
-            graph_message_id=correo.id,
-            asunto=correo.asunto,
-            fecha_recibido=correo.recibido or timezone.now(),
-            estado='ERROR',
-            mensaje_error=str(exc)[:2000],
-        )
+
+        # Búsqueda estricta: nunca crear la terminal. Un nombre que no cuadra
+        # con el setting es un error de configuración, no un caso a inventar.
+        try:
+            terminal = TerminalPortuaria.objects.get(
+                nombre__iexact=settings.MODULACION_TERMINAL_LCTPC
+            )
+        except TerminalPortuaria.DoesNotExist:
+            _fila_error(
+                correo,
+                f"No existe la TerminalPortuaria "
+                f"'{settings.MODULACION_TERMINAL_LCTPC}' (revisar el setting "
+                f"MODULACION_TERMINAL_LCTPC).",
+            )
+            resumen.correos_con_error += 1
+            logger.error(
+                'Correo LCTPC %s: no existe la TerminalPortuaria %r',
+                correo.id, settings.MODULACION_TERMINAL_LCTPC,
+            )
+            return
+
+        agencia_defecto = Agencia.objects.get_or_create(nombre='POR DEFINIR')[0]
+
+        with transaction.atomic():
+            detalle = []
+            for r in prog.renglones:
+                detalle.append(_procesar_renglon(r, terminal, prog.fecha, agencia_defecto))
+
+            hay_ambiguas = any(f['resultado'] == 'ACTUALIZADA_AMBIGUA' for f in detalle)
+            estado = 'OK_CON_AVISOS' if (prog.avisos or hay_ambiguas) else 'OK'
+            creadas = sum(1 for f in detalle if f['resultado'] == 'CREADA')
+            actualizadas = sum(1 for f in detalle if f['resultado'].startswith('ACTUALIZADA'))
+            ambiguas = sum(1 for f in detalle if f['resultado'] == 'ACTUALIZADA_AMBIGUA')
+            ImportacionProgramacionLCTPC.objects.create(
+                graph_message_id=correo.id,
+                asunto=correo.asunto,
+                fecha_recibido=correo.recibido or timezone.now(),
+                fecha_modulacion_aduana=prog.fecha,
+                estado=estado,
+                total_renglones=len(prog.renglones),
+                creadas=creadas,
+                actualizadas=actualizadas,
+                ambiguas=ambiguas,
+                detalle=detalle,
+                mensaje_error='\n'.join(prog.avisos),
+            )
+    except Exception as exc:  # noqa: BLE001 — un correo malo no debe tumbar el lote
+        # La fila ERROR se escribe aquí, ya fuera del atomic() revertido.
+        _fila_error(correo, exc)
         resumen.correos_con_error += 1
-        logger.warning('Correo LCTPC %s con error: %s', correo.id, exc)
+        logger.exception('Correo LCTPC %s con error: %s', correo.id, exc)
         return
 
-    with transaction.atomic():
-        terminal = TerminalPortuaria.objects.get_or_create(
-            nombre=settings.MODULACION_TERMINAL_LCTPC
-        )[0]
-        detalle = []
-        for r in prog.renglones:
-            fila = _procesar_renglon(r, terminal, prog.fecha)
-            detalle.append(fila)
-            if fila['resultado'] == 'CREADA':
-                resumen.creadas += 1
-            elif fila['resultado'] == 'ACTUALIZADA_AMBIGUA':
-                resumen.actualizadas += 1
-                resumen.ambiguas += 1
-            else:
-                resumen.actualizadas += 1
-
-        hay_ambiguas = any(f['resultado'] == 'ACTUALIZADA_AMBIGUA' for f in detalle)
-        estado = 'OK_CON_AVISOS' if (prog.avisos or hay_ambiguas) else 'OK'
-        ImportacionProgramacionLCTPC.objects.create(
-            graph_message_id=correo.id,
-            asunto=correo.asunto,
-            fecha_recibido=correo.recibido or timezone.now(),
-            fecha_modulacion_aduana=prog.fecha,
-            estado=estado,
-            total_renglones=len(prog.renglones),
-            creadas=sum(1 for f in detalle if f['resultado'] == 'CREADA'),
-            actualizadas=sum(1 for f in detalle if f['resultado'].startswith('ACTUALIZADA')),
-            ambiguas=sum(1 for f in detalle if f['resultado'] == 'ACTUALIZADA_AMBIGUA'),
-            detalle=detalle,
-            mensaje_error='\n'.join(prog.avisos),
-        )
+    # Contadores derivados de `detalle`, plegados al resumen SOLO si la
+    # transacción cerró bien (si hubo rollback nunca llegamos hasta aquí).
     resumen.correos_procesados += 1
+    resumen.creadas += creadas
+    resumen.actualizadas += actualizadas
+    resumen.ambiguas += ambiguas
 
 
 def importar_programaciones_lctpc() -> ResumenImportacion:
@@ -165,6 +194,7 @@ def importar_programaciones_lctpc() -> ResumenImportacion:
         correos = listar_correos()
     except GraphError as exc:
         logger.error('No se pudieron listar los correos de LCTPC: %s', exc)
+        resumen.error_listado = str(exc)[:500]
         return resumen
 
     ya_vistos = set(

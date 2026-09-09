@@ -191,6 +191,13 @@ class ServicesGraphTests(SimpleTestCase):
         with self.assertRaises(GraphError):
             obtener_token()
 
+    @patch('modulos.modulacion.services_graph.requests.post')
+    def test_obtener_token_sin_access_token_levanta_grapherror(self, mock_post):
+        # F6: HTTP 200 malformado -> GraphError, no KeyError.
+        mock_post.return_value = _resp(json_data={'expires_in': 3600})
+        with self.assertRaises(GraphError):
+            obtener_token()
+
     @override_settings(GRAPH_TENANT_ID='', GRAPH_CLIENT_ID='', GRAPH_CLIENT_SECRET='')
     def test_sin_config_levanta_grapherror(self):
         with self.assertRaises(GraphError):
@@ -230,6 +237,38 @@ class ServicesGraphTests(SimpleTestCase):
         with self.assertRaises(GraphError):
             descargar_adjunto_xls('m1')
 
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
+    def test_descargar_xls_sin_contentbytes_levanta_grapherror(self, mock_get, _tok):
+        # F6: adjunto .xls sin contentBytes -> GraphError, no KeyError.
+        mock_get.return_value = _resp(json_data={'value': [
+            {'@odata.type': '#microsoft.graph.fileAttachment',
+             'name': '3ZYM_202609051401.xls'},
+        ]})
+        with self.assertRaises(GraphError):
+            descargar_adjunto_xls('m1')
+
+    @override_settings(MODULACION_LCTPC_REMITENTE="o'brien@lctpc.com.mx")
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
+    def test_listar_correos_escapa_comilla_en_remitente(self, mock_get, _tok):
+        # F7: la comilla del remitente se duplica en el literal OData.
+        mock_get.return_value = _resp(json_data={'value': []})
+        listar_correos()
+        filtro = mock_get.call_args.kwargs['params']['$filter']
+        self.assertIn("o''brien@lctpc.com.mx", filtro)
+
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
+    def test_descargar_adjunto_codifica_el_message_id_en_la_url(self, mock_get, _tok):
+        # F7: caracteres reservados del message_id se percent-encodean.
+        mock_get.return_value = _resp(json_data={'value': []})
+        with self.assertRaises(GraphError):
+            descargar_adjunto_xls('AAA/BBB==')
+        url = mock_get.call_args.args[0]
+        self.assertIn('AAA%2FBBB%3D%3D', url)
+        self.assertNotIn('AAA/BBB==', url)
+
 
 TERMINAL_LCTPC = 'L.C. Terminal Portuaria de Contenedores, S.A. de C.V.'
 
@@ -253,6 +292,9 @@ class ImportarProgramacionesTests(TestCase):
         self.xls = _leer('3ZYM_202609051401.xls')
         self.correo = CorreoLCTPC(id='m1', asunto=ASUNTO_07,
                                   recibido=timezone.now())
+        # La terminal LCTPC ahora se busca estricta (F1); los tests del camino
+        # feliz necesitan que exista con el nombre canónico del setting.
+        self.terminal = _terminal()
 
     def _patch_graph(self, correos=None, xls=None, list_error=None, dl_error=None):
         correos = [self.correo] if correos is None else correos
@@ -351,17 +393,108 @@ class ImportarProgramacionesTests(TestCase):
 
     def test_correo_sin_adjunto_xls_registra_error_y_sigue(self):
         self._patch_graph(dl_error=GraphError('sin adjunto'))
-        resumen = importar_programaciones_lctpc()
+        with self.assertLogs('modulos.modulacion', level='ERROR'):
+            resumen = importar_programaciones_lctpc()
         self.assertEqual(resumen.correos_con_error, 1)
         imp = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1')
         self.assertEqual(imp.estado, 'ERROR')
         self.assertIn('sin adjunto', imp.mensaje_error)
 
+    def test_error_de_parseo_registra_error_y_el_siguiente_correo_sigue(self):
+        # F2: el `except` amplio también atrapa ErrorParseoLCTPC (adjunto ilegible)
+        # y un segundo correo bueno en la misma corrida se procesa igual.
+        bueno = CorreoLCTPC(id='m2', asunto=ASUNTO_07, recibido=timezone.now())
+        p_list = patch('modulos.modulacion.services_importacion.listar_correos')
+        p_dl = patch('modulos.modulacion.services_importacion.descargar_adjunto_xls')
+        m_list = p_list.start()
+        m_dl = p_dl.start()
+        self.addCleanup(p_list.stop)
+        self.addCleanup(p_dl.stop)
+        m_list.return_value = [self.correo, bueno]
+        m_dl.side_effect = [b'<html>nada</html>', self.xls]
+
+        with self.assertLogs('modulos.modulacion', level='ERROR'):
+            resumen = importar_programaciones_lctpc()
+
+        self.assertEqual(resumen.correos_con_error, 1)
+        self.assertEqual(resumen.correos_procesados, 1)
+        self.assertEqual(resumen.creadas, 10)
+        self.assertEqual(
+            ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1').estado,
+            'ERROR',
+        )
+        self.assertEqual(
+            ImportacionProgramacionLCTPC.objects.get(graph_message_id='m2').estado,
+            'OK',
+        )
+
+    @override_settings(MODULACION_TERMINAL_LCTPC='Terminal Que No Existe SA de CV')
+    def test_terminal_lctpc_inexistente_registra_error_y_no_crea(self):
+        # F1: setting apunta a una terminal que no está en la BD -> fila ERROR,
+        # sin crear terminal ni modulaciones.
+        self._patch_graph()
+        with self.assertLogs('modulos.modulacion', level='ERROR'):
+            resumen = importar_programaciones_lctpc()
+        self.assertEqual(resumen.correos_con_error, 1)
+        self.assertEqual(resumen.creadas, 0)
+        imp = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1')
+        self.assertEqual(imp.estado, 'ERROR')
+        self.assertIn('Terminal Que No Existe', imp.mensaje_error)
+        self.assertEqual(Modulacion.objects.count(), 0)
+        self.assertFalse(
+            TerminalPortuaria.objects.filter(
+                nombre='Terminal Que No Existe SA de CV'
+            ).exists()
+        )
+
+    @override_settings(MODULACION_TERMINAL_LCTPC=TERMINAL_LCTPC.upper())
+    def test_terminal_lctpc_se_busca_sin_distinguir_mayusculas(self):
+        # F1: nombre del setting en otra caja -> se reusa la terminal existente,
+        # no se bifurca un duplicado.
+        term = _terminal()
+        self._patch_graph()
+        resumen = importar_programaciones_lctpc()
+        self.assertEqual(resumen.creadas, 10)
+        self.assertEqual(TerminalPortuaria.objects.count(), 1)
+        self.assertTrue(Modulacion.objects.filter(terminal_portuaria=term).exists())
+
+    def test_fallo_a_media_transaccion_revierte_y_no_pliega_contadores(self):
+        # F2 + F4: si `_procesar_renglon` revienta a mitad del lote, el atomic()
+        # revierte las modulaciones ya creadas, el resumen NO acumula creadas y
+        # aun así queda una fila de auditoría ERROR (escrita fuera del atomic).
+        self._patch_graph()
+        from modulos.modulacion import services_importacion as si
+
+        real = si._procesar_renglon
+        estado = {'n': 0}
+
+        def flaky(*args, **kwargs):
+            estado['n'] += 1
+            if estado['n'] == 4:
+                raise RuntimeError('boom db')
+            return real(*args, **kwargs)
+
+        with patch.object(si, '_procesar_renglon', side_effect=flaky):
+            with self.assertLogs('modulos.modulacion', level='ERROR'):
+                resumen = importar_programaciones_lctpc()
+
+        self.assertEqual(resumen.creadas, 0)
+        self.assertEqual(resumen.actualizadas, 0)
+        self.assertEqual(resumen.correos_procesados, 0)
+        self.assertEqual(resumen.correos_con_error, 1)
+        self.assertEqual(Modulacion.objects.filter(origen='LCTPC').count(), 0)
+        imp = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1')
+        self.assertEqual(imp.estado, 'ERROR')
+        self.assertIn('boom db', imp.mensaje_error)
+
     def test_grapherror_al_listar_no_revienta(self):
         self._patch_graph(list_error=GraphError('token muerto'))
-        resumen = importar_programaciones_lctpc()
+        with self.assertLogs('modulos.modulacion', level='ERROR'):
+            resumen = importar_programaciones_lctpc()
         self.assertEqual(resumen.correos_procesados, 0)
         self.assertEqual(ImportacionProgramacionLCTPC.objects.count(), 0)
+        self.assertTrue(resumen.error_listado)
+        self.assertIn('token muerto', resumen.error_listado)
 
     def test_estado_ok_con_avisos_por_fecha_discrepante(self):
         self.correo = CorreoLCTPC(
@@ -404,6 +537,16 @@ class SchedulerJobLCTPCTests(SimpleTestCase):
         self.assertIn('importar_programacion_lctpc', ids)
         self.assertIn('generar_reportes_diario', ids)  # el job existente sigue
 
+    @patch('config.scheduler.BackgroundScheduler')
+    def test_log_de_arranque_menciona_el_poll_lctpc(self, MockSched):
+        # F9: el log de arranque también nombra el poll LCTPC y su intervalo.
+        from config.scheduler import iniciar_scheduler
+        with self.assertLogs('config.scheduler', level='INFO') as cm:
+            iniciar_scheduler()
+        salida = '\n'.join(cm.output)
+        self.assertIn('importar_programacion_lctpc', salida)
+        self.assertIn('15', salida)
+
 
 class ImportacionLCTPCViewsTests(TestCase):
     def setUp(self):
@@ -425,6 +568,17 @@ class ImportacionLCTPCViewsTests(TestCase):
     def test_importar_solo_acepta_post(self):
         resp = self.client.get(reverse('modulacion:lctpc_importar'))
         self.assertEqual(resp.status_code, 405)
+
+    def test_boton_importar_muestra_error_si_falla_el_listado(self):
+        # F3: una caída de Graph al listar no debe leerse como éxito verde.
+        with patch('modulos.modulacion.views.importar_programaciones_lctpc') as mock_orq:
+            mock_orq.return_value = ResumenImportacion(error_listado='token muerto')
+            resp = self.client.post(reverse('modulacion:lctpc_importar'), follow=True)
+        self.assertRedirects(resp, reverse('modulacion:dashboard'))
+        mensajes = list(resp.context['messages'])
+        self.assertEqual(len(mensajes), 1)
+        self.assertEqual(mensajes[0].level_tag, 'error')
+        self.assertIn('token muerto', mensajes[0].message)
 
     def test_detalle_renderiza_filas(self):
         imp = ImportacionProgramacionLCTPC.objects.create(

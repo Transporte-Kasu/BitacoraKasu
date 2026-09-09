@@ -9,6 +9,7 @@ import base64
 import datetime
 import time
 from dataclasses import dataclass
+from urllib.parse import quote
 
 import requests
 from django.conf import settings
@@ -61,9 +62,12 @@ def obtener_token() -> str:
         raise GraphError(f'Token rechazado ({resp.status_code}): {resp.text[:300]}')
 
     payload = resp.json()
-    _token_cache['valor'] = payload['access_token']
+    token = payload.get('access_token')
+    if not token:
+        raise GraphError(f'Respuesta de token sin access_token: {resp.text[:300]}')
+    _token_cache['valor'] = token
     _token_cache['expira'] = ahora + int(payload.get('expires_in', 3600))
-    return _token_cache['valor']
+    return token
 
 
 def _get(path, params=None):
@@ -89,11 +93,13 @@ def _parsear_dt(valor):
         return None
 
 
-def listar_correos(remitente: str | None = None) -> list:
+def listar_correos(remitente: str | None = None) -> list[CorreoLCTPC]:
     remitente = remitente or settings.MODULACION_LCTPC_REMITENTE
     mailbox = settings.MODULACION_LCTPC_MAILBOX
+    # Escape de comilla simple para el literal OData ('' representa una ').
+    remitente_odata = remitente.replace("'", "''")
     params = {
-        '$filter': f"from/emailAddress/address eq '{remitente}'",
+        '$filter': f"from/emailAddress/address eq '{remitente_odata}'",
         '$select': 'id,subject,receivedDateTime',
         '$orderby': 'receivedDateTime desc',
         '$top': '25',
@@ -111,10 +117,16 @@ def listar_correos(remitente: str | None = None) -> list:
 
 def descargar_adjunto_xls(message_id: str) -> bytes:
     mailbox = settings.MODULACION_LCTPC_MAILBOX
-    data = _get(f'/users/{mailbox}/messages/{message_id}/attachments')
+    mid = quote(message_id, safe='')
+    data = _get(f'/users/{mailbox}/messages/{mid}/attachments')
     for att in data.get('value', []):
         nombre = (att.get('name') or '').lower()
         if (att.get('@odata.type') == '#microsoft.graph.fileAttachment'
                 and nombre.endswith('.xls')):
-            return base64.b64decode(att['contentBytes'])
+            contenido_b64 = att.get('contentBytes')
+            if not contenido_b64:
+                raise GraphError(
+                    f'El adjunto .xls del correo {message_id} no trae contentBytes.'
+                )
+            return base64.b64decode(contenido_b64)
     raise GraphError(f'El correo {message_id} no tiene un adjunto .xls.')

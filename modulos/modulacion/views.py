@@ -491,6 +491,9 @@ def completar_datos_terminal(request, token):
 def importar_programacion_lctpc(request):
     """Dispara el import de programación de citas de LCTPC bajo demanda."""
     r = importar_programaciones_lctpc()
+    if r.error_listado:
+        messages.error(request, f'No se pudo consultar el buzón: {r.error_listado}')
+        return redirect('modulacion:dashboard')
     texto = (
         f'{r.correos_procesados} correo(s) procesado(s), {r.correos_saltados} sin cambios, '
         f'{r.correos_con_error} con error · {r.creadas} modulación(es) creada(s), '

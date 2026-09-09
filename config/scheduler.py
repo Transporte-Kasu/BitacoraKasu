@@ -67,8 +67,10 @@ def iniciar_scheduler():
     )
 
     scheduler.start()
+    poll_lctpc = getattr(settings, 'MODULACION_LCTPC_POLL_MINUTOS', 15)
     logger.info(
         'Scheduler iniciado — generar_reportes revisará reportes pendientes '
-        'cada día a las %s (America/Mexico_City)', HORA_REVISION
+        'cada día a las %s (America/Mexico_City); importar_programacion_lctpc '
+        'registrado cada %s min', HORA_REVISION, poll_lctpc
     )
     return scheduler
