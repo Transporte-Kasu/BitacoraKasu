@@ -976,9 +976,11 @@ class ImportarProgramacionesTests(TestCase):
         self.assertEqual(resumen.actualizadas, 1)
         self.assertEqual(resumen.creadas, 9)
         self.assertEqual(m.fecha_modulacion_aduana, date(2026, 9, 7))
-        self.assertEqual(m.hora_registro.hour, 1)
-        self.assertEqual(m.hora_registro.minute, 30)
-        self.assertEqual(m.hora_ingreso.hour, 3)
+        # hora_* se guardan aware en America/Mexico_City (make_aware) y Django
+        # las almacena en UTC; se comparan en hora local.
+        self.assertEqual(timezone.localtime(m.hora_registro).hour, 1)
+        self.assertEqual(timezone.localtime(m.hora_registro).minute, 30)
+        self.assertEqual(timezone.localtime(m.hora_ingreso).hour, 3)
         self.assertEqual(m.tipo_cita, 'FULL')
         self.assertTrue(m.grupo_cita)
 
@@ -988,7 +990,7 @@ class ImportarProgramacionesTests(TestCase):
         importar_programaciones_lctpc()
         m = Modulacion.objects.get(contenedor='GXYU5129072')
         self.assertIsNotNone(timezone.is_aware(m.hora_registro))
-        self.assertEqual(m.hora_registro.date(), date(2026, 9, 7))
+        self.assertEqual(timezone.localtime(m.hora_registro).date(), date(2026, 9, 7))
 
     def test_correo_ya_procesado_se_salta(self):
         ImportacionProgramacionLCTPC.objects.create(
