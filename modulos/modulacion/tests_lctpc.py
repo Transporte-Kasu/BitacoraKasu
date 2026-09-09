@@ -1,15 +1,20 @@
 import base64
 from datetime import date, time
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
 
-from .models import ImportacionProgramacionLCTPC, Modulacion
+from .models import (
+    Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria,
+)
 from .services_graph import (
     CorreoLCTPC, GraphError, descargar_adjunto_xls, listar_correos, obtener_token,
 )
+from .services_importacion import importar_programaciones_lctpc
 from .services_lctpc import (
     ErrorParseoLCTPC, RenglonLCTPC, clasificar, parsear_programacion,
 )
@@ -220,3 +225,148 @@ class ServicesGraphTests(SimpleTestCase):
         ]})
         with self.assertRaises(GraphError):
             descargar_adjunto_xls('m1')
+
+
+TERMINAL_LCTPC = 'L.C. Terminal Portuaria de Contenedores, S.A. de C.V.'
+
+
+def _terminal():
+    return TerminalPortuaria.objects.get_or_create(nombre=TERMINAL_LCTPC)[0]
+
+
+def _modulacion(contenedor, estado='PENDIENTE', terminal=None):
+    return Modulacion.objects.create(
+        agencia=Agencia.objects.get_or_create(nombre='LOGINCO')[0],
+        terminal_portuaria=terminal or _terminal(),
+        tipo_contenedor='40HC', peso_toneladas=Decimal('18.5'),
+        contenedor=contenedor, estado=estado,
+    )
+
+
+@override_settings(MODULACION_TERMINAL_LCTPC=TERMINAL_LCTPC)
+class ImportarProgramacionesTests(TestCase):
+    def setUp(self):
+        self.xls = _leer('3ZYM_202609051401.xls')
+        self.correo = CorreoLCTPC(id='m1', asunto=ASUNTO_07,
+                                  recibido=timezone.now())
+
+    def _patch_graph(self, correos=None, xls=None, list_error=None, dl_error=None):
+        correos = [self.correo] if correos is None else correos
+        p_list = patch('modulos.modulacion.services_importacion.listar_correos')
+        p_dl = patch('modulos.modulacion.services_importacion.descargar_adjunto_xls')
+        m_list = p_list.start()
+        m_dl = p_dl.start()
+        self.addCleanup(p_list.stop)
+        self.addCleanup(p_dl.stop)
+        m_list.side_effect = list_error
+        if not list_error:
+            m_list.return_value = correos
+        if dl_error:
+            m_dl.side_effect = dl_error
+        else:
+            m_dl.return_value = self.xls if xls is None else xls
+        return m_list, m_dl
+
+    def test_crea_stub_cuando_no_hay_modulacion(self):
+        self._patch_graph()
+        resumen = importar_programaciones_lctpc()
+        self.assertEqual(resumen.creadas, 10)
+        stub = Modulacion.objects.get(contenedor='GXYU5129072')
+        self.assertEqual(stub.origen, 'LCTPC')
+        self.assertEqual(stub.peso_toneladas, Decimal('0'))
+        self.assertEqual(stub.tipo_contenedor, '')
+        self.assertEqual(stub.agencia.nombre, 'POR DEFINIR')
+        self.assertEqual(stub.fecha_modulacion_aduana, date(2026, 9, 7))
+        self.assertIsNotNone(stub.hora_registro)
+        self.assertIn('faltan agencia/cliente/tipo/peso', stub.observaciones)
+        self.assertIn('Cita LCTPC 617210', stub.observaciones)
+
+    def test_actualiza_modulacion_existente(self):
+        m = _modulacion('GXYU5129072')
+        self._patch_graph()
+        resumen = importar_programaciones_lctpc()
+        m.refresh_from_db()
+        self.assertEqual(resumen.actualizadas, 1)
+        self.assertEqual(resumen.creadas, 9)
+        self.assertEqual(m.fecha_modulacion_aduana, date(2026, 9, 7))
+        self.assertEqual(timezone.localtime(m.hora_registro).hour, 1)
+        self.assertEqual(timezone.localtime(m.hora_registro).minute, 30)
+        self.assertEqual(timezone.localtime(m.hora_ingreso).hour, 3)
+        self.assertEqual(m.tipo_cita, 'FULL')
+        self.assertTrue(m.grupo_cita)
+
+    def test_hora_registro_es_aware_y_en_la_fecha_de_modulacion(self):
+        _modulacion('GXYU5129072')
+        self._patch_graph()
+        importar_programaciones_lctpc()
+        m = Modulacion.objects.get(contenedor='GXYU5129072')
+        self.assertIsNotNone(timezone.is_aware(m.hora_registro))
+        self.assertEqual(timezone.localtime(m.hora_registro).date(), date(2026, 9, 7))
+
+    def test_correo_ya_procesado_se_salta(self):
+        ImportacionProgramacionLCTPC.objects.create(
+            graph_message_id='m1', asunto=ASUNTO_07,
+            fecha_recibido=timezone.now(), estado='OK',
+        )
+        self._patch_graph()
+        resumen = importar_programaciones_lctpc()
+        self.assertEqual(resumen.correos_saltados, 1)
+        self.assertEqual(resumen.creadas, 0)
+
+    def test_no_duplica_linea_de_observacion_en_segundo_correo(self):
+        m = _modulacion('GXYU5129072')
+        self._patch_graph()
+        importar_programaciones_lctpc()
+        # segundo correo distinto (otro id) con el mismo contenido
+        self.correo = CorreoLCTPC(id='m2', asunto=ASUNTO_07, recibido=timezone.now())
+        self._patch_graph()
+        importar_programaciones_lctpc()
+        m.refresh_from_db()
+        self.assertEqual(m.observaciones.count('Cita LCTPC 617210'), 1)
+
+    def test_ignora_modulaciones_en_estado_cerrado(self):
+        _modulacion('GXYU5129072', estado='ENVIADO_BITACORA')
+        self._patch_graph()
+        resumen = importar_programaciones_lctpc()
+        # como la única candidata está cerrada, se crea stub
+        self.assertEqual(resumen.creadas, 10)
+        self.assertEqual(
+            Modulacion.objects.filter(contenedor='GXYU5129072').count(), 2
+        )
+
+    def test_dos_candidatas_activas_marca_ambigua(self):
+        _modulacion('GXYU5129072')
+        _modulacion('GXYU5129072')
+        self._patch_graph()
+        resumen = importar_programaciones_lctpc()
+        self.assertEqual(resumen.ambiguas, 1)
+        imp = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1')
+        self.assertEqual(imp.estado, 'OK_CON_AVISOS')
+        resultados = {d['contenedor']: d['resultado'] for d in imp.detalle}
+        self.assertEqual(resultados['GXYU5129072'], 'ACTUALIZADA_AMBIGUA')
+
+    def test_correo_sin_adjunto_xls_registra_error_y_sigue(self):
+        self._patch_graph(dl_error=GraphError('sin adjunto'))
+        resumen = importar_programaciones_lctpc()
+        self.assertEqual(resumen.correos_con_error, 1)
+        imp = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1')
+        self.assertEqual(imp.estado, 'ERROR')
+        self.assertIn('sin adjunto', imp.mensaje_error)
+
+    def test_grapherror_al_listar_no_revienta(self):
+        self._patch_graph(list_error=GraphError('token muerto'))
+        resumen = importar_programaciones_lctpc()
+        self.assertEqual(resumen.correos_procesados, 0)
+        self.assertEqual(ImportacionProgramacionLCTPC.objects.count(), 0)
+
+    def test_estado_ok_con_avisos_por_fecha_discrepante(self):
+        self.correo = CorreoLCTPC(
+            id='m1',
+            asunto='Programacion de contenedores a SPF, para el 08 September 2026',
+            recibido=timezone.now(),
+        )
+        self._patch_graph()
+        importar_programaciones_lctpc()
+        imp = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1')
+        self.assertEqual(imp.estado, 'OK_CON_AVISOS')
+        self.assertEqual(imp.fecha_modulacion_aduana, date(2026, 9, 8))
