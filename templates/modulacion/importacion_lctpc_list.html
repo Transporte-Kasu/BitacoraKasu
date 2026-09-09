@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Programaciones LCTPC{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-4 px-4 sm:py-6">
+    <div class="dash-page-header">
+        <div>
+            <h1 class="dash-page-title">Programaciones LCTPC</h1>
+            <p class="dash-page-subtitle">Correos de citas de la terminal procesados automáticamente</p>
+        </div>
+        <div class="dash-page-actions">
+            <form method="post" action="{% url 'modulacion:lctpc_importar' %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition min-h-[44px]">
+                    Importar ahora
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {% if importaciones %}
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-100 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-3">Recibido</th>
+                    <th class="px-4 py-3">Asunto</th>
+                    <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3">Renglones</th>
+                    <th class="px-4 py-3">Creadas</th>
+                    <th class="px-4 py-3">Actualizadas</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for imp in importaciones %}
+                <tr class="hover:bg-gray-50 transition cursor-pointer"
+                    onclick="window.location='{% url 'modulacion:lctpc_detail' imp.pk %}'">
+                    <td class="px-4 py-3">{{ imp.fecha_recibido|date:"d/m/Y H:i" }}</td>
+                    <td class="px-4 py-3">{{ imp.asunto }}</td>
+                    <td class="px-4 py-3">
+                        {% if imp.estado == 'OK' %}
+                        <span class="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">OK</span>
+                        {% elif imp.estado == 'OK_CON_AVISOS' %}
+                        <span class="inline-block px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">Con avisos</span>
+                        {% else %}
+                        <span class="inline-block px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Error</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">{{ imp.total_renglones }}</td>
+                    <td class="px-4 py-3">{{ imp.creadas }}</td>
+                    <td class="px-4 py-3">{{ imp.actualizadas }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="py-16 text-center text-gray-400">
+            <p class="text-lg font-medium">Sin programaciones procesadas</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if is_paginated %}
+    <div class="mt-4 flex gap-2 text-sm">
+        {% if page_obj.has_previous %}<a class="text-emerald-700" href="?page={{ page_obj.previous_page_number }}">&larr; Anteriores</a>{% endif %}
+        <span class="text-gray-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="text-emerald-700" href="?page={{ page_obj.next_page_number }}">Siguientes &rarr;</a>{% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

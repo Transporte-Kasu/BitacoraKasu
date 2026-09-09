@@ -24,7 +24,8 @@ from .forms import (
     RetiroExternoForm,
     TerminalPortuariaForm,
 )
-from .models import Agencia, Modulacion, TerminalPortuaria
+from .models import Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria
+from .services_importacion import importar_programaciones_lctpc
 from .tokens import resolver_modulacion
 
 
@@ -90,6 +91,7 @@ def modulacion_dashboard(request):
         'enviados_bitacora': Modulacion.objects.filter(estado='ENVIADO_BITACORA').count(),
         'retirados_tercero': Modulacion.objects.filter(estado='RETIRADO_TERCERO').count(),
         'recientes': Modulacion.objects.select_related('agencia', 'terminal_portuaria', 'cliente')[:10],
+        'importaciones_lctpc': ImportacionProgramacionLCTPC.objects.all()[:10],
     }
     return render(request, 'modulacion/dashboard.html', context)
 
@@ -478,3 +480,37 @@ def completar_datos_terminal(request, token):
     return render(request, 'modulacion/completar_datos_terminal.html', {
         'form': form, 'modulacion': modulacion,
     })
+
+
+# ============================================================================
+# IMPORTACIÓN DE PROGRAMACIÓN DE CITAS DE LCTPC (Graph API)
+# ============================================================================
+
+@login_required
+@require_POST
+def importar_programacion_lctpc(request):
+    """Dispara el import de programación de citas de LCTPC bajo demanda."""
+    r = importar_programaciones_lctpc()
+    texto = (
+        f'{r.correos_procesados} correo(s) procesado(s), {r.correos_saltados} sin cambios, '
+        f'{r.correos_con_error} con error · {r.creadas} modulación(es) creada(s), '
+        f'{r.actualizadas} actualizada(s).'
+    )
+    if r.correos_con_error or r.ambiguas:
+        messages.warning(request, f'Importación LCTPC con avisos: {texto}')
+    else:
+        messages.success(request, f'Importación LCTPC: {texto}')
+    return redirect('modulacion:dashboard')
+
+
+class ImportacionProgramacionLCTPCListView(LoginRequiredMixin, ListView):
+    model = ImportacionProgramacionLCTPC
+    template_name = 'modulacion/importacion_lctpc_list.html'
+    context_object_name = 'importaciones'
+    paginate_by = 30
+
+
+class ImportacionProgramacionLCTPCDetailView(LoginRequiredMixin, DetailView):
+    model = ImportacionProgramacionLCTPC
+    template_name = 'modulacion/importacion_lctpc_detail.html'
+    context_object_name = 'importacion'

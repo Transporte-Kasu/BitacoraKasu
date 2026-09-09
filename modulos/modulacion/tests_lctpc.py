@@ -5,9 +5,11 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from .models import (
@@ -401,3 +403,37 @@ class SchedulerJobLCTPCTests(SimpleTestCase):
         ids = [c.kwargs.get('id') for c in inst.add_job.call_args_list]
         self.assertIn('importar_programacion_lctpc', ids)
         self.assertIn('generar_reportes_diario', ids)  # el job existente sigue
+
+
+class ImportacionLCTPCViewsTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('u', 'u@e.com', 'pw')
+        self.client.force_login(self.user)
+
+    def test_lista_requiere_login(self):
+        self.client.logout()
+        resp = self.client.get(reverse('modulacion:lctpc_list'))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_boton_importar_llama_orquestador_y_redirige(self):
+        with patch('modulos.modulacion.views.importar_programaciones_lctpc') as mock_orq:
+            mock_orq.return_value = ResumenImportacion(correos_procesados=1, creadas=2)
+            resp = self.client.post(reverse('modulacion:lctpc_importar'))
+        mock_orq.assert_called_once()
+        self.assertRedirects(resp, reverse('modulacion:dashboard'))
+
+    def test_importar_solo_acepta_post(self):
+        resp = self.client.get(reverse('modulacion:lctpc_importar'))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_detalle_renderiza_filas(self):
+        imp = ImportacionProgramacionLCTPC.objects.create(
+            graph_message_id='m1', asunto=ASUNTO_07,
+            fecha_recibido=timezone.now(), estado='OK', total_renglones=1,
+            detalle=[{'contenedor': 'GXYU5129072', 'folio_lctpc': '617210',
+                      'resultado': 'CREADA', 'modulacion_id': 1, 'tipo_cita': 'FULL'}],
+        )
+        resp = self.client.get(reverse('modulacion:lctpc_detail', args=[imp.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'GXYU5129072')
+        self.assertContains(resp, '617210')

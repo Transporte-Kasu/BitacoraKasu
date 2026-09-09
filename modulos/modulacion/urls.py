@@ -36,6 +36,11 @@ urlpatterns = [
     # Formulario público (sin login) para completar datos de terminal
     path('completar/<str:token>/', views.completar_datos_terminal, name='completar_datos_terminal'),
 
+    # Programación de citas de LCTPC (Graph API)
+    path('lctpc/', views.ImportacionProgramacionLCTPCListView.as_view(), name='lctpc_list'),
+    path('lctpc/importar/', views.importar_programacion_lctpc, name='lctpc_importar'),
+    path('lctpc/<int:pk>/', views.ImportacionProgramacionLCTPCDetailView.as_view(), name='lctpc_detail'),
+
     # API de recepción (HAL9MIL)
     path('api/recibir/', views_api.recibir_modulacion, name='api_recibir'),
 ]
