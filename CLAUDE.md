@@ -222,6 +222,20 @@ Available blocks: `title`, `extra_css`, `breadcrumb`, `content`, `extra_js`
 ### Context Processors
 `config/context_processors.py`: Injects `alertas_combustible_pendientes` count into every template for superusers.
 
+### Importación de programación de citas LCTPC (`modulos/modulacion/services_*`)
+- Un job de APScheduler (cada `MODULACION_LCTPC_POLL_MINUTOS`, def. 15) y el botón
+  "Importar ahora" del dashboard de modulación ejecutan
+  `importar_programaciones_lctpc()`.
+- `services_graph.py` lee el buzón por Microsoft Graph (app-only, `Mail.Read`);
+  `services_lctpc.py` parsea el adjunto (tabla HTML con extensión `.xls`,
+  ISO-8859-1) y clasifica FULL/SENCILLO por la hora de inicio de la ventana de
+  registro (pares en orden del Excel; sobrante impar → SENCILLO).
+- Por cada contenedor: se actualiza la Modulación de la terminal LCTPC no
+  cerrada (rellena `fecha_modulacion_aduana`, `hora_registro`, `hora_ingreso`,
+  `tipo_cita`, `grupo_cita`) o se crea un stub `origen='LCTPC'` incompleto.
+- `ImportacionProgramacionLCTPC` da idempotencia (`graph_message_id` único) y
+  el reporte por correo (contadores + `detalle` JSON).
+
 ## Dashboard (IndexView)
 
 Main dashboard at `/` shows statistics for all modules:
@@ -263,6 +277,14 @@ SPACES_SECRET_KEY=...
 SPACES_BUCKET_NAME=...
 SPACES_REGION=sfo3
 SPACES_CDN_ENDPOINT=...
+# Microsoft Graph — importación de programación de citas de LCTPC
+GRAPH_TENANT_ID=...
+GRAPH_CLIENT_ID=...
+GRAPH_CLIENT_SECRET=...            # permiso de aplicación Mail.Read
+MODULACION_LCTPC_MAILBOX=calidad@transporteskasu.com.mx
+MODULACION_LCTPC_REMITENTE=atencionspf@lctpc.com.mx
+MODULACION_TERMINAL_LCTPC=L.C. Terminal Portuaria de Contenedores, S.A. de C.V.
+MODULACION_LCTPC_POLL_MINUTOS=15
 ```
 
 ## Production Deployment
