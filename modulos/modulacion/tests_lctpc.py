@@ -260,6 +260,27 @@ class ServicesGraphTests(SimpleTestCase):
 
     @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
     @patch('modulos.modulacion.services_graph.requests.get')
+    def test_listar_correos_no_manda_orderby(self, mock_get, _tok):
+        # Graph responde 400 "InefficientFilter" si se combina $filter sobre
+        # from/emailAddress/address con $orderby receivedDateTime.
+        mock_get.return_value = _resp(json_data={'value': []})
+        listar_correos()
+        params = mock_get.call_args.kwargs['params']
+        self.assertNotIn('$orderby', params)
+
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
+    def test_listar_correos_ordena_por_recibido_desc_en_cliente(self, mock_get, _tok):
+        mock_get.return_value = _resp(json_data={'value': [
+            {'id': 'viejo', 'subject': 'a', 'receivedDateTime': '2026-09-01T10:00:00Z'},
+            {'id': 'nuevo', 'subject': 'b', 'receivedDateTime': '2026-09-05T10:00:00Z'},
+            {'id': 'sin_fecha', 'subject': 'c'},
+        ]})
+        correos = listar_correos()
+        self.assertEqual([c.id for c in correos], ['nuevo', 'viejo', 'sin_fecha'])
+
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
     def test_descargar_adjunto_codifica_el_message_id_en_la_url(self, mock_get, _tok):
         # F7: caracteres reservados del message_id se percent-encodean.
         mock_get.return_value = _resp(json_data={'value': []})

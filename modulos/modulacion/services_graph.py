@@ -98,14 +98,17 @@ def listar_correos(remitente: str | None = None) -> list[CorreoLCTPC]:
     mailbox = settings.MODULACION_LCTPC_MAILBOX
     # Escape de comilla simple para el literal OData ('' representa una ').
     remitente_odata = remitente.replace("'", "''")
+    # No se manda `$orderby`: combinar un `$filter` sobre `from/emailAddress/address`
+    # con `$orderby receivedDateTime` hace que Graph responda 400 "InefficientFilter"
+    # (no hay índice compuesto para esa consulta). El orden por defecto de
+    # `/messages` ya es receivedDateTime desc; además reordenamos en cliente.
     params = {
         '$filter': f"from/emailAddress/address eq '{remitente_odata}'",
         '$select': 'id,subject,receivedDateTime',
-        '$orderby': 'receivedDateTime desc',
         '$top': '25',
     }
     data = _get(f'/users/{mailbox}/messages', params=params)
-    return [
+    correos = [
         CorreoLCTPC(
             id=item['id'],
             asunto=item.get('subject', '') or '',
@@ -113,6 +116,11 @@ def listar_correos(remitente: str | None = None) -> list[CorreoLCTPC]:
         )
         for item in data.get('value', [])
     ]
+    correos.sort(
+        key=lambda c: c.recibido or datetime.datetime.min.replace(tzinfo=datetime.timezone.utc),
+        reverse=True,
+    )
+    return correos
 
 
 def descargar_adjunto_xls(message_id: str) -> bytes:
