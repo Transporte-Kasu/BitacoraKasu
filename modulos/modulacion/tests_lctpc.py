@@ -281,6 +281,47 @@ class ServicesGraphTests(SimpleTestCase):
 
     @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
     @patch('modulos.modulacion.services_graph.requests.get')
+    def test_listar_correos_sigue_odata_nextlink(self, mock_get, _tok):
+        # Se recorren todas las páginas del año en curso, no solo la primera.
+        mock_get.side_effect = [
+            _resp(json_data={
+                '@odata.nextLink': 'https://graph.microsoft.com/v1.0/siguiente',
+                'value': [{'id': 'p1', 'subject': 'a',
+                           'receivedDateTime': '2026-08-01T10:00:00Z'}],
+            }),
+            _resp(json_data={'value': [{'id': 'p2', 'subject': 'b',
+                                        'receivedDateTime': '2026-07-01T10:00:00Z'}]}),
+        ]
+        correos = listar_correos()
+        self.assertEqual({c.id for c in correos}, {'p1', 'p2'})
+        self.assertEqual(mock_get.call_count, 2)
+        # la 2ª llamada usa la URL absoluta del nextLink, sin params
+        self.assertEqual(mock_get.call_args.args[0],
+                         'https://graph.microsoft.com/v1.0/siguiente')
+
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
+    def test_listar_correos_para_al_salir_del_ano_en_curso(self, mock_get, _tok):
+        # Al toparse con un correo del año pasado deja de paginar y lo descarta.
+        mock_get.side_effect = [
+            _resp(json_data={
+                '@odata.nextLink': 'https://graph.microsoft.com/v1.0/siguiente',
+                'value': [
+                    {'id': 'esteano', 'subject': 'a',
+                     'receivedDateTime': '2026-01-15T10:00:00Z'},
+                    {'id': 'aniopasado', 'subject': 'b',
+                     'receivedDateTime': '2025-12-30T10:00:00Z'},
+                ],
+            }),
+            _resp(json_data={'value': [{'id': 'no_deberia_pedirse', 'subject': 'c',
+                                        'receivedDateTime': '2025-11-01T10:00:00Z'}]}),
+        ]
+        correos = listar_correos()
+        self.assertEqual([c.id for c in correos], ['esteano'])
+        self.assertEqual(mock_get.call_count, 1)  # no siguió al nextLink
+
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
     def test_descargar_adjunto_codifica_el_message_id_en_la_url(self, mock_get, _tok):
         # F7: caracteres reservados del message_id se percent-encodean.
         mock_get.return_value = _resp(json_data={'value': []})
@@ -508,12 +549,11 @@ class ImportarProgramacionesTests(TestCase):
         self.assertEqual(imp.estado, 'ERROR')
         self.assertIn('boom db', imp.mensaje_error)
 
-    def test_fila_auditoria_duplicada_en_carrera_no_aborta_el_lote(self):
-        # R1: `ya_vistos` se calcula sin la fila; otra corrida la inserta antes
-        # de que este correo termine (aquí, durante la descarga del adjunto).
-        # El `create()` del camino de error choca contra el `graph_message_id`
-        # único -> IntegrityError. Se traga con warning y
-        # `importar_programaciones_lctpc()` retorna sin propagar.
+    def test_carrera_no_degrada_fila_ok_de_otra_corrida_ni_aborta_el_lote(self):
+        # R1: `ya_vistos` se calcula sin la fila; otra corrida la deja en OK
+        # antes de que este correo termine (aquí, durante la descarga del
+        # adjunto). Este correo luego falla, pero `_fila_error` NO debe degradar
+        # la fila OK ajena a ERROR, y `importar_programaciones_lctpc()` no propaga.
         from modulos.modulacion import services_importacion as si
 
         p_list = patch('modulos.modulacion.services_importacion.listar_correos')
@@ -525,7 +565,6 @@ class ImportarProgramacionesTests(TestCase):
         m_list.return_value = [self.correo]
 
         def descarga_y_registra_en_paralelo(_mid):
-            # simula la corrida concurrente que deja la fila DESPUES de ya_vistos
             ImportacionProgramacionLCTPC.objects.create(
                 graph_message_id='m1', asunto=ASUNTO_07,
                 fecha_recibido=timezone.now(), estado='OK',
@@ -540,11 +579,27 @@ class ImportarProgramacionesTests(TestCase):
 
         self.assertEqual(resumen.correos_con_error, 1)
         self.assertEqual(resumen.correos_procesados, 0)
-        self.assertEqual(
-            ImportacionProgramacionLCTPC.objects.filter(graph_message_id='m1').count(),
-            1,
+        fila = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1')
+        self.assertEqual(fila.estado, 'OK')  # no se degradó
+        self.assertTrue(any('no se degrada' in linea.lower() for linea in cm.output))
+
+    def test_correo_en_error_se_reintenta_y_pasa_a_ok(self):
+        # Decisión del usuario: los ERROR se reintentan en cada corrida. Una fila
+        # previa en ERROR no se salta y, si el reproceso sale bien, se reescribe
+        # a OK sin duplicar la fila.
+        ImportacionProgramacionLCTPC.objects.create(
+            graph_message_id='m1', asunto=ASUNTO_07,
+            fecha_recibido=timezone.now(), estado='ERROR',
+            mensaje_error='fallo anterior',
         )
-        self.assertTrue(any('duplicada' in linea.lower() for linea in cm.output))
+        self._patch_graph()
+        resumen = importar_programaciones_lctpc()
+        self.assertEqual(resumen.correos_saltados, 0)
+        self.assertEqual(resumen.creadas, 10)
+        filas = ImportacionProgramacionLCTPC.objects.filter(graph_message_id='m1')
+        self.assertEqual(filas.count(), 1)
+        self.assertEqual(filas.first().estado, 'OK')
+        self.assertEqual(filas.first().mensaje_error, '')
 
     def test_correo_bueno_sobrevive_aunque_el_siguiente_falle_en_transaccion(self):
         # R2: cada correo va en su propia transacción. `m1` commitea; `m2`

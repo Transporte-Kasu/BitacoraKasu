@@ -2,10 +2,12 @@
 Orquestador del import de programación de citas de LCTPC.
 
 Recorre los correos del remitente configurado, salta los ya procesados
-(`ImportacionProgramacionLCTPC.graph_message_id`), y por cada correo nuevo:
-parsea el adjunto, clasifica FULL/SENCILLO y, por cada contenedor, actualiza
-la Modulación activa de la terminal LCTPC o crea un stub incompleto.
-Cada correo se procesa en su propia transacción y deja una fila de auditoría.
+CON ÉXITO (`ImportacionProgramacionLCTPC` en estado OK / OK_CON_AVISOS); los
+que quedaron en ERROR se reintentan en cada corrida hasta que salgan bien.
+Por cada correo a procesar: parsea el adjunto, clasifica FULL/SENCILLO y, por
+cada contenedor, actualiza la Modulación activa de la terminal LCTPC o crea un
+stub incompleto. Cada correo se procesa en su propia transacción y deja (o
+reescribe) una fila de auditoría.
 """
 import logging
 from dataclasses import dataclass
@@ -114,20 +116,41 @@ def _fila_error(correo, mensaje):
     """Crea la fila de auditoría ERROR. Debe llamarse FUERA de cualquier
     `atomic()` que se haya revertido, para que la auditoría sí persista.
 
-    Si otra corrida ya dejó la fila de este correo (carrera entre corridas),
-    el `graph_message_id` único hace fallar el `create()` con `IntegrityError`.
-    Ese caso se traga con un warning: el correo ya quedó registrado y el
-    duplicado no debe abortar el lote.
+    Si el correo ya tenía fila:
+      - en ERROR (reintento que vuelve a fallar): se refresca el mensaje;
+      - en OK / OK_CON_AVISOS (otra corrida ya lo procesó bien): NO se degrada,
+        solo se avisa.
+    Una carrera entre corridas puede hacer fallar el `get_or_create` con
+    `IntegrityError`; ese caso se traga con un warning.
     """
+    defaults = {
+        'asunto': correo.asunto,
+        'fecha_recibido': correo.recibido or timezone.now(),
+        'estado': 'ERROR',
+        'mensaje_error': str(mensaje)[:2000],
+        'fecha_modulacion_aduana': None,
+        'total_renglones': 0,
+        'creadas': 0,
+        'actualizadas': 0,
+        'ambiguas': 0,
+        'detalle': [],
+    }
     try:
         with transaction.atomic():
-            ImportacionProgramacionLCTPC.objects.create(
-                graph_message_id=correo.id,
-                asunto=correo.asunto,
-                fecha_recibido=correo.recibido or timezone.now(),
-                estado='ERROR',
-                mensaje_error=str(mensaje)[:2000],
+            fila, creada = ImportacionProgramacionLCTPC.objects.get_or_create(
+                graph_message_id=correo.id, defaults=defaults,
             )
+            if creada:
+                return
+            if fila.estado == 'ERROR':
+                for campo, valor in defaults.items():
+                    setattr(fila, campo, valor)
+                fila.save()
+            else:
+                logger.warning(
+                    'Correo %s ya tiene fila en estado %s; no se degrada a ERROR',
+                    correo.id, fila.estado,
+                )
     except IntegrityError:
         logger.warning('Fila de auditoría duplicada para %s', correo.id)
 
@@ -170,18 +193,20 @@ def _procesar_correo(correo, resumen):
             creadas = sum(1 for f in detalle if f['resultado'] == 'CREADA')
             actualizadas = sum(1 for f in detalle if f['resultado'].startswith('ACTUALIZADA'))
             ambiguas = sum(1 for f in detalle if f['resultado'] == 'ACTUALIZADA_AMBIGUA')
-            ImportacionProgramacionLCTPC.objects.create(
+            ImportacionProgramacionLCTPC.objects.update_or_create(
                 graph_message_id=correo.id,
-                asunto=correo.asunto,
-                fecha_recibido=correo.recibido or timezone.now(),
-                fecha_modulacion_aduana=prog.fecha,
-                estado=estado,
-                total_renglones=len(prog.renglones),
-                creadas=creadas,
-                actualizadas=actualizadas,
-                ambiguas=ambiguas,
-                detalle=detalle,
-                mensaje_error='\n'.join(prog.avisos),
+                defaults={
+                    'asunto': correo.asunto,
+                    'fecha_recibido': correo.recibido or timezone.now(),
+                    'fecha_modulacion_aduana': prog.fecha,
+                    'estado': estado,
+                    'total_renglones': len(prog.renglones),
+                    'creadas': creadas,
+                    'actualizadas': actualizadas,
+                    'ambiguas': ambiguas,
+                    'detalle': detalle,
+                    'mensaje_error': '\n'.join(prog.avisos),
+                },
             )
     except Exception as exc:  # noqa: BLE001 — un correo malo no debe tumbar el lote
         # La fila ERROR se escribe aquí, ya fuera del atomic() revertido.
@@ -207,9 +232,13 @@ def importar_programaciones_lctpc() -> ResumenImportacion:
         resumen.error_listado = str(exc)[:500]
         return resumen
 
+    # Solo se saltan los ya procesados CON ÉXITO; un ERROR previo se reintenta.
     ya_vistos = set(
         ImportacionProgramacionLCTPC.objects
-        .filter(graph_message_id__in=[c.id for c in correos])
+        .filter(
+            graph_message_id__in=[c.id for c in correos],
+            estado__in=('OK', 'OK_CON_AVISOS'),
+        )
         .values_list('graph_message_id', flat=True)
     )
     for correo in correos:

@@ -13,9 +13,13 @@ from urllib.parse import quote
 
 import requests
 from django.conf import settings
+from django.utils import timezone
 
 _GRAPH = 'https://graph.microsoft.com/v1.0'
 _token_cache = {'valor': None, 'expira': 0.0}
+
+# Tope de páginas al recorrer @odata.nextLink (cada página son $top correos).
+_PAGINAS_MAX = 20
 
 
 class GraphError(Exception):
@@ -70,18 +74,25 @@ def obtener_token() -> str:
     return token
 
 
-def _get(path, params=None):
+def _get(path_o_url, params=None):
     token = obtener_token()
+    # `@odata.nextLink` viene como URL absoluta y ya trae sus parámetros.
+    url = path_o_url if path_o_url.startswith('http') else f'{_GRAPH}{path_o_url}'
     try:
         resp = requests.get(
-            f'{_GRAPH}{path}', params=params,
+            url, params=params,
             headers={'Authorization': f'Bearer {token}'}, timeout=30,
         )
     except requests.RequestException as exc:
-        raise GraphError(f'Error de red en {path}: {exc}') from exc
+        raise GraphError(f'Error de red en {url}: {exc}') from exc
     if resp.status_code != 200:
-        raise GraphError(f'Graph {path} -> {resp.status_code}: {resp.text[:300]}')
+        raise GraphError(f'Graph {url} -> {resp.status_code}: {resp.text[:300]}')
     return resp.json()
+
+
+def _inicio_ano_utc() -> datetime.datetime:
+    """1 de enero del año en curso, aware en UTC."""
+    return datetime.datetime(timezone.now().year, 1, 1, tzinfo=datetime.timezone.utc)
 
 
 def _parsear_dt(valor):
@@ -94,28 +105,49 @@ def _parsear_dt(valor):
 
 
 def listar_correos(remitente: str | None = None) -> list[CorreoLCTPC]:
+    """Correos del remitente recibidos en el año en curso, del más nuevo al más viejo.
+
+    Solo se importa el año en curso: se pagina con `@odata.nextLink` hasta que la
+    página más vieja ya cae antes del 1 de enero (o hasta `_PAGINAS_MAX`).
+
+    No se manda `$orderby`: combinar un `$filter` sobre `from/emailAddress/address`
+    con `$orderby receivedDateTime` hace que Graph responda 400 "InefficientFilter"
+    (no hay índice compuesto). El orden por defecto de `/messages` ya es
+    receivedDateTime desc; de todos modos reordenamos en cliente.
+    """
     remitente = remitente or settings.MODULACION_LCTPC_REMITENTE
     mailbox = settings.MODULACION_LCTPC_MAILBOX
     # Escape de comilla simple para el literal OData ('' representa una ').
     remitente_odata = remitente.replace("'", "''")
-    # No se manda `$orderby`: combinar un `$filter` sobre `from/emailAddress/address`
-    # con `$orderby receivedDateTime` hace que Graph responda 400 "InefficientFilter"
-    # (no hay índice compuesto para esa consulta). El orden por defecto de
-    # `/messages` ya es receivedDateTime desc; además reordenamos en cliente.
+    desde = _inicio_ano_utc()
     params = {
         '$filter': f"from/emailAddress/address eq '{remitente_odata}'",
         '$select': 'id,subject,receivedDateTime',
-        '$top': '25',
+        '$top': '50',
     }
+
+    correos: list[CorreoLCTPC] = []
     data = _get(f'/users/{mailbox}/messages', params=params)
-    correos = [
-        CorreoLCTPC(
-            id=item['id'],
-            asunto=item.get('subject', '') or '',
-            recibido=_parsear_dt(item.get('receivedDateTime')),
-        )
-        for item in data.get('value', [])
-    ]
+    for _ in range(_PAGINAS_MAX):
+        lote = [
+            CorreoLCTPC(
+                id=item['id'],
+                asunto=item.get('subject', '') or '',
+                recibido=_parsear_dt(item.get('receivedDateTime')),
+            )
+            for item in data.get('value', [])
+        ]
+        correos.extend(lote)
+        # La página viene de más nuevo a más viejo: si el último ya es del año
+        # pasado, no hace falta seguir paginando.
+        if lote and lote[-1].recibido is not None and lote[-1].recibido < desde:
+            break
+        siguiente = data.get('@odata.nextLink')
+        if not siguiente:
+            break
+        data = _get(siguiente)
+
+    correos = [c for c in correos if c.recibido is None or c.recibido >= desde]
     correos.sort(
         key=lambda c: c.recibido or datetime.datetime.min.replace(tzinfo=datetime.timezone.utc),
         reverse=True,
