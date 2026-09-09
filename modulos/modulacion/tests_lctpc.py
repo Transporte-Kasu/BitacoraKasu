@@ -1,10 +1,15 @@
+import base64
 from datetime import date, time
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from django.db import IntegrityError
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from .models import ImportacionProgramacionLCTPC, Modulacion
+from .services_graph import (
+    CorreoLCTPC, GraphError, descargar_adjunto_xls, listar_correos, obtener_token,
+)
 from .services_lctpc import (
     ErrorParseoLCTPC, RenglonLCTPC, clasificar, parsear_programacion,
 )
@@ -142,3 +147,76 @@ class ClasificarTests(SimpleTestCase):
         # 6 FULL == 3 pares con grupo distinto
         grupos_full = {r.grupo_cita for r in prog.renglones if r.tipo_cita == 'FULL'}
         self.assertEqual(len(grupos_full), 3)
+
+
+GRAPH_CONF = dict(
+    GRAPH_TENANT_ID='t', GRAPH_CLIENT_ID='c', GRAPH_CLIENT_SECRET='s',
+    MODULACION_LCTPC_MAILBOX='calidad@transporteskasu.com.mx',
+    MODULACION_LCTPC_REMITENTE='atencionspf@lctpc.com.mx',
+)
+
+
+def _resp(status=200, json_data=None, text=''):
+    r = MagicMock()
+    r.status_code = status
+    r.json.return_value = json_data or {}
+    r.text = text
+    return r
+
+
+@override_settings(**GRAPH_CONF)
+class ServicesGraphTests(SimpleTestCase):
+    def setUp(self):
+        # limpiar el cache de token entre pruebas
+        import modulos.modulacion.services_graph as g
+        g._token_cache.update(valor=None, expira=0.0)
+
+    @patch('modulos.modulacion.services_graph.requests.post')
+    def test_obtener_token_devuelve_access_token(self, mock_post):
+        mock_post.return_value = _resp(json_data={'access_token': 'ABC', 'expires_in': 3600})
+        self.assertEqual(obtener_token(), 'ABC')
+
+    @patch('modulos.modulacion.services_graph.requests.post')
+    def test_obtener_token_http_error_levanta_grapherror(self, mock_post):
+        mock_post.return_value = _resp(status=401, text='bad secret')
+        with self.assertRaises(GraphError):
+            obtener_token()
+
+    @override_settings(GRAPH_TENANT_ID='', GRAPH_CLIENT_ID='', GRAPH_CLIENT_SECRET='')
+    def test_sin_config_levanta_grapherror(self):
+        with self.assertRaises(GraphError):
+            obtener_token()
+
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
+    def test_listar_correos_parsea_value(self, mock_get, _tok):
+        mock_get.return_value = _resp(json_data={'value': [
+            {'id': 'm1', 'subject': 'Programacion ... 07 September 2026',
+             'receivedDateTime': '2026-09-05T14:02:00Z'},
+        ]})
+        correos = listar_correos()
+        self.assertEqual(len(correos), 1)
+        self.assertIsInstance(correos[0], CorreoLCTPC)
+        self.assertEqual(correos[0].id, 'm1')
+        self.assertEqual(correos[0].recibido.year, 2026)
+
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
+    def test_descargar_adjunto_xls_decodifica_base64(self, mock_get, _tok):
+        contenido = b'<table>hola</table>'
+        mock_get.return_value = _resp(json_data={'value': [
+            {'@odata.type': '#microsoft.graph.fileAttachment',
+             'name': '3ZYM_202609051401.xls',
+             'contentBytes': base64.b64encode(contenido).decode()},
+        ]})
+        self.assertEqual(descargar_adjunto_xls('m1'), contenido)
+
+    @patch('modulos.modulacion.services_graph.obtener_token', return_value='TOK')
+    @patch('modulos.modulacion.services_graph.requests.get')
+    def test_descargar_sin_xls_levanta_grapherror(self, mock_get, _tok):
+        mock_get.return_value = _resp(json_data={'value': [
+            {'@odata.type': '#microsoft.graph.fileAttachment', 'name': 'firma.png',
+             'contentBytes': 'AAAA'},
+        ]})
+        with self.assertRaises(GraphError):
+            descargar_adjunto_xls('m1')

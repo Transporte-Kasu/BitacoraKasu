@@ -268,6 +268,25 @@ BITACORAKASU_API_TOKEN = env.str('BITACORAKASU_API_TOKEN', default='')
 # refleja ese Host, y ALLOWED_HOSTS = ['*'] no lo valida).
 PUBLIC_BASE_URL = env.str('PUBLIC_BASE_URL', default='')
 
+# ---------------------------------------------------------------------------
+# Microsoft Graph — lectura del buzón de calidad (programación de citas LCTPC)
+# ---------------------------------------------------------------------------
+GRAPH_TENANT_ID = env.str('GRAPH_TENANT_ID', default='')
+GRAPH_CLIENT_ID = env.str('GRAPH_CLIENT_ID', default='')
+GRAPH_CLIENT_SECRET = env.str('GRAPH_CLIENT_SECRET', default='')
+
+MODULACION_LCTPC_MAILBOX = env.str(
+    'MODULACION_LCTPC_MAILBOX', default='calidad@transporteskasu.com.mx'
+)
+MODULACION_LCTPC_REMITENTE = env.str(
+    'MODULACION_LCTPC_REMITENTE', default='atencionspf@lctpc.com.mx'
+)
+MODULACION_TERMINAL_LCTPC = env.str(
+    'MODULACION_TERMINAL_LCTPC',
+    default='L.C. Terminal Portuaria de Contenedores, S.A. de C.V.',
+)
+MODULACION_LCTPC_POLL_MINUTOS = env.int('MODULACION_LCTPC_POLL_MINUTOS', default=15)
+
 # ─── Reportes automáticos ───────────────────────────────────────────────────
 # La configuración de reportes vive en la BD (ConfiguracionReporte).
 # El scheduler revisa reportes pendientes diariamente a las 07:00 MX.
