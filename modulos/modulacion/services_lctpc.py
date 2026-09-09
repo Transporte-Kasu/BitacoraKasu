@@ -146,3 +146,28 @@ def parsear_programacion(contenido: bytes, asunto: str) -> ProgramacionParseada:
         renglones=renglones,
         avisos=avisos,
     )
+
+
+def clasificar(renglones):
+    """Marca cada RenglonLCTPC con tipo_cita ('FULL'/'SENCILLO') y grupo_cita.
+
+    Regla del usuario: los renglones que comparten la hora de inicio de la
+    ventana de registro se emparejan de 2 en 2 (en el orden del Excel) → FULL.
+    El sobrante de un grupo impar, y los grupos de 1, quedan SENCILLO.
+    """
+    grupos = OrderedDict()
+    for r in renglones:
+        grupos.setdefault(r.registro_inicio, []).append(r)
+
+    for grupo in grupos.values():
+        i = 0
+        while i + 1 < len(grupo):
+            gid = uuid.uuid4().hex
+            grupo[i].tipo_cita = grupo[i + 1].tipo_cita = 'FULL'
+            grupo[i].grupo_cita = grupo[i + 1].grupo_cita = gid
+            i += 2
+        if i < len(grupo):
+            grupo[i].tipo_cita = 'SENCILLO'
+            grupo[i].grupo_cita = ''
+
+    return renglones

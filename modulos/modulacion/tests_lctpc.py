@@ -5,7 +5,9 @@ from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase
 
 from .models import ImportacionProgramacionLCTPC, Modulacion
-from .services_lctpc import ErrorParseoLCTPC, parsear_programacion
+from .services_lctpc import (
+    ErrorParseoLCTPC, RenglonLCTPC, clasificar, parsear_programacion,
+)
 
 FIXTURES = Path(__file__).resolve().parent / 'tests_fixtures' / 'lctpc'
 ASUNTO_07 = ('Programacion de contenedores a SPF, por horario preferente, '
@@ -98,3 +100,45 @@ class ParsearProgramacionTests(SimpleTestCase):
         ).encode('iso-8859-1')
         with self.assertRaises(ErrorParseoLCTPC):
             parsear_programacion(contenido, 'para el 07 September 2026')
+
+
+def _renglon(contenedor, reg_ini):
+    return RenglonLCTPC(
+        contenedor=contenedor, transportista='3ZYM', folio_lctpc='0',
+        registro_inicio=reg_ini, registro_fin=time(9, 0),
+        cita_inicio=time(9, 0), cita_fin=time(9, 59),
+    )
+
+
+class ClasificarTests(SimpleTestCase):
+    def test_seis_con_misma_hora_dan_tres_full(self):
+        rs = [_renglon(f'C{i}', time(1, 30)) for i in range(6)]
+        clasificar(rs)
+        self.assertTrue(all(r.tipo_cita == 'FULL' for r in rs))
+        self.assertEqual(rs[0].grupo_cita, rs[1].grupo_cita)
+        self.assertEqual(rs[2].grupo_cita, rs[3].grupo_cita)
+        self.assertEqual(rs[4].grupo_cita, rs[5].grupo_cita)
+        self.assertEqual(len({rs[0].grupo_cita, rs[2].grupo_cita, rs[4].grupo_cita}), 3)
+
+    def test_cinco_dan_dos_full_y_un_sencillo(self):
+        rs = [_renglon(f'C{i}', time(1, 30)) for i in range(5)]
+        clasificar(rs)
+        self.assertEqual([r.tipo_cita for r in rs],
+                         ['FULL', 'FULL', 'FULL', 'FULL', 'SENCILLO'])
+        self.assertEqual(rs[4].grupo_cita, '')
+
+    def test_uno_solo_es_sencillo(self):
+        rs = [_renglon('C0', time(2, 30))]
+        clasificar(rs)
+        self.assertEqual(rs[0].tipo_cita, 'SENCILLO')
+        self.assertEqual(rs[0].grupo_cita, '')
+
+    def test_archivo_real_da_3_full_y_4_sencillo(self):
+        prog = parsear_programacion(_leer('3ZYM_202609051401.xls'), ASUNTO_07)
+        clasificar(prog.renglones)
+        tipos = [r.tipo_cita for r in prog.renglones]
+        self.assertEqual(tipos.count('FULL'), 6)
+        self.assertEqual(tipos.count('SENCILLO'), 4)
+        # 6 FULL == 3 pares con grupo distinto
+        grupos_full = {r.grupo_cita for r in prog.renglones if r.tipo_cita == 'FULL'}
+        self.assertEqual(len(grupos_full), 3)
