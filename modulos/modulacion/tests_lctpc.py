@@ -487,6 +487,80 @@ class ImportarProgramacionesTests(TestCase):
         self.assertEqual(imp.estado, 'ERROR')
         self.assertIn('boom db', imp.mensaje_error)
 
+    def test_fila_auditoria_duplicada_en_carrera_no_aborta_el_lote(self):
+        # R1: `ya_vistos` se calcula sin la fila; otra corrida la inserta antes
+        # de que este correo termine (aquí, durante la descarga del adjunto).
+        # El `create()` del camino de error choca contra el `graph_message_id`
+        # único -> IntegrityError. Se traga con warning y
+        # `importar_programaciones_lctpc()` retorna sin propagar.
+        from modulos.modulacion import services_importacion as si
+
+        p_list = patch('modulos.modulacion.services_importacion.listar_correos')
+        p_dl = patch('modulos.modulacion.services_importacion.descargar_adjunto_xls')
+        m_list = p_list.start()
+        m_dl = p_dl.start()
+        self.addCleanup(p_list.stop)
+        self.addCleanup(p_dl.stop)
+        m_list.return_value = [self.correo]
+
+        def descarga_y_registra_en_paralelo(_mid):
+            # simula la corrida concurrente que deja la fila DESPUES de ya_vistos
+            ImportacionProgramacionLCTPC.objects.create(
+                graph_message_id='m1', asunto=ASUNTO_07,
+                fecha_recibido=timezone.now(), estado='OK',
+            )
+            return self.xls
+
+        m_dl.side_effect = descarga_y_registra_en_paralelo
+
+        with patch.object(si, '_procesar_renglon', side_effect=RuntimeError('boom')):
+            with self.assertLogs('modulos.modulacion', level='WARNING') as cm:
+                resumen = importar_programaciones_lctpc()  # no debe propagar
+
+        self.assertEqual(resumen.correos_con_error, 1)
+        self.assertEqual(resumen.correos_procesados, 0)
+        self.assertEqual(
+            ImportacionProgramacionLCTPC.objects.filter(graph_message_id='m1').count(),
+            1,
+        )
+        self.assertTrue(any('duplicada' in linea.lower() for linea in cm.output))
+
+    def test_correo_bueno_sobrevive_aunque_el_siguiente_falle_en_transaccion(self):
+        # R2: cada correo va en su propia transacción. `m1` commitea; `m2`
+        # revienta a mitad de su `atomic()` y su rollback no toca lo de `m1`.
+        segundo = CorreoLCTPC(id='m2', asunto=ASUNTO_07, recibido=timezone.now())
+        self._patch_graph(correos=[self.correo, segundo])
+        from modulos.modulacion import services_importacion as si
+
+        real = si._procesar_renglon
+        estado = {'n': 0}
+
+        def flaky(*args, **kwargs):
+            estado['n'] += 1
+            # el fixture trae 10 renglones: 1..10 son de m1, el 11 es el
+            # primer contenedor de m2.
+            if estado['n'] == 11:
+                raise RuntimeError('boom')
+            return real(*args, **kwargs)
+
+        with patch.object(si, '_procesar_renglon', side_effect=flaky):
+            with self.assertLogs('modulos.modulacion', level='ERROR'):
+                resumen = importar_programaciones_lctpc()
+
+        self.assertEqual(resumen.correos_procesados, 1)
+        self.assertEqual(resumen.correos_con_error, 1)
+        self.assertEqual(resumen.creadas, 10)
+        # m1 persistió: sus 10 modulaciones y su fila de auditoría OK.
+        self.assertEqual(Modulacion.objects.filter(origen='LCTPC').count(), 10)
+        self.assertEqual(
+            ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1').estado,
+            'OK',
+        )
+        # m2 dejó fila ERROR y no creó ninguna Modulacion.
+        imp2 = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m2')
+        self.assertEqual(imp2.estado, 'ERROR')
+        self.assertIn('boom', imp2.mensaje_error)
+
     def test_grapherror_al_listar_no_revienta(self):
         self._patch_graph(list_error=GraphError('token muerto'))
         with self.assertLogs('modulos.modulacion', level='ERROR'):

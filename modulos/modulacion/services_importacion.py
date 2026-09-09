@@ -13,7 +13,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from .models import Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria
@@ -112,14 +112,24 @@ def _procesar_renglon(r, terminal, fecha, agencia_defecto):
 
 def _fila_error(correo, mensaje):
     """Crea la fila de auditoría ERROR. Debe llamarse FUERA de cualquier
-    `atomic()` que se haya revertido, para que la auditoría sí persista."""
-    ImportacionProgramacionLCTPC.objects.create(
-        graph_message_id=correo.id,
-        asunto=correo.asunto,
-        fecha_recibido=correo.recibido or timezone.now(),
-        estado='ERROR',
-        mensaje_error=str(mensaje)[:2000],
-    )
+    `atomic()` que se haya revertido, para que la auditoría sí persista.
+
+    Si otra corrida ya dejó la fila de este correo (carrera entre corridas),
+    el `graph_message_id` único hace fallar el `create()` con `IntegrityError`.
+    Ese caso se traga con un warning: el correo ya quedó registrado y el
+    duplicado no debe abortar el lote.
+    """
+    try:
+        with transaction.atomic():
+            ImportacionProgramacionLCTPC.objects.create(
+                graph_message_id=correo.id,
+                asunto=correo.asunto,
+                fecha_recibido=correo.recibido or timezone.now(),
+                estado='ERROR',
+                mensaje_error=str(mensaje)[:2000],
+            )
+    except IntegrityError:
+        logger.warning('Fila de auditoría duplicada para %s', correo.id)
 
 
 def _procesar_correo(correo, resumen):
