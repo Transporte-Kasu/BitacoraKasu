@@ -390,3 +390,14 @@ class ImportarCommandTests(TestCase):
     def test_command_esta_en_skip_commands_del_scheduler(self):
         from modulos.reportes.apps import _SKIP_COMMANDS
         self.assertIn('importar_programacion_lctpc', _SKIP_COMMANDS)
+
+
+class SchedulerJobLCTPCTests(SimpleTestCase):
+    @patch('config.scheduler.BackgroundScheduler')
+    def test_iniciar_scheduler_registra_job_lctpc(self, MockSched):
+        from config.scheduler import iniciar_scheduler
+        iniciar_scheduler()
+        inst = MockSched.return_value
+        ids = [c.kwargs.get('id') for c in inst.add_job.call_args_list]
+        self.assertIn('importar_programacion_lctpc', ids)
+        self.assertIn('generar_reportes_diario', ids)  # el job existente sigue

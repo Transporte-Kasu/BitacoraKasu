@@ -28,6 +28,15 @@ def _ejecutar_reportes():
         logger.exception('Error ejecutando generar_reportes desde el scheduler')
 
 
+def _ejecutar_importacion_lctpc():
+    """Llama al command importar_programacion_lctpc desde el scheduler."""
+    try:
+        from django.core.management import call_command
+        call_command('importar_programacion_lctpc')
+    except Exception:
+        logger.exception('Error ejecutando importar_programacion_lctpc desde el scheduler')
+
+
 def iniciar_scheduler():
     """Crea e inicia el BackgroundScheduler. Llamar solo una vez al arrancar."""
     partes = HORA_REVISION.split(':')
@@ -45,6 +54,16 @@ def iniciar_scheduler():
         replace_existing=True,
         jobstore='default',
         misfire_grace_time=3600,   # tolera hasta 1 hora de retraso (reinicio del servidor)
+    )
+
+    scheduler.add_job(
+        func=_ejecutar_importacion_lctpc,
+        trigger='interval',
+        minutes=getattr(settings, 'MODULACION_LCTPC_POLL_MINUTOS', 15),
+        id='importar_programacion_lctpc',
+        replace_existing=True,
+        jobstore='default',
+        misfire_grace_time=600,
     )
 
     scheduler.start()
