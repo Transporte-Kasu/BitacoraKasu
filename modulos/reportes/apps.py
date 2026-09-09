@@ -7,7 +7,7 @@ _SKIP_COMMANDS = {
     'migrate', 'makemigrations', 'createsuperuser', 'collectstatic',
     'test', 'shell', 'dbshell', 'check', 'loaddata', 'dumpdata',
     'generar_reportes', 'inspectdb', 'showmigrations', 'sqlmigrate',
-    'flush', 'help',
+    'flush', 'help', 'importar_programacion_lctpc',
 }
 
 

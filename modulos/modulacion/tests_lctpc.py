@@ -1,9 +1,11 @@
 import base64
 from datetime import date, time
 from decimal import Decimal
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from django.core.management import call_command
 from django.db import IntegrityError
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
@@ -14,7 +16,7 @@ from .models import (
 from .services_graph import (
     CorreoLCTPC, GraphError, descargar_adjunto_xls, listar_correos, obtener_token,
 )
-from .services_importacion import importar_programaciones_lctpc
+from .services_importacion import ResumenImportacion, importar_programaciones_lctpc
 from .services_lctpc import (
     ErrorParseoLCTPC, RenglonLCTPC, clasificar, parsear_programacion,
 )
@@ -370,3 +372,21 @@ class ImportarProgramacionesTests(TestCase):
         imp = ImportacionProgramacionLCTPC.objects.get(graph_message_id='m1')
         self.assertEqual(imp.estado, 'OK_CON_AVISOS')
         self.assertEqual(imp.fecha_modulacion_aduana, date(2026, 9, 8))
+
+
+class ImportarCommandTests(TestCase):
+    @patch('modulos.modulacion.management.commands.importar_programacion_lctpc.importar_programaciones_lctpc')
+    def test_command_llama_orquestador_e_imprime_resumen(self, mock_orq):
+        mock_orq.return_value = ResumenImportacion(
+            correos_procesados=1, creadas=3, actualizadas=7,
+        )
+        out = StringIO()
+        call_command('importar_programacion_lctpc', stdout=out)
+        mock_orq.assert_called_once()
+        salida = out.getvalue()
+        self.assertIn('3', salida)
+        self.assertIn('7', salida)
+
+    def test_command_esta_en_skip_commands_del_scheduler(self):
+        from modulos.reportes.apps import _SKIP_COMMANDS
+        self.assertIn('importar_programacion_lctpc', _SKIP_COMMANDS)
