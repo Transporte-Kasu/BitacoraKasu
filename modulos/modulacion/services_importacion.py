@@ -4,10 +4,10 @@ Orquestador del import de programación de citas de LCTPC.
 Recorre los correos del remitente configurado, salta los ya procesados
 CON ÉXITO (`ImportacionProgramacionLCTPC` en estado OK / OK_CON_AVISOS); los
 que quedaron en ERROR se reintentan en cada corrida hasta que salgan bien.
-Por cada correo a procesar: parsea el adjunto, clasifica FULL/SENCILLO y, por
-cada contenedor, actualiza la Modulación activa de la terminal LCTPC o crea un
-stub incompleto. Cada correo se procesa en su propia transacción y deja (o
-reescribe) una fila de auditoría.
+Por cada correo a procesar: parsea el adjunto y, por cada contenedor, actualiza
+la Modulación activa de la terminal LCTPC o crea un stub incompleto (todas las
+citas quedan como SENCILLO). Cada correo se procesa en su propia transacción y
+deja (o reescribe) una fila de auditoría.
 """
 import logging
 from dataclasses import dataclass
