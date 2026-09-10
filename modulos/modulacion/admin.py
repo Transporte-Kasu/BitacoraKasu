@@ -1,6 +1,9 @@
 from django.contrib import admin
 
-from .models import Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria
+from .models import (
+    Agencia, ImportacionProgramacionLCTPC, Modulacion, SeguimientoModulacion,
+    TerminalPortuaria,
+)
 
 
 @admin.register(Agencia)
@@ -20,8 +23,22 @@ class TerminalPortuariaAdmin(admin.ModelAdmin):
     search_fields = ['nombre']
 
 
+class SeguimientoModulacionInline(admin.TabularInline):
+    model = SeguimientoModulacion
+    extra = 0
+    can_delete = False
+    readonly_fields = ['estado', 'usuario', 'nota', 'creado_en']
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Modulacion)
 class ModulacionAdmin(admin.ModelAdmin):
+    inlines = [SeguimientoModulacionInline]
     list_display = [
         'folio', 'contenedor', 'agencia', 'terminal_portuaria',
         'tipo_contenedor', 'cliente', 'unidad', 'operador', 'origen', 'tipo_cita', 'estado', 'fecha_recepcion',
@@ -50,6 +67,21 @@ class ImportacionProgramacionLCTPCAdmin(admin.ModelAdmin):
     search_fields = ['asunto', 'graph_message_id']
     date_hierarchy = 'fecha_recibido'
     ordering = ['-fecha_recibido']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SeguimientoModulacion)
+class SeguimientoModulacionAdmin(admin.ModelAdmin):
+    list_display = ['creado_en', 'modulacion', 'estado', 'usuario']
+    list_filter = ['estado']
+    search_fields = ['modulacion__folio', 'modulacion__contenedor']
+    date_hierarchy = 'creado_en'
+    ordering = ['-creado_en']
 
     def has_add_permission(self, request):
         return False

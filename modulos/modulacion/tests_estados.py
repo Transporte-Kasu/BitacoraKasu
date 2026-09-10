@@ -14,6 +14,7 @@ from modulos.unidades.models import Unidad
 
 def _modulacion(estado='PENDIENTE', **kw):
     kw.setdefault('contenedor', 'ABCU1234567')
+    kw.setdefault('num_doda', f"DODA-{kw['contenedor']}")
     return Modulacion.objects.create(
         agencia=Agencia.objects.get_or_create(nombre='LOGINCO')[0],
         terminal_portuaria=TerminalPortuaria.objects.get_or_create(nombre='LCTPC')[0],
@@ -212,3 +213,29 @@ class AtencionClientesTests(TestCase):
         resp = self.client.get(reverse('modulacion:atencion_clientes'), {'estado': 'RETENIDO'})
         self.assertContains(resp, 'RETE4444444')
         self.assertNotContains(resp, 'INGR2222222')
+
+
+class ListaYDetalleTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('u', 'u@e.com', 'pw')
+        self.client.force_login(self.user)
+
+    def test_lista_usa_badge_class_para_estados_nuevos(self):
+        _modulacion(estado='RECONOCIMIENTO_ADUANAL', contenedor='RECO5555555')
+        resp = self.client.get(reverse('modulacion:list'))
+        self.assertContains(resp, 'RECO5555555')
+        self.assertContains(resp, 'bg-red-100')          # badge_class de RECONOCIMIENTO_ADUANAL
+        self.assertContains(resp, 'Reconocimiento aduanal (rojo)')
+
+    def test_detalle_muestra_linea_de_tiempo(self):
+        m = _modulacion(estado='ASIGNADO')
+        m.transicionar('INGRESADO', usuario=self.user, nota='ingresó a las 8')
+        resp = self.client.get(reverse('modulacion:detail', args=[m.pk]))
+        self.assertContains(resp, 'Ingresado')
+        self.assertContains(resp, 'ingresó a las 8')
+
+    def test_detalle_muestra_botones_de_transicion(self):
+        m = _modulacion(estado='INGRESADO')
+        resp = self.client.get(reverse('modulacion:detail', args=[m.pk]))
+        self.assertContains(resp, 'Desaduanamiento libre (verde)')
+        self.assertContains(resp, 'Reconocimiento aduanal (rojo)')

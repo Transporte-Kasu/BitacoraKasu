@@ -385,3 +385,7 @@ class SeguimientoModulacion(models.Model):
 
     def __str__(self):
         return f"{self.modulacion.folio} → {self.get_estado_display()}"
+
+    @property
+    def badge_class(self):
+        return _BADGE_POR_ESTADO.get(self.estado, 'bg-gray-100 text-gray-700')

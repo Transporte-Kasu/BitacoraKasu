@@ -21,7 +21,7 @@
                 <h1 class="text-lg font-bold text-gray-900">{{ modulacion.folio }} — {{ modulacion.contenedor }}</h1>
                 <p class="text-sm text-gray-500 mt-0.5">Origen: {{ modulacion.get_origen_display }} · Recibido {{ modulacion.fecha_recepcion|date:"d/m/Y H:i" }}</p>
             </div>
-            <span class="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">{{ modulacion.get_estado_display }}</span>
+            <span class="inline-block px-3 py-1 {{ modulacion.badge_class }} text-xs font-semibold rounded-full">{{ modulacion.get_estado_display }}</span>
         </div>
 
         <div class="px-6 py-5 grid grid-cols-2 gap-4 text-sm">
@@ -71,6 +71,7 @@
             </a>
             <a href="{% url 'modulacion:delete' modulacion.pk %}"
                class="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition">Eliminar</a>
+            {% include "modulacion/_botones_transicion.html" with modulacion=modulacion next=request.get_full_path %}
         </div>
     </div>
 
@@ -101,6 +102,25 @@
                 </button>
             </form>
         </div>
+    </div>
+    {% endif %}
+
+    {% if modulacion.seguimientos.all %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-700">Historial de estados</h2>
+        </div>
+        <ol class="px-6 py-4 space-y-3">
+            {% for s in modulacion.seguimientos.all %}
+            <li class="flex items-start gap-3 text-sm">
+                <span class="inline-block mt-0.5 px-2 py-0.5 text-xs font-semibold rounded-full {{ s.badge_class }}">{{ s.get_estado_display }}</span>
+                <div>
+                    <div class="text-gray-500">{{ s.creado_en|date:"d/m/Y H:i" }}{% if s.usuario %} · {{ s.usuario.get_username }}{% endif %}</div>
+                    {% if s.nota %}<div class="text-gray-700">{{ s.nota }}</div>{% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ol>
     </div>
     {% endif %}
 </div>
