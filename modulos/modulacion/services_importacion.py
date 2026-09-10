@@ -20,7 +20,7 @@ from django.utils import timezone
 
 from .models import Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria
 from .services_graph import GraphError, descargar_adjunto_xls, listar_correos
-from .services_lctpc import clasificar, parsear_programacion
+from .services_lctpc import parsear_programacion
 
 logger = logging.getLogger('modulos.modulacion')
 
@@ -76,8 +76,8 @@ def _procesar_renglon(r, terminal, fecha, agencia_defecto):
         m.fecha_modulacion_aduana = fecha
         m.hora_registro = hora_reg
         m.hora_ingreso = hora_ing
-        m.tipo_cita = r.tipo_cita
-        m.grupo_cita = r.grupo_cita
+        m.tipo_cita = 'SENCILLO'
+        m.grupo_cita = ''
         _anexar_observacion(m, r)
         m.save()
         resultado = 'ACTUALIZADA_AMBIGUA' if qs.count() > 1 else 'ACTUALIZADA'
@@ -94,8 +94,8 @@ def _procesar_renglon(r, terminal, fecha, agencia_defecto):
             fecha_modulacion_aduana=fecha,
             hora_registro=hora_reg,
             hora_ingreso=hora_ing,
-            tipo_cita=r.tipo_cita,
-            grupo_cita=r.grupo_cita,
+            tipo_cita='SENCILLO',
+            grupo_cita='',
             observaciones=(
                 'Creada desde programación LCTPC — faltan agencia/cliente/tipo/peso.\n'
                 + _linea_observacion(r)
@@ -108,7 +108,7 @@ def _procesar_renglon(r, terminal, fecha, agencia_defecto):
         'folio_lctpc': r.folio_lctpc,
         'resultado': resultado,
         'modulacion_id': m.id,
-        'tipo_cita': r.tipo_cita,
+        'tipo_cita': 'SENCILLO',
     }
 
 
@@ -159,7 +159,6 @@ def _procesar_correo(correo, resumen):
     try:
         xls = descargar_adjunto_xls(correo.id)
         prog = parsear_programacion(xls, correo.asunto)
-        clasificar(prog.renglones)
 
         # Búsqueda estricta: nunca crear la terminal. Un nombre que no cuadra
         # con el setting es un error de configuración, no un caso a inventar.
