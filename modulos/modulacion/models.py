@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import IntegrityError, models, transaction
 from django.db.models import Q
@@ -50,6 +51,45 @@ class TerminalPortuaria(models.Model):
         return self.nombre
 
 
+TRANSICIONES_MODULACION = {
+    'PENDIENTE': ['ASIGNADO'],
+    'MODULADO': ['ASIGNADO'],
+    'ASIGNADO': ['INGRESADO'],
+    'INGRESADO': ['DESADUANAMIENTO_LIBRE', 'RECONOCIMIENTO_ADUANAL'],
+    'DESADUANAMIENTO_LIBRE': ['VERIFICACION_EN_TRANSPORTE', 'EN_PATIO_ESPERANZA'],
+    'RECONOCIMIENTO_ADUANAL': ['RETENIDO', 'EN_PATIO_ESPERANZA'],
+    'RETENIDO': ['EN_PATIO_ESPERANZA'],
+    'VERIFICACION_EN_TRANSPORTE': ['EN_PATIO_ESPERANZA'],
+    'EN_PATIO_ESPERANZA': ['ENVIADO_BITACORA', 'RETIRADO_TERCERO'],
+    'ENVIADO_BITACORA': [],
+    'RETIRADO_TERCERO': [],
+}
+
+# Estados que muestra el tablero de Atención a Clientes (ni iniciales ni terminales).
+ESTADOS_EN_SEGUIMIENTO = [
+    'ASIGNADO', 'INGRESADO', 'DESADUANAMIENTO_LIBRE', 'RECONOCIMIENTO_ADUANAL',
+    'RETENIDO', 'VERIFICACION_EN_TRANSPORTE', 'EN_PATIO_ESPERANZA',
+]
+
+_BADGE_POR_ESTADO = {
+    'PENDIENTE': 'bg-gray-100 text-gray-700',
+    'MODULADO': 'bg-gray-100 text-gray-700',
+    'ASIGNADO': 'bg-indigo-100 text-indigo-700',
+    'INGRESADO': 'bg-blue-100 text-blue-700',
+    'DESADUANAMIENTO_LIBRE': 'bg-green-100 text-green-700',
+    'RECONOCIMIENTO_ADUANAL': 'bg-red-100 text-red-700',
+    'RETENIDO': 'bg-amber-100 text-amber-700',
+    'VERIFICACION_EN_TRANSPORTE': 'bg-purple-100 text-purple-700',
+    'EN_PATIO_ESPERANZA': 'bg-green-100 text-green-700',
+    'ENVIADO_BITACORA': 'bg-blue-100 text-blue-700',
+    'RETIRADO_TERCERO': 'bg-gray-100 text-gray-700',
+}
+
+
+class TransicionInvalida(Exception):
+    """Se intentó un cambio de estado que TRANSICIONES_MODULACION no permite."""
+
+
 class Modulacion(models.Model):
     """
     Registro de un contenedor recibido para su extracción/modulación.
@@ -66,6 +106,12 @@ class Modulacion(models.Model):
     ESTADO_CHOICES = [
         ('PENDIENTE', 'Pendiente de modulación'),
         ('MODULADO', 'Modulado'),
+        ('ASIGNADO', 'Asignado / pendiente de ingreso'),
+        ('INGRESADO', 'Ingresado'),
+        ('DESADUANAMIENTO_LIBRE', 'Desaduanamiento libre (verde)'),
+        ('RECONOCIMIENTO_ADUANAL', 'Reconocimiento aduanal (rojo)'),
+        ('RETENIDO', 'Retenido (esperando aduana)'),
+        ('VERIFICACION_EN_TRANSPORTE', 'Verificación en transporte'),
         ('EN_PATIO_ESPERANZA', 'En Patio Esperanza'),
         ('ENVIADO_BITACORA', 'Enviado a Bitácora de Viajes'),
         ('RETIRADO_TERCERO', 'Retirado por transporte externo'),
@@ -109,7 +155,7 @@ class Modulacion(models.Model):
     num_doda = models.CharField(max_length=34, blank=True, verbose_name="Número de DODA")
 
     origen = models.CharField(max_length=10, choices=ORIGEN_CHOICES, default='MANUAL', verbose_name="Origen")
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='PENDIENTE', verbose_name="Estado")
+    estado = models.CharField(max_length=30, choices=ESTADO_CHOICES, default='PENDIENTE', verbose_name="Estado")
 
     unidad = models.ForeignKey(
         'unidades.Unidad',
@@ -244,6 +290,30 @@ class Modulacion(models.Model):
             f'No se pudo generar un folio único para {fecha} después de varios intentos'
         ) from ultimo_error
 
+    @property
+    def badge_class(self):
+        """Clase Tailwind del chip de estado (para plantillas)."""
+        return _BADGE_POR_ESTADO.get(self.estado, 'bg-gray-100 text-gray-700')
+
+    def transicionar(self, nuevo_estado, *, usuario=None, nota=''):
+        """Cambia de estado validando contra TRANSICIONES_MODULACION y deja
+        una fila de SeguimientoModulacion. Lanza TransicionInvalida si el
+        salto no está permitido desde el estado actual."""
+        if nuevo_estado not in TRANSICIONES_MODULACION.get(self.estado, []):
+            raise TransicionInvalida(
+                f'{self.folio}: no se puede pasar de {self.estado} a {nuevo_estado}.'
+            )
+        with transaction.atomic():
+            self.estado = nuevo_estado
+            if nuevo_estado == 'EN_PATIO_ESPERANZA' and self.fecha_patio_esperanza is None:
+                self.fecha_patio_esperanza = timezone.now()
+            if nuevo_estado == 'RETIRADO_TERCERO' and self.fecha_retiro is None:
+                self.fecha_retiro = timezone.now()
+            self.save()
+            SeguimientoModulacion.objects.create(
+                modulacion=self, estado=nuevo_estado, usuario=usuario, nota=nota,
+            )
+
 
 class ImportacionProgramacionLCTPC(models.Model):
     """
@@ -283,3 +353,29 @@ class ImportacionProgramacionLCTPC(models.Model):
 
     def __str__(self):
         return f"{self.asunto} ({self.estado})"
+
+
+class SeguimientoModulacion(models.Model):
+    """Historial de cambios de estado de una Modulación. Una fila por
+    transición hecha vía `Modulacion.transicionar()`."""
+    modulacion = models.ForeignKey(
+        Modulacion, on_delete=models.CASCADE, related_name='seguimientos',
+        verbose_name="Modulación",
+    )
+    estado = models.CharField(
+        max_length=30, choices=Modulacion.ESTADO_CHOICES, verbose_name="Estado",
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name="Usuario",
+    )
+    nota = models.TextField(blank=True, verbose_name="Nota")
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Seguimiento de modulación"
+        verbose_name_plural = "Seguimientos de modulación"
+        ordering = ['creado_en']
+
+    def __str__(self):
+        return f"{self.modulacion.folio} → {self.get_estado_display()}"
