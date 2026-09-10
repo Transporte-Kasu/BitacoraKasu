@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 
@@ -5,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -31,6 +33,7 @@ from .models import (
     Agencia, ESTADOS_EN_SEGUIMIENTO, Modulacion, TerminalPortuaria, TransicionInvalida,
 )
 from .models import ImportacionProgramacionLCTPC
+from .reportes import construir_programa_despacho
 from .services_importacion import importar_programaciones_lctpc
 from .tokens import resolver_modulacion
 
@@ -608,3 +611,34 @@ def avanzar_estado_modulacion(request, pk):
             f'{modulacion.folio}: {modulacion.get_estado_display()}.',
         )
     return redirect(destino)
+
+
+class ReporteProgramaDespachoView(LoginRequiredMixin, TemplateView):
+    """Form con selector de fecha para descargar el Programa de despacho (.xlsx)."""
+    template_name = 'modulacion/reporte_despacho.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['fecha'] = timezone.localdate().isoformat()
+        return ctx
+
+
+def _parse_fecha(texto):
+    try:
+        return datetime.date.fromisoformat(texto or '')
+    except (TypeError, ValueError):
+        return None
+
+
+@login_required
+def descargar_programa_despacho(request):
+    fecha = _parse_fecha(request.GET.get('fecha')) or timezone.localdate()
+    wb = construir_programa_despacho(fecha)
+    resp = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    resp['Content-Disposition'] = (
+        f'attachment; filename="programa_despacho_{fecha.isoformat()}.xlsx"'
+    )
+    wb.save(resp)
+    return resp

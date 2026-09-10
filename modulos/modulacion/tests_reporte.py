@@ -3,7 +3,9 @@ from decimal import Decimal
 from io import BytesIO
 
 import openpyxl
+from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from modulos.bitacoras.models import Cliente
@@ -139,3 +141,48 @@ class ConstruirProgramaDespachoTests(TestCase):
         c = ws.cell(row=fila, column=5)
         self.assertEqual(c.value, 10.37)
         self.assertEqual(c.number_format, '0.00')
+
+
+class ReporteDespachoViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('u', 'u@e.com', 'pw')
+
+    def test_form_requiere_login(self):
+        resp = self.client.get(reverse('modulacion:reporte_despacho'))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_form_muestra_input_de_fecha_con_hoy(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('modulacion:reporte_despacho'))
+        self.assertEqual(resp.status_code, 200)
+        hoy = timezone.localdate().isoformat()
+        self.assertContains(resp, 'type="date"')
+        self.assertContains(resp, f'value="{hoy}"')
+
+    def test_descarga_xlsx(self):
+        self.client.force_login(self.user)
+        _mod()
+        resp = self.client.get(
+            reverse('modulacion:reporte_despacho_xlsx'), {'fecha': '2026-08-28'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
+            resp['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        self.assertIn('attachment; filename="programa_despacho_2026-08-28.xlsx"',
+                      resp['Content-Disposition'])
+        wb = openpyxl.load_workbook(BytesIO(resp.getvalue()))
+        self.assertEqual(wb.active['A1'].value, 'FECHA DE DESPACHO')
+
+    def test_descarga_sin_fecha_usa_hoy(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('modulacion:reporte_despacho_xlsx'))
+        self.assertEqual(resp.status_code, 200)
+        hoy = timezone.localdate().isoformat()
+        self.assertIn(f'programa_despacho_{hoy}.xlsx', resp['Content-Disposition'])
+
+    def test_descarga_fecha_invalida_usa_hoy(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(
+            reverse('modulacion:reporte_despacho_xlsx'), {'fecha': 'no-es-fecha'})
+        self.assertEqual(resp.status_code, 200)

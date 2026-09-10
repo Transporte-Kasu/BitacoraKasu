@@ -45,6 +45,10 @@ urlpatterns = [
     path('atencion-clientes/', views.AtencionClientesView.as_view(), name='atencion_clientes'),
     path('atencion-clientes/<int:pk>/avanzar/', views.avanzar_estado_modulacion, name='avanzar_estado'),
 
+    # Reporte "Programa de despacho" (.xlsx)
+    path('reporte-despacho/', views.ReporteProgramaDespachoView.as_view(), name='reporte_despacho'),
+    path('reporte-despacho/xlsx/', views.descargar_programa_despacho, name='reporte_despacho_xlsx'),
+
     # API de recepción (HAL9MIL)
     path('api/recibir/', views_api.recibir_modulacion, name='api_recibir'),
 ]
