@@ -7,9 +7,10 @@ from .services_full import evaluar_fusion, unidades_bloqueadas_ids
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ['nombre', 'email', 'celular', 'activo']
+        fields = ['nombre', 'alias', 'email', 'celular', 'activo']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del cliente'}),
+            'alias': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'MOY'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'correo@empresa.com'}),
             'celular': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+52 753 123 4567'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

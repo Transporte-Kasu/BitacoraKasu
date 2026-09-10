@@ -40,6 +40,7 @@
         <thead>
             <tr class="bg-gray-50 border-b border-gray-100 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <th class="px-4 py-3">Nombre</th>
+                <th class="px-4 py-3">Alias</th>
                 <th class="px-4 py-3">Email</th>
                 <th class="px-4 py-3">Celular</th>
                 <th class="px-4 py-3 text-center">Estado</th>
@@ -50,6 +51,7 @@
             {% for cliente in clientes %}
             <tr class="hover:bg-gray-50 transition">
                 <td class="px-4 py-3 font-medium text-gray-900">{{ cliente.nombre }}</td>
+                <td class="px-4 py-3 text-gray-600">{{ cliente.alias|default:"—" }}</td>
                 <td class="px-4 py-3 text-gray-600">{{ cliente.email|default:"—" }}</td>
                 <td class="px-4 py-3 text-gray-600">{{ cliente.celular|default:"—" }}</td>
                 <td class="px-4 py-3 text-center">

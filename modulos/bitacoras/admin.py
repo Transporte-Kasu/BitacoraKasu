@@ -5,9 +5,10 @@ from .models import BitacoraViaje, Cliente
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'email', 'celular', 'activo', 'created_at']
+    list_display = ['nombre', 'alias', 'email', 'celular', 'activo', 'created_at']
+    list_editable = ['alias']
     list_filter = ['activo']
-    search_fields = ['nombre', 'email', 'celular']
+    search_fields = ['nombre', 'alias', 'email', 'celular']
 
 
 @admin.register(BitacoraViaje)

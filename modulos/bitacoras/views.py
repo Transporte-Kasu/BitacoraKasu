@@ -414,7 +414,10 @@ class ClienteListView(LoginRequiredMixin, ListView):
         qs = Cliente.objects.all()
         q = self.request.GET.get('q')
         if q:
-            qs = qs.filter(Q(nombre__icontains=q) | Q(email__icontains=q) | Q(celular__icontains=q))
+            qs = qs.filter(
+                Q(nombre__icontains=q) | Q(alias__icontains=q)
+                | Q(email__icontains=q) | Q(celular__icontains=q)
+            )
         return qs
 
 

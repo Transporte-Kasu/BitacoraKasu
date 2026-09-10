@@ -36,6 +36,16 @@
                 {% endif %}
             </div>
 
+            <!-- Alias -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Alias</label>
+                {{ form.alias }}
+                <p class="text-xs text-gray-400 mt-1">Código corto para agrupar en reportes (ej. MOY, NOLASCO).</p>
+                {% if form.alias.errors %}
+                <p class="text-xs text-red-500 mt-1">{{ form.alias.errors.0 }}</p>
+                {% endif %}
+            </div>
+
             <!-- Email -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>

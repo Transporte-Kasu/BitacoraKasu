@@ -7,6 +7,10 @@ import os
 class Cliente(models.Model):
     """Cliente que recibe notificaciones de programación de contenedores."""
     nombre = models.CharField(max_length=120, verbose_name="Nombre")
+    alias = models.CharField(
+        max_length=20, blank=True, verbose_name="Alias",
+        help_text="Código corto para agrupar viajes y modulaciones en reportes.",
+    )
     email = models.EmailField(blank=True, verbose_name="Correo electrónico")
     celular = models.CharField(
         max_length=20,
@@ -24,6 +28,11 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def etiqueta(self):
+        """Alias corto si hay; si no, el nombre completo."""
+        return self.alias or self.nombre
 
 
 class BitacoraViaje(models.Model):
