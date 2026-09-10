@@ -818,15 +818,19 @@ class PatioEsperanzaFlowTests(TestCase):
         self.modulacion = _crear_modulacion()
 
     def test_enviar_a_patio_esperanza_cambia_estado_y_sella_fecha(self):
+        # El flujo respeta TRANSICIONES_MODULACION: se llega a Patio Esperanza
+        # desde un estado aduanal válido (no directamente desde PENDIENTE).
+        self.modulacion.estado = 'DESADUANAMIENTO_LIBRE'
+        self.modulacion.save(update_fields=['estado'])
         url = reverse('modulacion:enviar_a_patio_esperanza', kwargs={'pk': self.modulacion.pk})
         self.client.post(url)
         self.modulacion.refresh_from_db()
         self.assertEqual(self.modulacion.estado, 'EN_PATIO_ESPERANZA')
         self.assertIsNotNone(self.modulacion.fecha_patio_esperanza)
 
-        # Reenviar no re-sella la fecha original.
+        # Reenviar (desde otro camino válido) no re-sella la fecha original.
         fecha_original = self.modulacion.fecha_patio_esperanza
-        self.modulacion.estado = 'MODULADO'
+        self.modulacion.estado = 'VERIFICACION_EN_TRANSPORTE'
         self.modulacion.save(update_fields=['estado'])
         self.client.post(url)
         self.modulacion.refresh_from_db()

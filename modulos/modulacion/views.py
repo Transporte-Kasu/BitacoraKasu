@@ -24,7 +24,7 @@ from .forms import (
     RetiroExternoForm,
     TerminalPortuariaForm,
 )
-from .models import Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria
+from .models import Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria, TransicionInvalida
 from .services_importacion import importar_programaciones_lctpc
 from .tokens import resolver_modulacion
 
@@ -170,7 +170,6 @@ class ModulacionCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         modulacion = form.save(commit=False)
         modulacion.origen = 'MANUAL'
-        modulacion.estado = 'MODULADO'
         modulacion.save()
         messages.success(self.request, f'Modulación {modulacion.folio} creada exitosamente.')
         return redirect(reverse('modulacion:detail', kwargs={'pk': modulacion.pk}))
@@ -183,8 +182,6 @@ class ModulacionUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         modulacion = form.save(commit=False)
-        if modulacion.estado == 'PENDIENTE':
-            modulacion.estado = 'MODULADO'
         modulacion.save()
         messages.success(self.request, f'Modulación {modulacion.folio} actualizada.')
         return redirect(reverse('modulacion:detail', kwargs={'pk': modulacion.pk}))
@@ -218,6 +215,12 @@ class AsignarUnidadOperadorView(LoginRequiredMixin, UpdateView):
         if modulacion.fecha_asignacion is None:
             modulacion.fecha_asignacion = timezone.now()
         modulacion.save()
+        # Al quedar unidad + operador sobre una Modulación aún pendiente, el
+        # flujo avanza solo a ASIGNADO (dejando historial). Si ya avanzó
+        # (reasignación), el estado no se toca.
+        if (modulacion.estado == 'PENDIENTE'
+                and modulacion.unidad_id and modulacion.operador_id):
+            modulacion.transicionar('ASIGNADO', usuario=self.request.user)
         messages.success(self.request, f'Unidad y operador asignados a {modulacion.folio}.')
         return redirect(reverse('modulacion:detail', kwargs={'pk': modulacion.pk}))
 
@@ -294,9 +297,9 @@ class EnviarABitacoraView(LoginRequiredMixin, View):
                 full = fusionar_en_full(
                     res['sencillo'], datos_segundo, tipo_full=res['tipo_full'])
                 modulacion.bitacora_viaje = full
-                modulacion.estado = 'ENVIADO_BITACORA'
                 modulacion.fecha_retiro = timezone.now()
                 modulacion.save()
+                modulacion.transicionar('ENVIADO_BITACORA', usuario=request.user)
             messages.success(
                 request,
                 f'Modulación {modulacion.folio} unida al Full #{full.pk} (2 contenedores).')
@@ -319,9 +322,9 @@ class EnviarABitacoraView(LoginRequiredMixin, View):
                 bitacora.calcular_distancia_google(api_key)
 
         modulacion.bitacora_viaje = bitacora
-        modulacion.estado = 'ENVIADO_BITACORA'
         modulacion.fecha_retiro = timezone.now()
         modulacion.save()
+        modulacion.transicionar('ENVIADO_BITACORA', usuario=request.user)
 
         messages.success(
             request,
@@ -334,11 +337,12 @@ class EnviarABitacoraView(LoginRequiredMixin, View):
 @require_POST
 def enviar_a_patio_esperanza(request, pk):
     modulacion = get_object_or_404(Modulacion, pk=pk)
-    modulacion.estado = 'EN_PATIO_ESPERANZA'
-    if modulacion.fecha_patio_esperanza is None:
-        modulacion.fecha_patio_esperanza = timezone.now()
-    modulacion.save()
-    messages.success(request, f'Modulación {modulacion.folio} enviada al Patio Esperanza.')
+    try:
+        modulacion.transicionar('EN_PATIO_ESPERANZA', usuario=request.user)
+    except TransicionInvalida as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f'Modulación {modulacion.folio} enviada al Patio Esperanza.')
     return redirect(reverse('modulacion:detail', kwargs={'pk': modulacion.pk}))
 
 
@@ -354,10 +358,13 @@ def retirar_de_patio(request, pk):
     form = RetiroExternoForm(request.POST)
     if form.is_valid():
         modulacion.transportista_externo = form.cleaned_data['transportista_externo']
-        modulacion.estado = 'RETIRADO_TERCERO'
-        modulacion.fecha_retiro = timezone.now()
-        modulacion.save()
-        messages.success(request, f'Modulación {modulacion.folio} marcada como retirada por transporte externo.')
+        modulacion.save(update_fields=['transportista_externo'])
+        try:
+            modulacion.transicionar('RETIRADO_TERCERO', usuario=request.user)
+        except TransicionInvalida as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, f'Modulación {modulacion.folio} marcada como retirada por transporte externo.')
     else:
         messages.error(request, 'Indique el nombre del transportista externo.')
 

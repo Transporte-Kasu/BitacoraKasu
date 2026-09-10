@@ -71,14 +71,6 @@
             </a>
             <a href="{% url 'modulacion:delete' modulacion.pk %}"
                class="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition">Eliminar</a>
-
-            {% if modulacion.estado == 'PENDIENTE' or modulacion.estado == 'MODULADO' %}
-            <form method="post" action="{% url 'modulacion:enviar_a_patio_esperanza' modulacion.pk %}">
-                {% csrf_token %}
-                <button type="submit"
-                        class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition">Enviar a Patio Esperanza</button>
-            </form>
-            {% endif %}
         </div>
     </div>
 

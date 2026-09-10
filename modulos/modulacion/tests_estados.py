@@ -2,11 +2,14 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 
 from modulos.modulacion.models import (
     Agencia, Modulacion, SeguimientoModulacion, TerminalPortuaria,
     TransicionInvalida, TRANSICIONES_MODULACION,
 )
+from modulos.operadores.models import Operador
+from modulos.unidades.models import Unidad
 
 
 def _modulacion(estado='PENDIENTE', **kw):
@@ -62,6 +65,76 @@ class TransicionarTests(TestCase):
     def test_mapa_cubre_todos_los_estados(self):
         claves = {c[0] for c in Modulacion.ESTADO_CHOICES}
         self.assertEqual(set(TRANSICIONES_MODULACION), claves)
+
+
+class AutoAsignadoTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('u', 'u@e.com', 'pw')
+        self.client.force_login(self.user)
+        self.unidad = Unidad.objects.create(
+            numero_economico='E-1', tipo='LOCAL', activa=True,
+            placa='E1-001', año=2020,
+            capacidad_combustible=Decimal('200.00'),
+            rendimiento_esperado=Decimal('3.00'),
+        )
+        self.operador = Operador.objects.create(nombre='Juan', tipo='LOCAL', activo=True)
+
+    def _post_asignar(self, m):
+        return self.client.post(
+            reverse('modulacion:asignar', args=[m.pk]),
+            {'unidad': self.unidad.pk, 'operador': self.operador.pk},
+        )
+
+    def test_asignar_unidad_y_operador_promueve_pendiente_a_asignado(self):
+        m = _modulacion(estado='PENDIENTE')
+        self._post_asignar(m)
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'ASIGNADO')
+        self.assertIsNotNone(m.fecha_asignacion)
+        seg = SeguimientoModulacion.objects.get(modulacion=m)
+        self.assertEqual(seg.estado, 'ASIGNADO')
+        self.assertEqual(seg.usuario, self.user)
+
+    def test_reasignar_no_cambia_estado_si_ya_avanzo(self):
+        m = _modulacion(estado='INGRESADO')
+        self._post_asignar(m)
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'INGRESADO')
+        self.assertEqual(SeguimientoModulacion.objects.filter(modulacion=m).count(), 0)
+
+
+class RutasExistentesTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('u', 'u@e.com', 'pw')
+        self.client.force_login(self.user)
+
+    def test_enviar_a_patio_desde_estado_valido_deja_historial(self):
+        m = _modulacion(estado='DESADUANAMIENTO_LIBRE')
+        self.client.post(reverse('modulacion:enviar_a_patio_esperanza', args=[m.pk]))
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'EN_PATIO_ESPERANZA')
+        self.assertTrue(SeguimientoModulacion.objects.filter(
+            modulacion=m, estado='EN_PATIO_ESPERANZA').exists())
+
+    def test_enviar_a_patio_desde_estado_invalido_no_hace_nada(self):
+        m = _modulacion(estado='ASIGNADO')
+        resp = self.client.post(
+            reverse('modulacion:enviar_a_patio_esperanza', args=[m.pk]), follow=True)
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'ASIGNADO')
+        self.assertContains(resp, 'no se puede pasar')
+
+    def test_retiro_externo_desde_patio_deja_historial(self):
+        m = _modulacion(estado='EN_PATIO_ESPERANZA')
+        self.client.post(
+            reverse('modulacion:retirar_de_patio', args=[m.pk]),
+            {'transportista_externo': 'Fletes SA'},
+        )
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'RETIRADO_TERCERO')
+        self.assertEqual(m.transportista_externo, 'Fletes SA')
+        self.assertTrue(SeguimientoModulacion.objects.filter(
+            modulacion=m, estado='RETIRADO_TERCERO').exists())
 
 
 class BadgeClassTests(TestCase):
