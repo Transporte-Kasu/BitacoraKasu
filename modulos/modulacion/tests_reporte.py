@@ -77,6 +77,12 @@ class ConstruirProgramaDespachoTests(TestCase):
         self.assertEqual(datos[12], 'NO')
         self.assertEqual(datos[13], 1)
 
+    def test_tipo_toma_solo_los_digitos_iniciales(self):
+        _mod(tipo_contenedor='45G1', contenedor='ZZZU9999999')
+        ws = construir_programa_despacho(FECHA).active
+        datos = [r for r in _rows(ws) if r[5] == 'ZZZU9999999'][0]
+        self.assertEqual(datos[3], '45')
+
     def test_tres_horas_llevan_fondo(self):
         _mod(hora_registro=_aware(2026, 8, 28, 9, 30),
              hora_ingreso=_aware(2026, 8, 28, 11, 0),

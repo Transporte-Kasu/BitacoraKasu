@@ -6,6 +6,7 @@ control de la terminal.
 Módulo puro: construye el Workbook; no toca request/response.
 """
 import datetime
+import re
 from itertools import groupby
 
 import openpyxl
@@ -70,8 +71,9 @@ def _linea_unidad(unidad):
 
 
 def _tipo(m):
-    digitos = ''.join(c for c in (m.tipo_contenedor or '') if c.isdigit())
-    return digitos or (m.tipo_contenedor or '')
+    # Solo los dígitos iniciales: '40HC' -> '40', '45G1' -> '45'.
+    m_ini = re.match(r'\d+', m.tipo_contenedor or '')
+    return m_ini.group(0) if m_ini else (m.tipo_contenedor or '')
 
 
 def _etiqueta_grupo(m):
