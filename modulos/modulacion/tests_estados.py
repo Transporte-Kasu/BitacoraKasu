@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -239,3 +240,12 @@ class ListaYDetalleTests(TestCase):
         resp = self.client.get(reverse('modulacion:detail', args=[m.pk]))
         self.assertContains(resp, 'Desaduanamiento libre (verde)')
         self.assertContains(resp, 'Reconocimiento aduanal (rojo)')
+
+
+class AdminSeguimientoTests(TestCase):
+    def test_admin_de_seguimiento_es_solo_lectura(self):
+        from modulos.modulacion.admin import SeguimientoModulacionAdmin
+        adm = SeguimientoModulacionAdmin(SeguimientoModulacion, admin.site)
+        self.assertFalse(adm.has_add_permission(None))
+        self.assertFalse(adm.has_change_permission(None))
+        self.assertFalse(adm.has_delete_permission(None))
