@@ -41,6 +41,10 @@ urlpatterns = [
     path('lctpc/importar/', views.importar_programacion_lctpc, name='lctpc_importar'),
     path('lctpc/<int:pk>/', views.ImportacionProgramacionLCTPCDetailView.as_view(), name='lctpc_detail'),
 
+    # Atención a Clientes (seguimiento aduanal)
+    path('atencion-clientes/', views.AtencionClientesView.as_view(), name='atencion_clientes'),
+    path('atencion-clientes/<int:pk>/avanzar/', views.avanzar_estado_modulacion, name='avanzar_estado'),
+
     # API de recepción (HAL9MIL)
     path('api/recibir/', views_api.recibir_modulacion, name='api_recibir'),
 ]

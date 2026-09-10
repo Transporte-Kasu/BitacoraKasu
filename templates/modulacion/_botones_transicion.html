@@ -1,0 +1,21 @@
+{% comment %}
+Espera en contexto: `modulacion` y (opcional) `next` (querystring de retorno).
+Dibuja un form POST por cada transición válida desde el estado actual.
+{% endcomment %}
+<div class="flex flex-wrap items-center gap-2">
+    {% for clave, label in modulacion.transiciones_validas %}
+    <form method="post" action="{% url 'modulacion:avanzar_estado' modulacion.pk %}" class="flex items-center gap-1">
+        {% csrf_token %}
+        <input type="hidden" name="nuevo_estado" value="{{ clave }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <input type="text" name="nota" placeholder="nota (opcional)"
+               class="hidden md:block text-xs border border-gray-200 rounded px-2 py-1">
+        <button type="submit"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition min-h-[36px]">
+            → {{ label }}
+        </button>
+    </form>
+    {% empty %}
+    <span class="text-xs text-gray-400">Sin transiciones</span>
+    {% endfor %}
+</div>

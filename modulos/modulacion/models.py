@@ -295,6 +295,12 @@ class Modulacion(models.Model):
         """Clase Tailwind del chip de estado (para plantillas)."""
         return _BADGE_POR_ESTADO.get(self.estado, 'bg-gray-100 text-gray-700')
 
+    @property
+    def transiciones_validas(self):
+        """[(clave, label)] de los estados a los que se puede pasar ahora."""
+        labels = dict(self.ESTADO_CHOICES)
+        return [(c, labels[c]) for c in TRANSICIONES_MODULACION.get(self.estado, [])]
+
     def transicionar(self, nuevo_estado, *, usuario=None, nota=''):
         """Cambia de estado validando contra TRANSICIONES_MODULACION y deja
         una fila de SeguimientoModulacion. Lanza TransicionInvalida si el

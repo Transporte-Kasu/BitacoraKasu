@@ -10,7 +10,9 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views import View
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import (
+    CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView,
+)
 
 from modulos.bitacoras.models import BitacoraViaje
 from modulos.operadores.models import Operador
@@ -24,7 +26,10 @@ from .forms import (
     RetiroExternoForm,
     TerminalPortuariaForm,
 )
-from .models import Agencia, ImportacionProgramacionLCTPC, Modulacion, TerminalPortuaria, TransicionInvalida
+from .models import (
+    Agencia, ESTADOS_EN_SEGUIMIENTO, Modulacion, TerminalPortuaria, TransicionInvalida,
+)
+from .models import ImportacionProgramacionLCTPC
 from .services_importacion import importar_programaciones_lctpc
 from .tokens import resolver_modulacion
 
@@ -524,3 +529,65 @@ class ImportacionProgramacionLCTPCDetailView(LoginRequiredMixin, DetailView):
     model = ImportacionProgramacionLCTPC
     template_name = 'modulacion/importacion_lctpc_detail.html'
     context_object_name = 'importacion'
+
+
+# ============================================================================
+# ATENCIÓN A CLIENTES (seguimiento aduanal)
+# ============================================================================
+
+class AtencionClientesView(LoginRequiredMixin, TemplateView):
+    """Tablero de seguimiento aduanal: modulaciones desde ASIGNADO hasta
+    EN_PATIO_ESPERANZA, agrupadas por estado, con botones de avance."""
+    template_name = 'modulacion/atencion_clientes.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        qs = (
+            Modulacion.objects
+            .filter(estado__in=ESTADOS_EN_SEGUIMIENTO)
+            .select_related('cliente', 'unidad', 'operador', 'agencia', 'terminal_portuaria')
+            .order_by('fecha_recepcion')
+        )
+        estado = self.request.GET.get('estado') or ''
+        cliente = self.request.GET.get('cliente') or ''
+        if estado in ESTADOS_EN_SEGUIMIENTO:
+            qs = qs.filter(estado=estado)
+        if cliente:
+            qs = qs.filter(cliente_id=cliente)
+
+        por_estado = []
+        for clave in ESTADOS_EN_SEGUIMIENTO:
+            grupo = [m for m in qs if m.estado == clave]
+            if grupo:
+                por_estado.append({
+                    'clave': clave,
+                    'label': dict(Modulacion.ESTADO_CHOICES)[clave],
+                    'modulaciones': grupo,
+                })
+        ctx['grupos'] = por_estado
+        ctx['estados_choices'] = [
+            (c, dict(Modulacion.ESTADO_CHOICES)[c]) for c in ESTADOS_EN_SEGUIMIENTO
+        ]
+        ctx['filtro_estado'] = estado
+        ctx['filtro_cliente'] = cliente
+        ctx['querystring'] = self.request.GET.urlencode()
+        return ctx
+
+
+@login_required
+@require_POST
+def avanzar_estado_modulacion(request, pk):
+    modulacion = get_object_or_404(Modulacion, pk=pk)
+    nuevo_estado = request.POST.get('nuevo_estado', '')
+    nota = request.POST.get('nota', '').strip()
+    destino = request.POST.get('next') or reverse('modulacion:atencion_clientes')
+    try:
+        modulacion.transicionar(nuevo_estado, usuario=request.user, nota=nota)
+    except TransicionInvalida as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(
+            request,
+            f'{modulacion.folio}: {modulacion.get_estado_display()}.',
+        )
+    return redirect(destino)

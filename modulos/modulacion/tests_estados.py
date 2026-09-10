@@ -13,11 +13,12 @@ from modulos.unidades.models import Unidad
 
 
 def _modulacion(estado='PENDIENTE', **kw):
+    kw.setdefault('contenedor', 'ABCU1234567')
     return Modulacion.objects.create(
         agencia=Agencia.objects.get_or_create(nombre='LOGINCO')[0],
         terminal_portuaria=TerminalPortuaria.objects.get_or_create(nombre='LCTPC')[0],
         tipo_contenedor='40HC', peso_toneladas=Decimal('18.5'),
-        contenedor='ABCU1234567', estado=estado, **kw,
+        estado=estado, **kw,
     )
 
 
@@ -149,3 +150,65 @@ class BadgeClassTests(TestCase):
         for estado, color in casos.items():
             m = Modulacion(estado=estado)
             self.assertIn(color, m.badge_class, estado)
+
+
+class AtencionClientesTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('u', 'u@e.com', 'pw')
+        self.client.force_login(self.user)
+
+    def test_requiere_login(self):
+        self.client.logout()
+        resp = self.client.get(reverse('modulacion:atencion_clientes'))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_lista_solo_estados_en_seguimiento(self):
+        _modulacion(estado='PENDIENTE', contenedor='PEND1111111')
+        m_seg = _modulacion(estado='INGRESADO', contenedor='INGR2222222')
+        _modulacion(estado='ENVIADO_BITACORA', contenedor='ENVB3333333')
+        resp = self.client.get(reverse('modulacion:atencion_clientes'))
+        self.assertContains(resp, 'INGR2222222')
+        self.assertNotContains(resp, 'PEND1111111')
+        self.assertNotContains(resp, 'ENVB3333333')
+
+    def test_muestra_botones_de_transiciones_validas(self):
+        _modulacion(estado='INGRESADO', contenedor='INGR2222222')
+        resp = self.client.get(reverse('modulacion:atencion_clientes'))
+        # INGRESADO -> DESADUANAMIENTO_LIBRE | RECONOCIMIENTO_ADUANAL
+        self.assertContains(resp, 'Desaduanamiento libre (verde)')
+        self.assertContains(resp, 'Reconocimiento aduanal (rojo)')
+
+    def test_avanzar_valido_mueve_y_deja_historial(self):
+        m = _modulacion(estado='INGRESADO')
+        resp = self.client.post(
+            reverse('modulacion:avanzar_estado', args=[m.pk]),
+            {'nuevo_estado': 'DESADUANAMIENTO_LIBRE', 'nota': 'verde'},
+        )
+        self.assertRedirects(resp, reverse('modulacion:atencion_clientes'))
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'DESADUANAMIENTO_LIBRE')
+        seg = SeguimientoModulacion.objects.get(modulacion=m)
+        self.assertEqual(seg.nota, 'verde')
+        self.assertEqual(seg.usuario, self.user)
+
+    def test_avanzar_invalido_no_cambia_nada(self):
+        m = _modulacion(estado='INGRESADO')
+        resp = self.client.post(
+            reverse('modulacion:avanzar_estado', args=[m.pk]),
+            {'nuevo_estado': 'EN_PATIO_ESPERANZA'}, follow=True,
+        )
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'INGRESADO')
+        self.assertContains(resp, 'no se puede pasar')
+
+    def test_avanzar_solo_post(self):
+        m = _modulacion(estado='INGRESADO')
+        resp = self.client.get(reverse('modulacion:avanzar_estado', args=[m.pk]))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_filtro_por_estado(self):
+        _modulacion(estado='INGRESADO', contenedor='INGR2222222')
+        _modulacion(estado='RETENIDO', contenedor='RETE4444444')
+        resp = self.client.get(reverse('modulacion:atencion_clientes'), {'estado': 'RETENIDO'})
+        self.assertContains(resp, 'RETE4444444')
+        self.assertNotContains(resp, 'INGR2222222')
