@@ -86,6 +86,14 @@ _BADGE_POR_ESTADO = {
 }
 
 
+# Transiciones con flujo dedicado propio (EnviarABitacoraView crea el
+# BitacoraViaje; retirar_de_patio captura el transportista). NO se ofrecen como
+# botón genérico de avance ni las acepta avanzar_estado_modulacion: llegar a
+# ellas por `transicionar()` a secas dejaría la Modulación en estado terminal
+# sin viaje / sin transportista y sin vuelta atrás.
+TRANSICIONES_CON_FLUJO_DEDICADO = {'ENVIADO_BITACORA', 'RETIRADO_TERCERO'}
+
+
 class TransicionInvalida(Exception):
     """Se intentó un cambio de estado que TRANSICIONES_MODULACION no permite."""
 
@@ -297,9 +305,18 @@ class Modulacion(models.Model):
 
     @property
     def transiciones_validas(self):
-        """[(clave, label)] de los estados a los que se puede pasar ahora."""
+        """[(clave, label)] de transiciones que se avanzan con un botón simple.
+
+        Excluye las que tienen flujo dedicado (ENVIADO_BITACORA /
+        RETIRADO_TERCERO): esas se hacen por EnviarABitacoraView /
+        retirar_de_patio, no por avanzar_estado_modulacion.
+        """
         labels = dict(self.ESTADO_CHOICES)
-        return [(c, labels[c]) for c in TRANSICIONES_MODULACION.get(self.estado, [])]
+        return [
+            (c, labels[c])
+            for c in TRANSICIONES_MODULACION.get(self.estado, [])
+            if c not in TRANSICIONES_CON_FLUJO_DEDICADO
+        ]
 
     def transicionar(self, nuevo_estado, *, usuario=None, nota=''):
         """Cambia de estado validando contra TRANSICIONES_MODULACION y deja

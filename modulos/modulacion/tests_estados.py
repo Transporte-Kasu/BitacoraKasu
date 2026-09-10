@@ -139,6 +139,17 @@ class RutasExistentesTests(TestCase):
         self.assertTrue(SeguimientoModulacion.objects.filter(
             modulacion=m, estado='RETIRADO_TERCERO').exists())
 
+    def test_retiro_externo_desde_estado_invalido_no_persiste_transportista(self):
+        m = _modulacion(estado='ASIGNADO')
+        resp = self.client.post(
+            reverse('modulacion:retirar_de_patio', args=[m.pk]),
+            {'transportista_externo': 'Fletes SA'}, follow=True,
+        )
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'ASIGNADO')
+        self.assertEqual(m.transportista_externo, '')
+        self.assertContains(resp, 'no se puede pasar')
+
 
 class BadgeClassTests(TestCase):
     def test_badge_class_por_estado(self):
@@ -201,7 +212,46 @@ class AtencionClientesTests(TestCase):
         )
         m.refresh_from_db()
         self.assertEqual(m.estado, 'INGRESADO')
-        self.assertContains(resp, 'no se puede pasar')
+        self.assertEqual(SeguimientoModulacion.objects.filter(modulacion=m).count(), 0)
+        self.assertContains(resp, 'no permitida por esta vía')
+
+    def test_avanzar_a_estado_terminal_por_boton_se_rechaza(self):
+        # EN_PATIO_ESPERANZA -> ENVIADO_BITACORA es una arista válida del mapa,
+        # pero tiene flujo dedicado: avanzar_estado_modulacion debe rechazarla
+        # para no dejar la Modulación terminal sin BitacoraViaje.
+        m = _modulacion(estado='EN_PATIO_ESPERANZA')
+        resp = self.client.post(
+            reverse('modulacion:avanzar_estado', args=[m.pk]),
+            {'nuevo_estado': 'ENVIADO_BITACORA'}, follow=True,
+        )
+        m.refresh_from_db()
+        self.assertEqual(m.estado, 'EN_PATIO_ESPERANZA')
+        self.assertIsNone(m.bitacora_viaje)
+        self.assertEqual(SeguimientoModulacion.objects.filter(modulacion=m).count(), 0)
+        self.assertContains(resp, 'no permitida por esta vía')
+
+    def test_en_patio_esperanza_no_ofrece_botones_de_flujo_dedicado(self):
+        m = _modulacion(estado='EN_PATIO_ESPERANZA', contenedor='PATIO0000001')
+        resp = self.client.get(reverse('modulacion:atencion_clientes'))
+        self.assertContains(resp, 'PATIO0000001')
+        self.assertNotContains(resp, 'name="nuevo_estado" value="ENVIADO_BITACORA"')
+        self.assertNotContains(resp, 'name="nuevo_estado" value="RETIRADO_TERCERO"')
+
+    def test_filtro_cliente_no_numerico_no_revienta(self):
+        _modulacion(estado='INGRESADO', contenedor='INGR2222222')
+        resp = self.client.get(
+            reverse('modulacion:atencion_clientes'), {'cliente': 'abc'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'INGR2222222')
+
+    def test_next_a_host_externo_se_ignora(self):
+        m = _modulacion(estado='INGRESADO')
+        resp = self.client.post(
+            reverse('modulacion:avanzar_estado', args=[m.pk]),
+            {'nuevo_estado': 'DESADUANAMIENTO_LIBRE',
+             'next': 'https://evil.example/x'},
+        )
+        self.assertRedirects(resp, reverse('modulacion:atencion_clientes'))
 
     def test_avanzar_solo_post(self):
         m = _modulacion(estado='INGRESADO')

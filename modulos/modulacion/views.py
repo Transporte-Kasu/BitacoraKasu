@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import (
@@ -362,8 +363,9 @@ def retirar_de_patio(request, pk):
 
     form = RetiroExternoForm(request.POST)
     if form.is_valid():
+        # No se persiste el transportista si la transición no procede:
+        # transicionar() hace su propio save() al validar el estado.
         modulacion.transportista_externo = form.cleaned_data['transportista_externo']
-        modulacion.save(update_fields=['transportista_externo'])
         try:
             modulacion.transicionar('RETIRADO_TERCERO', usuario=request.user)
         except TransicionInvalida as exc:
@@ -552,7 +554,7 @@ class AtencionClientesView(LoginRequiredMixin, TemplateView):
         cliente = self.request.GET.get('cliente') or ''
         if estado in ESTADOS_EN_SEGUIMIENTO:
             qs = qs.filter(estado=estado)
-        if cliente:
+        if cliente.isdigit():
             qs = qs.filter(cliente_id=cliente)
 
         por_estado = []
@@ -580,7 +582,22 @@ def avanzar_estado_modulacion(request, pk):
     modulacion = get_object_or_404(Modulacion, pk=pk)
     nuevo_estado = request.POST.get('nuevo_estado', '')
     nota = request.POST.get('nota', '').strip()
-    destino = request.POST.get('next') or reverse('modulacion:atencion_clientes')
+
+    destino = request.POST.get('next') or ''
+    if not url_has_allowed_host_and_scheme(
+        destino, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        destino = reverse('modulacion:atencion_clientes')
+
+    # Solo se aceptan las transiciones "de botón": las de flujo dedicado
+    # (ENVIADO_BITACORA / RETIRADO_TERCERO) se hacen por sus vistas propias.
+    validas = {clave for clave, _ in modulacion.transiciones_validas}
+    if nuevo_estado not in validas:
+        messages.error(
+            request, f'{modulacion.folio}: transición no permitida por esta vía.'
+        )
+        return redirect(destino)
+
     try:
         modulacion.transicionar(nuevo_estado, usuario=request.user, nota=nota)
     except TransicionInvalida as exc:
