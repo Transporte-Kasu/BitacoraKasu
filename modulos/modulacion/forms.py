@@ -43,6 +43,7 @@ class ModulacionForm(forms.ModelForm):
         fields = [
             'agencia', 'terminal_portuaria', 'tipo_contenedor', 'peso_toneladas',
             'contenedor', 'cliente', 'num_pedimento', 'num_doda', 'observaciones',
+            'sello_colocado',
         ]
         widgets = {
             'agencia': forms.Select(attrs={'class': 'form-control'}),
@@ -61,6 +62,7 @@ class ModulacionForm(forms.ModelForm):
             'num_pedimento': forms.TextInput(attrs={'class': 'form-control'}),
             'num_doda': forms.TextInput(attrs={'class': 'form-control'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'sello_colocado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):

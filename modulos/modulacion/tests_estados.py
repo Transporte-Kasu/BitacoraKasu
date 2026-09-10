@@ -299,3 +299,21 @@ class AdminSeguimientoTests(TestCase):
         self.assertFalse(adm.has_add_permission(None))
         self.assertFalse(adm.has_change_permission(None))
         self.assertFalse(adm.has_delete_permission(None))
+
+
+class CamposReporteTests(TestCase):
+    def test_terminal_etiqueta_usa_nombre_corto(self):
+        t = TerminalPortuaria(nombre='L.C. Terminal...', nombre_corto='LCTPC')
+        self.assertEqual(t.etiqueta, 'LCTPC')
+
+    def test_terminal_etiqueta_cae_al_nombre(self):
+        t = TerminalPortuaria(nombre='APM Terminals')
+        self.assertEqual(t.etiqueta, 'APM Terminals')
+
+    def test_sello_colocado_default_false(self):
+        m = _modulacion()
+        self.assertFalse(m.sello_colocado)
+
+    def test_modulacion_form_acepta_sello_colocado(self):
+        from modulos.modulacion.forms import ModulacionForm
+        self.assertIn('sello_colocado', ModulacionForm.base_fields)

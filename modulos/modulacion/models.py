@@ -30,6 +30,10 @@ class Agencia(models.Model):
 class TerminalPortuaria(models.Model):
     """Recinto fiscalizado/terminal portuaria donde se encuentra el contenedor."""
     nombre = models.CharField(max_length=120, unique=True, verbose_name="Nombre")
+    nombre_corto = models.CharField(
+        max_length=30, blank=True, verbose_name="Nombre corto",
+        help_text="Etiqueta corta para reportes (ej. LCTPC, HUTCHINSON, APM).",
+    )
     activo = models.BooleanField(default=True, verbose_name="Activo")
     requiere_datos_extra = models.BooleanField(
         default=False,
@@ -49,6 +53,10 @@ class TerminalPortuaria(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def etiqueta(self):
+        return self.nombre_corto or self.nombre
 
 
 TRANSICIONES_MODULACION = {
@@ -232,6 +240,10 @@ class Modulacion(models.Model):
     hora_registro = models.DateTimeField(null=True, blank=True, verbose_name="Hora de registro")
     hora_ingreso = models.DateTimeField(null=True, blank=True, verbose_name="Hora de ingreso")
     hora_carga = models.DateTimeField(null=True, blank=True, verbose_name="Hora de carga")
+    sello_colocado = models.BooleanField(
+        default=False, verbose_name="Sello colocado",
+        help_text="El contenedor sale con sello/candado colocado.",
+    )
     fecha_modulacion_aduana = models.DateField(
         null=True, blank=True, verbose_name="Fecha de modulación ante aduana",
     )

@@ -32,6 +32,7 @@
             <div><span class="text-gray-500">Cliente:</span> <span class="font-medium">{{ modulacion.cliente.nombre|default:"—" }}</span></div>
             <div><span class="text-gray-500">Pedimento:</span> <span class="font-medium">{{ modulacion.num_pedimento|default:"—" }}</span></div>
             <div><span class="text-gray-500">DODA:</span> <span class="font-medium">{{ modulacion.num_doda|default:"—" }}</span></div>
+            <div><span class="text-gray-500">Sello:</span> <span class="font-medium">{% if modulacion.sello_colocado %}Sí{% else %}No{% endif %}</span></div>
             <div><span class="text-gray-500">Unidad asignada:</span> <span class="font-medium">{{ modulacion.unidad.numero_economico|default:"—" }}</span></div>
             <div><span class="text-gray-500">Operador asignado:</span> <span class="font-medium">{{ modulacion.operador.nombre|default:"—" }}</span></div>
             {% if modulacion.fecha_asignacion %}

@@ -16,9 +16,10 @@ class AgenciaAdmin(admin.ModelAdmin):
 @admin.register(TerminalPortuaria)
 class TerminalPortuariaAdmin(admin.ModelAdmin):
     list_display = [
-        'nombre', 'activo', 'requiere_datos_extra',
+        'nombre', 'nombre_corto', 'activo', 'requiere_datos_extra',
         'requiere_carril', 'requiere_hora_ingreso', 'requiere_hora_carga', 'created_at',
     ]
+    list_editable = ['nombre_corto']
     list_filter = ['activo', 'requiere_datos_extra']
     search_fields = ['nombre']
 
@@ -41,9 +42,9 @@ class ModulacionAdmin(admin.ModelAdmin):
     inlines = [SeguimientoModulacionInline]
     list_display = [
         'folio', 'contenedor', 'agencia', 'terminal_portuaria',
-        'tipo_contenedor', 'cliente', 'unidad', 'operador', 'origen', 'tipo_cita', 'estado', 'fecha_recepcion',
+        'tipo_contenedor', 'cliente', 'unidad', 'operador', 'origen', 'tipo_cita', 'sello_colocado', 'estado', 'fecha_recepcion',
     ]
-    list_filter = ['estado', 'origen', 'tipo_cita', 'agencia', 'terminal_portuaria', 'operador']
+    list_filter = ['estado', 'origen', 'tipo_cita', 'sello_colocado', 'agencia', 'terminal_portuaria', 'operador']
     search_fields = ['folio', 'contenedor', 'num_pedimento', 'num_doda', 'cliente__nombre']
     autocomplete_fields = ['operador', 'unidad']
     readonly_fields = ['folio', 'fecha_recepcion', 'fecha_patio_esperanza', 'created_at', 'updated_at']
