@@ -76,14 +76,23 @@ def _tipo(m):
     return m_ini.group(0) if m_ini else (m.tipo_contenedor or '')
 
 
+_SIN_CLIENTE = '—'
+
+
 def _etiqueta_grupo(m):
-    return m.cliente.etiqueta if m.cliente_id else '(sin cliente)'
+    return m.cliente.etiqueta if m.cliente_id else _SIN_CLIENTE
+
+
+def _clave_grupo(m):
+    """Clave de agrupación/orden por alias, normalizada (mayús/minús)."""
+    return _etiqueta_grupo(m).casefold()
 
 
 def _clave_orden(m):
     term = m.terminal_portuaria.etiqueta if m.terminal_portuaria_id else ''
     return (
-        _etiqueta_grupo(m).casefold(),
+        m.cliente_id is None,   # las modulaciones sin cliente van al final
+        _clave_grupo(m),
         term.casefold(),
         m.hora_registro is None,
         m.hora_registro or datetime.datetime.min,
@@ -118,8 +127,9 @@ def construir_programa_despacho(fecha):
 
     fila = 2
     maniobra = 0
-    for etiqueta, grupo in groupby(modulaciones, key=_etiqueta_grupo):
+    for _clave, grupo in groupby(modulaciones, key=_clave_grupo):
         grupo = list(grupo)
+        etiqueta = _etiqueta_grupo(grupo[0])
         ws.merge_cells(start_row=fila, start_column=1, end_row=fila, end_column=14)
         gc = ws.cell(row=fila, column=1,
                      value=f'{etiqueta} — {len(grupo)} maniobra(s)')
@@ -143,7 +153,7 @@ def construir_programa_despacho(fecha):
                 float(m.peso_toneladas) if m.peso_toneladas is not None else None,
                 m.contenedor,
                 operador_txt,
-                m.cliente.etiqueta if m.cliente_id else '—',
+                _etiqueta_grupo(m),
                 m.carril or 'NA',
                 None, None, None,
                 'SÍ' if m.sello_colocado else 'NO',

@@ -113,20 +113,36 @@ class ConstruirProgramaDespachoTests(TestCase):
         self.assertEqual(ws.cell(row=fila, column=10).value, 'CITA PENDIENTE')
 
     def test_agrupa_por_alias_con_fila_encabezado(self):
+        # 'Zeta' (sin alias) empieza con Z pero por orden alfabético normal iría
+        # antes de 'sin cliente'; el bloque sin cliente debe ir SIEMPRE al final.
         moy = Cliente.objects.create(nombre='Moya', alias='MOY')
         nol = Cliente.objects.create(nombre='Nolasco SA')  # sin alias
+        zeta = Cliente.objects.create(nombre='Zeta SA')  # sin alias
         _mod(cliente=moy, contenedor='AAAU1111111')
         _mod(cliente=moy, contenedor='AAAU2222222')
         _mod(cliente=nol, contenedor='BBBU3333333')
+        _mod(cliente=zeta, contenedor='CCCU4444444')
+        _mod(cliente=None, contenedor='DDDU5555555')
         ws = construir_programa_despacho(FECHA).active
         filas = _rows(ws)
-        # una fila-encabezado combinada por grupo, con el conteo
+        # las filas-encabezado salen en el orden esperado: alias, luego el
+        # bloque "sin cliente" al final, sin importar el orden alfabético.
         encabezados_grupo = [r[0] for r in filas if r[0] and 'maniobra(s)' in str(r[0])]
-        self.assertIn('MOY — 2 maniobra(s)', encabezados_grupo)
-        self.assertIn('Nolasco SA — 1 maniobra(s)', encabezados_grupo)
-        # Nº de maniobra corre 1..3 y NO cuenta las filas-encabezado
-        nums = [r[13] for r in filas if r[5] in ('AAAU1111111', 'AAAU2222222', 'BBBU3333333')]
-        self.assertEqual(sorted(nums), [1, 2, 3])
+        self.assertEqual(encabezados_grupo, [
+            'MOY — 2 maniobra(s)',
+            'Nolasco SA — 1 maniobra(s)',
+            'Zeta SA — 1 maniobra(s)',
+            '— — 1 maniobra(s)',
+        ])
+        # Nº de maniobra corre 1..5 en el orden de las filas (no cuenta los
+        # encabezados de grupo) y el de "sin cliente" es el último.
+        contenedores = [
+            'AAAU1111111', 'AAAU2222222', 'BBBU3333333', 'CCCU4444444', 'DDDU5555555',
+        ]
+        nums = [r[13] for r in filas if r[5] in contenedores]
+        self.assertEqual(nums, [1, 2, 3, 4, 5])
+        fila_sin_cliente = [r for r in filas if r[5] == 'DDDU5555555'][0]
+        self.assertEqual(fila_sin_cliente[7], '—')
 
     def test_sin_operador_ni_unidad_no_revienta(self):
         _mod()  # sin operador ni unidad
