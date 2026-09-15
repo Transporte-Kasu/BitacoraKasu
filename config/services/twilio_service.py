@@ -59,6 +59,83 @@ def _sanitizar_texto(texto: str) -> str:
     return texto.strip(' |')
 
 
+_LIMITE_VARIABLE_DESPACHO = 1500  # margen bajo el tope ~1600 caracteres de WhatsApp
+
+
+def _dividir_texto_despacho(texto: str, limite: int = _LIMITE_VARIABLE_DESPACHO) -> list[str]:
+    """
+    Parte `texto` en fragmentos de máx. `limite` caracteres, cortando sólo
+    entre bloques separados por línea en blanco (nunca a mitad de una
+    maniobra). Si resulta en más de un fragmento, numera cada uno
+    "(i/n)" al final de su primera línea.
+    """
+    if len(texto) <= limite:
+        return [texto]
+
+    bloques = texto.split('\n\n')
+    partes = []
+    actual = []
+    largo = 0
+    for bloque in bloques:
+        agregado = len(bloque) + (2 if actual else 0)
+        if actual and largo + agregado > limite:
+            partes.append('\n\n'.join(actual))
+            actual = [bloque]
+            largo = len(bloque)
+        else:
+            actual.append(bloque)
+            largo += agregado
+    if actual:
+        partes.append('\n\n'.join(actual))
+
+    total = len(partes)
+    if total <= 1:
+        return partes
+
+    numeradas = []
+    for i, parte in enumerate(partes, start=1):
+        primera_linea, _, resto = parte.partition('\n')
+        numeradas.append(f'{primera_linea} ({i}/{total})\n{resto}' if resto else f'{primera_linea} ({i}/{total})')
+    return numeradas
+
+
+def enviar_mensaje_despacho(texto: str, numero: str) -> bool:
+    """
+    Envía `texto` por WhatsApp a `numero` (número interno fijo de atención
+    a clientes) usando la plantilla Twilio ya aprobada 'alerta_kasu'
+    (TWILIO_CONTENT_SID_ALERTA, variable única {{1}}) — no existe una
+    plantilla propia de Programa de despacho. El destinatario es personal
+    interno, no el cliente final, así que el encabezado "Alerta - Kasu"
+    de la plantilla es aceptable.
+
+    Si `texto` excede el tope de WhatsApp (~1600 caracteres), se parte en
+    varios mensajes numerados, cortando sólo entre maniobras completas.
+
+    Returns True si todas las partes se enviaron con éxito.
+    """
+    if not settings.TWILIO_CONTENT_SID_ALERTA:
+        logger.warning("TWILIO_CONTENT_SID_ALERTA no configurado.")
+        return False
+
+    partes = _dividir_texto_despacho(texto)
+    client = _twilio_client()
+    to = _numero_wa(numero)
+    enviadas = 0
+    for parte in partes:
+        try:
+            client.messages.create(
+                from_=settings.TWILIO_WHATSAPP_FROM,
+                to=to,
+                content_sid=settings.TWILIO_CONTENT_SID_ALERTA,
+                content_variables=json.dumps({'1': _sanitizar_texto(parte)}, ensure_ascii=False),
+            )
+            enviadas += 1
+        except Exception as exc:
+            logger.error("Error WA Twilio (despacho) a %s: %s", numero, exc)
+
+    return enviadas == len(partes)
+
+
 _MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 
 

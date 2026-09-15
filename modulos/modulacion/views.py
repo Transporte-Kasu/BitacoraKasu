@@ -18,7 +18,7 @@ from django.views.generic import (
     CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView,
 )
 
-from config.services.whatsapp_service import enviar_mensaje
+from config.services.twilio_service import enviar_mensaje_despacho
 from modulos.bitacoras.models import BitacoraViaje
 from modulos.operadores.models import Operador
 
@@ -677,7 +677,7 @@ def enviar_whatsapp_despacho(request):
     enviados = 0
     fallidos = []
     for cliente, texto in mensajes:
-        if enviar_mensaje(texto, numeros=[numero]):
+        if enviar_mensaje_despacho(texto, numero):
             enviados += 1
         else:
             fallidos.append(str(cliente))

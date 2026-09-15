@@ -231,6 +231,9 @@ TWILIO_ACCOUNT_SID = env.str('TWILIO_ACCOUNT_SID', default='')
 TWILIO_AUTH_TOKEN = env.str('TWILIO_AUTH_TOKEN', default='')
 TWILIO_WHATSAPP_FROM = env.str('TWILIO_WHATSAPP_FROM', default='')
 TWILIO_CONTENT_SID_BITACORA = env.str('TWILIO_CONTENT_SID_BITACORA', default='7531004073')
+# Plantilla 'alerta_kasu' — reusada por enviar_mensaje_despacho (Programa de
+# despacho) porque no existe una plantilla propia; ver twilio_service.py.
+TWILIO_CONTENT_SID_ALERTA = env.str('TWILIO_CONTENT_SID_ALERTA', default='')
 
 # WhatsApp interno (WAHA) — envío del Programa de despacho agrupado por cliente
 WA_PROGRAMA_DESPACHO_NUMERO = env.str('WA_PROGRAMA_DESPACHO_NUMERO', default='7531004073')

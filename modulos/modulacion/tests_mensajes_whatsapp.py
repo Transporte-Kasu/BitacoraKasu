@@ -1,4 +1,5 @@
 import datetime
+import json
 from decimal import Decimal
 
 from django.test import TestCase
@@ -146,7 +147,7 @@ class ReporteDespachoBotonWhatsappTests(TestCase):
         )
 
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 class EnviarWhatsappDespachoViewTests(TestCase):
@@ -170,7 +171,7 @@ class EnviarWhatsappDespachoViewTests(TestCase):
         self.assertEqual(resp.status_code, 405)
 
     @override_settings(WA_PROGRAMA_DESPACHO_NUMERO='5217531234567')
-    @patch('modulos.modulacion.views.enviar_mensaje')
+    @patch('modulos.modulacion.views.enviar_mensaje_despacho')
     def test_envia_un_mensaje_por_grupo_con_el_numero_configurado(self, mock_enviar):
         mock_enviar.return_value = True
         resp = self.client.post(
@@ -179,10 +180,10 @@ class EnviarWhatsappDespachoViewTests(TestCase):
             resp, f"{reverse('modulacion:reporte_despacho')}?fecha={FECHA.isoformat()}")
         self.assertEqual(mock_enviar.call_count, 2)
         for llamada in mock_enviar.call_args_list:
-            self.assertEqual(llamada.kwargs['numeros'], ['5217531234567'])
+            self.assertEqual(llamada.args[1], '5217531234567')
 
     @override_settings(WA_PROGRAMA_DESPACHO_NUMERO='5217531234567')
-    @patch('modulos.modulacion.views.enviar_mensaje')
+    @patch('modulos.modulacion.views.enviar_mensaje_despacho')
     def test_reporta_fallos_por_cliente(self, mock_enviar):
         mock_enviar.side_effect = [True, False]
         resp = self.client.post(
@@ -193,7 +194,7 @@ class EnviarWhatsappDespachoViewTests(TestCase):
         self.assertTrue(any('Nolasco SA' in m or 'NOL' in m for m in mensajes))
 
     @override_settings(WA_PROGRAMA_DESPACHO_NUMERO='')
-    @patch('modulos.modulacion.views.enviar_mensaje')
+    @patch('modulos.modulacion.views.enviar_mensaje_despacho')
     def test_sin_numero_configurado_no_envia_nada(self, mock_enviar):
         resp = self.client.post(
             reverse('modulacion:reporte_despacho_whatsapp_enviar'), {'fecha': FECHA.isoformat()},
@@ -201,3 +202,75 @@ class EnviarWhatsappDespachoViewTests(TestCase):
         mock_enviar.assert_not_called()
         mensajes = [str(m) for m in resp.context['messages']]
         self.assertTrue(any('WA_PROGRAMA_DESPACHO_NUMERO' in m for m in mensajes))
+
+
+class EnviarMensajeDespachoTests(TestCase):
+    """
+    enviar_mensaje_despacho reusa la plantilla Twilio 'alerta_kasu'
+    (TWILIO_CONTENT_SID_ALERTA, variable única {{1}}) — no hay plantilla
+    propia de Programa de despacho. El destinatario es personal interno,
+    no el cliente final.
+    """
+    @override_settings(TWILIO_CONTENT_SID_ALERTA='HXfake000000000000000000000000',
+                        TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+    @patch('config.services.twilio_service._twilio_client')
+    def test_envia_un_solo_mensaje_cuando_cabe_en_el_limite(self, mock_client_fn):
+        from config.services.twilio_service import enviar_mensaje_despacho
+
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+
+        resultado = enviar_mensaje_despacho('Programa de despacho — 11-sep-26\ntexto corto', '+5217531004073')
+
+        self.assertTrue(resultado)
+        mock_messages.create.assert_called_once()
+        kwargs = mock_messages.create.call_args.kwargs
+        self.assertEqual(kwargs['to'], 'whatsapp:+5217531004073')
+        self.assertEqual(kwargs['from_'], 'whatsapp:+14155238886')
+        self.assertEqual(kwargs['content_sid'], 'HXfake000000000000000000000000')
+        variables = json.loads(kwargs['content_variables'])
+        self.assertEqual(variables['1'], 'Programa de despacho — 11-sep-26 | texto corto')
+
+    @override_settings(TWILIO_CONTENT_SID_ALERTA='HXfake000000000000000000000000',
+                        TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+    @patch('config.services.twilio_service._twilio_client')
+    def test_parte_en_varios_mensajes_cuando_excede_el_limite(self, mock_client_fn):
+        from config.services.twilio_service import enviar_mensaje_despacho
+
+        mock_messages = MagicMock()
+        mock_client_fn.return_value.messages = mock_messages
+
+        bloques = [f'Maniobra Nº {i}\n  Contenedor: CSNU{i:07d}\n  ' + ('x' * 300) for i in range(1, 8)]
+        texto = '\n\n'.join(['*Programa de despacho — 11-sep-26*'] + bloques + ['_BitacoraKasu_'])
+
+        resultado = enviar_mensaje_despacho(texto, '+5217531004073')
+
+        self.assertTrue(resultado)
+        self.assertGreater(mock_messages.create.call_count, 1)
+        for llamada in mock_messages.create.call_args_list:
+            variables = json.loads(llamada.kwargs['content_variables'])
+            self.assertLessEqual(len(variables['1']), 1500)
+            self.assertNotIn('\n', variables['1'])
+
+    @override_settings(TWILIO_CONTENT_SID_ALERTA='HXfake000000000000000000000000',
+                        TWILIO_WHATSAPP_FROM='whatsapp:+14155238886')
+    @patch('config.services.twilio_service._twilio_client')
+    def test_si_una_parte_falla_el_resultado_es_falso(self, mock_client_fn):
+        from config.services.twilio_service import enviar_mensaje_despacho
+
+        mock_messages = MagicMock()
+        mock_messages.create.side_effect = [MagicMock(), Exception('boom')]
+        mock_client_fn.return_value.messages = mock_messages
+
+        bloques = [f'Maniobra Nº {i}\n  ' + ('x' * 300) for i in range(1, 8)]
+        texto = '\n\n'.join(['*Programa de despacho*'] + bloques + ['_pie_'])
+
+        resultado = enviar_mensaje_despacho(texto, '+5217531004073')
+
+        self.assertFalse(resultado)
+
+    @override_settings(TWILIO_CONTENT_SID_ALERTA='')
+    def test_sin_content_sid_configurado_no_envia(self):
+        from config.services.twilio_service import enviar_mensaje_despacho
+
+        self.assertFalse(enviar_mensaje_despacho('texto', '+5217531004073'))
