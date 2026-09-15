@@ -67,6 +67,16 @@ class ConstruirMensajesWhatsappTests(TestCase):
     def test_sin_clientes_en_la_fecha_devuelve_lista_vacia(self):
         self.assertEqual(construir_mensajes_whatsapp(FECHA), [])
 
+    def test_tipo_usa_solo_los_digitos_iniciales_como_en_el_xlsx(self):
+        # Debe coincidir con reportes._tipo(): '40HC' -> '40', no el campo crudo.
+        mazal = Cliente.objects.create(nombre='MAZAL TOV IMPORTACIONES, SA DE CV')
+        _mod(cliente=mazal, contenedor='CSNU6799471', tipo_contenedor='40HC')
+
+        _cliente, texto = construir_mensajes_whatsapp(FECHA)[0]
+
+        self.assertIn('Tipo: 40   Peso:', texto)
+        self.assertNotIn('Tipo: 40HC', texto)
+
 
 from django.contrib.auth import get_user_model
 from django.test import override_settings
@@ -119,6 +129,21 @@ class ReporteDespachoBotonWhatsappTests(TestCase):
         self.client.force_login(user)
         resp = self.client.get(reverse('modulacion:reporte_despacho'))
         self.assertContains(resp, reverse('modulacion:reporte_despacho_whatsapp_preview'))
+
+    def test_boton_vista_previa_comparte_el_input_de_fecha(self):
+        # El botón de WhatsApp debe vivir en el MISMO <form> que el input de
+        # fecha (vía formaction), no en un <form> hermano con su propio
+        # hidden — de lo contrario la fecha editada nunca le llega.
+        user = get_user_model().objects.create_user('u4', 'u4@e.com', 'pw')
+        self.client.force_login(user)
+        resp = self.client.get(reverse('modulacion:reporte_despacho'))
+        contenido = resp.content.decode()
+        # El form de logout de base.html es el único otro <form> de la página.
+        self.assertEqual(contenido.count('<form'), 2)
+        self.assertIn(
+            f'formaction="{reverse("modulacion:reporte_despacho_whatsapp_preview")}"',
+            contenido,
+        )
 
 
 from unittest.mock import patch

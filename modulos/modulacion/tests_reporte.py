@@ -175,6 +175,23 @@ class ReporteDespachoViewTests(TestCase):
         self.assertContains(resp, 'type="date"')
         self.assertContains(resp, f'value="{hoy}"')
 
+    def test_form_usa_fecha_de_querystring(self):
+        # El input de fecha (compartido por los botones Excel y WhatsApp,
+        # al vivir en un solo <form>) debe reflejar el ?fecha= de la URL,
+        # no siempre "hoy".
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('modulacion:reporte_despacho'), {'fecha': FECHA.isoformat()})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, f'value="{FECHA.isoformat()}"')
+        self.assertNotContains(resp, f'value="{timezone.localdate().isoformat()}"')
+
+    def test_form_fecha_invalida_en_querystring_usa_hoy(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('modulacion:reporte_despacho'), {'fecha': 'no-es-fecha'})
+        self.assertEqual(resp.status_code, 200)
+        hoy = timezone.localdate().isoformat()
+        self.assertContains(resp, f'value="{hoy}"')
+
     def test_descarga_xlsx(self):
         self.client.force_login(self.user)
         _mod()

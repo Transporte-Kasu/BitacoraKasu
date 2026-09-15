@@ -622,7 +622,7 @@ class ReporteProgramaDespachoView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['fecha'] = timezone.localdate().isoformat()
+        ctx['fecha'] = (_parse_fecha(self.request.GET.get('fecha')) or timezone.localdate()).isoformat()
         return ctx
 
 

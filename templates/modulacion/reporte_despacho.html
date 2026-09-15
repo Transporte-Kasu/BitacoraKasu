@@ -23,15 +23,12 @@
                     Descargar Excel
                 </button>
             </div>
-        </form>
-
-        <form method="get" action="{% url 'modulacion:reporte_despacho_whatsapp_preview' %}"
-              class="px-6 py-5 border-t border-gray-100 flex justify-end">
-            <input type="hidden" name="fecha" value="{{ fecha }}">
-            <button type="submit"
-                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition min-h-[44px]">
-                Vista previa WhatsApp
-            </button>
+            <div class="flex justify-end pt-2 border-t border-gray-100">
+                <button type="submit" formaction="{% url 'modulacion:reporte_despacho_whatsapp_preview' %}"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition min-h-[44px]">
+                    Vista previa WhatsApp
+                </button>
+            </div>
         </form>
     </div>
 </div>

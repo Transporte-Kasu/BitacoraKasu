@@ -4,7 +4,7 @@ texto por grupo de cliente, mismo contenido y numeración de maniobra que
 el reporte xlsx (`reportes.py`). Módulo puro: no envía nada, no toca
 request/response ni servicios externos.
 """
-from .reportes import _agrupar_y_numerar, _fecha_es, _texto_hora
+from .reportes import _agrupar_y_numerar, _fecha_es, _texto_hora, _tipo
 
 
 def _linea_horas(m, fecha):
@@ -33,7 +33,7 @@ def _bloque_maniobra(numero, m, fecha):
         f'  Contenedor: {m.contenedor}',
         f'  Terminal: {m.terminal_portuaria.etiqueta if m.terminal_portuaria_id else "—"}',
         f'  Agencia: {m.agencia.nombre if m.agencia_id else "—"}',
-        f'  Tipo: {m.tipo_contenedor or "—"}   Peso: {m.peso_toneladas if m.peso_toneladas is not None else "—"} t',
+        f'  Tipo: {_tipo(m) or "—"}   Peso: {m.peso_toneladas if m.peso_toneladas is not None else "—"} t',
         f'  Operador/Unidad: {operador_unidad}',
         f'  Carril: {m.carril or "NA"}',
         _linea_horas(m, fecha),
