@@ -119,3 +119,60 @@ class ReporteDespachoBotonWhatsappTests(TestCase):
         self.client.force_login(user)
         resp = self.client.get(reverse('modulacion:reporte_despacho'))
         self.assertContains(resp, reverse('modulacion:reporte_despacho_whatsapp_preview'))
+
+
+from unittest.mock import patch
+
+
+class EnviarWhatsappDespachoViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('u3', 'u3@e.com', 'pw')
+        self.client.force_login(self.user)
+        self.mazal = Cliente.objects.create(nombre='MAZAL TOV IMPORTACIONES, SA DE CV')
+        self.nol = Cliente.objects.create(nombre='Nolasco SA', alias='NOL')
+        _mod(cliente=self.mazal, contenedor='CSNU6799471')
+        _mod(cliente=self.nol, contenedor='BBBU3333333')
+
+    def test_requiere_login(self):
+        self.client.logout()
+        resp = self.client.post(
+            reverse('modulacion:reporte_despacho_whatsapp_enviar'), {'fecha': FECHA.isoformat()})
+        self.assertEqual(resp.status_code, 302)
+
+    def test_rechaza_get(self):
+        resp = self.client.get(
+            reverse('modulacion:reporte_despacho_whatsapp_enviar'), {'fecha': FECHA.isoformat()})
+        self.assertEqual(resp.status_code, 405)
+
+    @override_settings(WA_PROGRAMA_DESPACHO_NUMERO='5217531234567')
+    @patch('modulos.modulacion.views.enviar_mensaje')
+    def test_envia_un_mensaje_por_grupo_con_el_numero_configurado(self, mock_enviar):
+        mock_enviar.return_value = True
+        resp = self.client.post(
+            reverse('modulacion:reporte_despacho_whatsapp_enviar'), {'fecha': FECHA.isoformat()})
+        self.assertRedirects(
+            resp, f"{reverse('modulacion:reporte_despacho')}?fecha={FECHA.isoformat()}")
+        self.assertEqual(mock_enviar.call_count, 2)
+        for llamada in mock_enviar.call_args_list:
+            self.assertEqual(llamada.kwargs['numeros'], ['5217531234567'])
+
+    @override_settings(WA_PROGRAMA_DESPACHO_NUMERO='5217531234567')
+    @patch('modulos.modulacion.views.enviar_mensaje')
+    def test_reporta_fallos_por_cliente(self, mock_enviar):
+        mock_enviar.side_effect = [True, False]
+        resp = self.client.post(
+            reverse('modulacion:reporte_despacho_whatsapp_enviar'), {'fecha': FECHA.isoformat()},
+            follow=True)
+        mensajes = [str(m) for m in resp.context['messages']]
+        self.assertTrue(any('1' in m and 'enviad' in m for m in mensajes))
+        self.assertTrue(any('Nolasco SA' in m or 'NOL' in m for m in mensajes))
+
+    @override_settings(WA_PROGRAMA_DESPACHO_NUMERO='')
+    @patch('modulos.modulacion.views.enviar_mensaje')
+    def test_sin_numero_configurado_no_envia_nada(self, mock_enviar):
+        resp = self.client.post(
+            reverse('modulacion:reporte_despacho_whatsapp_enviar'), {'fecha': FECHA.isoformat()},
+            follow=True)
+        mock_enviar.assert_not_called()
+        mensajes = [str(m) for m in resp.context['messages']]
+        self.assertTrue(any('WA_PROGRAMA_DESPACHO_NUMERO' in m for m in mensajes))

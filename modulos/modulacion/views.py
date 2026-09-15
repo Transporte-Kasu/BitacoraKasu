@@ -30,6 +30,8 @@ from .forms import (
     RetiroExternoForm,
     TerminalPortuariaForm,
 )
+from config.services.whatsapp_service import enviar_mensaje
+
 from .mensajes_whatsapp import construir_mensajes_whatsapp
 from .models import (
     Agencia, ESTADOS_EN_SEGUIMIENTO, Modulacion, TerminalPortuaria, TransicionInvalida,
@@ -658,8 +660,35 @@ def previsualizar_whatsapp_despacho(request):
 
 
 @login_required
+@require_POST
 def enviar_whatsapp_despacho(request):
-    # Implementado en Task 4. Stub necesario para que urls.py resuelva
-    # views.enviar_whatsapp_despacho al importarse (path() la referencia en
-    # definicion de modulo, no en tiempo de request).
-    raise NotImplementedError
+    fecha = _parse_fecha(request.POST.get('fecha')) or timezone.localdate()
+    destino = f"{reverse('modulacion:reporte_despacho')}?fecha={fecha.isoformat()}"
+
+    numero = settings.WA_PROGRAMA_DESPACHO_NUMERO
+    if not numero:
+        messages.error(request, 'WA_PROGRAMA_DESPACHO_NUMERO no está configurado. No se envió nada.')
+        return redirect(destino)
+
+    mensajes = construir_mensajes_whatsapp(fecha)
+    if not mensajes:
+        messages.warning(request, 'No hay maniobras con cliente asignado para esta fecha.')
+        return redirect(destino)
+
+    enviados = 0
+    fallidos = []
+    for cliente, texto in mensajes:
+        if enviar_mensaje(texto, numeros=[numero]):
+            enviados += 1
+        else:
+            fallidos.append(str(cliente))
+
+    if enviados:
+        messages.success(request, f'{enviados} mensaje(s) de WhatsApp enviado(s).')
+    if fallidos:
+        messages.error(
+            request,
+            f'No se pudo enviar a: {", ".join(fallidos)}. Reintenta desde la vista previa.',
+        )
+
+    return redirect(destino)
