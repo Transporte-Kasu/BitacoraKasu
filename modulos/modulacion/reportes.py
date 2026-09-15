@@ -96,7 +96,6 @@ def _clave_orden(m):
         term.casefold(),
         m.hora_registro is None,
         m.hora_registro or datetime.datetime.min,
-        m.id,  # tie-breaker para determinismo
     )
 
 

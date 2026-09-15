@@ -211,8 +211,8 @@ class AgruparYNumerarTests(TestCase):
     def test_agrupa_y_numera_igual_que_el_xlsx(self):
         moy = Cliente.objects.create(nombre='Moya', alias='MOY')
         nol = Cliente.objects.create(nombre='Nolasco SA')  # sin alias
-        _mod(cliente=moy, contenedor='AAAU1111111')
-        _mod(cliente=moy, contenedor='AAAU2222222')
+        _mod(cliente=moy, contenedor='AAAU1111111', hora_registro=_aware(2026, 8, 28, 9, 0))
+        _mod(cliente=moy, contenedor='AAAU2222222', hora_registro=_aware(2026, 8, 28, 10, 0))
         _mod(cliente=nol, contenedor='BBBU3333333')
         _mod(cliente=None, contenedor='CCCU4444444')
 
