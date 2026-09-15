@@ -230,10 +230,10 @@ WA_REPORTES_ENABLED = env.bool('WA_REPORTES_ENABLED', default=True)
 TWILIO_ACCOUNT_SID = env.str('TWILIO_ACCOUNT_SID', default='')
 TWILIO_AUTH_TOKEN = env.str('TWILIO_AUTH_TOKEN', default='')
 TWILIO_WHATSAPP_FROM = env.str('TWILIO_WHATSAPP_FROM', default='')
-TWILIO_CONTENT_SID_BITACORA = env.str('TWILIO_CONTENT_SID_BITACORA', default='')
+TWILIO_CONTENT_SID_BITACORA = env.str('TWILIO_CONTENT_SID_BITACORA', default='7531004073')
 
 # WhatsApp interno (WAHA) — envío del Programa de despacho agrupado por cliente
-WA_PROGRAMA_DESPACHO_NUMERO = env.str('WA_PROGRAMA_DESPACHO_NUMERO', default='')
+WA_PROGRAMA_DESPACHO_NUMERO = env.str('WA_PROGRAMA_DESPACHO_NUMERO', default='7531004073')
 
 # Destinatarios de notificaciones de autorización de salidas de almacén.
 # Se puede sobreescribir vía .env: ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com

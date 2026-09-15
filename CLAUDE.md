@@ -10,6 +10,21 @@ BitacoraKasu is a Django 5.2.7-based fleet management system for a Mexican trans
 **Virtual env:** `.venvKasu`
 **Language:** Spanish (es-mx), all model names, comments, and UI in Spanish
 
+## Efficiency Rules
+
+Merged from [claude-token-efficient](https://github.com/drona23/claude-token-efficient) (coding + compressed profiles).
+
+- Read existing files before writing. Don't re-read unless changed.
+- Thorough in reasoning, concise in output. Short sentences, no filler/preamble/pleasantries.
+- Return code first; explain after only if non-obvious. No boilerplate unless requested.
+- Simplest working solution. No over-engineering, no speculative features, no abstractions for single-use code.
+- No error handling for scenarios that cannot happen. Three similar lines beats a premature abstraction.
+- No docstrings/type annotations on code not being changed.
+- Review/debug: state the bug/cause, show the fix, stop. No guessing without reading code first; say so if cause is unclear.
+- No sycophantic openers, no closing fluff, no compliments before/after a review.
+- No emojis, em-dashes, or decorative Unicode. Plain hyphens and straight quotes. Spanish/accented text stays as required by this project's language rules above.
+- Do not guess APIs, versions, flags, commit SHAs, or package names — verify by reading code or docs.
+
 ## Development Commands
 
 ```bash
@@ -294,3 +309,43 @@ MODULACION_LCTPC_POLL_MINUTOS=15
 - **Media:** DigitalOcean Spaces (SFO3)
 - **Email:** SendGrid SMTP backend
 - **Database:** PostgreSQL via `DBURL`
+
+## Reparto con Codex
+
+El plugin de Codex está instalado. El trabajo se reparte así.
+
+Te quedas tú (Claude):
+- Entender el problema y preguntar lo que falte.
+- Planear los pasos antes de tocar archivos.
+- Decidir la arquitectura y los límites de cada cambio.
+- Revisar todo lo que vuelva de Codex.
+
+Se le pasa a Codex, con el subagente codex-rescue y sin esperar a que
+te lo pida:
+- Construcción repetitiva y larga.
+- Refactors grandes que tocan muchos archivos.
+- Errores atorados que ya se intentaron una vez.
+
+Reglas fijas:
+- Nada de lo que vuelve de Codex se da por bueno sin revisar.
+- Si Codex falla dos veces en la misma tarea, la tarea regresa a ti.
+- Delegar no es desentenderse: dime qué pediste y qué volvió.## Reparto con Codex
+
+El plugin de Codex está instalado. El trabajo se reparte así.
+
+Te quedas tú (Claude):
+- Entender el problema y preguntar lo que falte.
+- Planear los pasos antes de tocar archivos.
+- Decidir la arquitectura y los límites de cada cambio.
+- Revisar todo lo que vuelva de Codex.
+
+Se le pasa a Codex, con el subagente codex-rescue y sin esperar a que
+te lo pida:
+- Construcción repetitiva y larga.
+- Refactors grandes que tocan muchos archivos.
+- Errores atorados que ya se intentaron una vez.
+
+Reglas fijas:
+- Nada de lo que vuelve de Codex se da por bueno sin revisar.
+- Si Codex falla dos veces en la misma tarea, la tarea regresa a ti.
+- Delegar no es desentenderse: dime qué pediste y qué volvió.
