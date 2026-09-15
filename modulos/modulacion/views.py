@@ -18,6 +18,7 @@ from django.views.generic import (
     CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView,
 )
 
+from config.services.whatsapp_service import enviar_mensaje
 from modulos.bitacoras.models import BitacoraViaje
 from modulos.operadores.models import Operador
 
@@ -30,8 +31,6 @@ from .forms import (
     RetiroExternoForm,
     TerminalPortuariaForm,
 )
-from config.services.whatsapp_service import enviar_mensaje
-
 from .mensajes_whatsapp import construir_mensajes_whatsapp
 from .models import (
     Agencia, ESTADOS_EN_SEGUIMIENTO, Modulacion, TerminalPortuaria, TransicionInvalida,
