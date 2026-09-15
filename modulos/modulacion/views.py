@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -29,6 +30,7 @@ from .forms import (
     RetiroExternoForm,
     TerminalPortuariaForm,
 )
+from .mensajes_whatsapp import construir_mensajes_whatsapp
 from .models import (
     Agencia, ESTADOS_EN_SEGUIMIENTO, Modulacion, TerminalPortuaria, TransicionInvalida,
 )
@@ -642,3 +644,22 @@ def descargar_programa_despacho(request):
     )
     wb.save(resp)
     return resp
+
+
+@login_required
+def previsualizar_whatsapp_despacho(request):
+    fecha = _parse_fecha(request.GET.get('fecha')) or timezone.localdate()
+    mensajes = construir_mensajes_whatsapp(fecha)
+    return render(request, 'modulacion/whatsapp_preview.html', {
+        'fecha': fecha.isoformat(),
+        'mensajes': [{'cliente': c, 'texto': t} for c, t in mensajes],
+        'numero_configurado': bool(settings.WA_PROGRAMA_DESPACHO_NUMERO),
+    })
+
+
+@login_required
+def enviar_whatsapp_despacho(request):
+    # Implementado en Task 4. Stub necesario para que urls.py resuelva
+    # views.enviar_whatsapp_despacho al importarse (path() la referencia en
+    # definicion de modulo, no en tiempo de request).
+    raise NotImplementedError

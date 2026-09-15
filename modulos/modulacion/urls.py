@@ -48,6 +48,10 @@ urlpatterns = [
     # Reporte "Programa de despacho" (.xlsx)
     path('reporte-despacho/', views.ReporteProgramaDespachoView.as_view(), name='reporte_despacho'),
     path('reporte-despacho/xlsx/', views.descargar_programa_despacho, name='reporte_despacho_xlsx'),
+    path('reporte-despacho/whatsapp/preview/', views.previsualizar_whatsapp_despacho,
+         name='reporte_despacho_whatsapp_preview'),
+    path('reporte-despacho/whatsapp/enviar/', views.enviar_whatsapp_despacho,
+         name='reporte_despacho_whatsapp_enviar'),
 
     # API de recepción (HAL9MIL)
     path('api/recibir/', views_api.recibir_modulacion, name='api_recibir'),

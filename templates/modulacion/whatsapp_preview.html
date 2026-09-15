@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Vista previa WhatsApp — Programa de despacho{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-6 space-y-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <h1 class="text-lg font-bold text-gray-900">Vista previa — WhatsApp</h1>
+            <p class="text-sm text-gray-500 mt-0.5">
+                {{ mensajes|length }} mensaje(s) para la fecha {{ fecha }}. Se enviarán al número
+                interno configurado, uno por cliente, para reenvío manual.
+            </p>
+        </div>
+
+        {% if not numero_configurado %}
+        <div class="px-6 py-4 bg-amber-50 border-b border-amber-100 text-sm text-amber-800">
+            Falta configurar <code>WA_PROGRAMA_DESPACHO_NUMERO</code> en el entorno. No se puede enviar.
+        </div>
+        {% elif not mensajes %}
+        <div class="px-6 py-4 bg-gray-50 text-sm text-gray-600">
+            No hay maniobras con cliente asignado para esta fecha.
+        </div>
+        {% endif %}
+    </div>
+
+    {% for m in mensajes %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-3 border-b border-gray-100 font-medium text-sm text-gray-700">
+            {{ m.cliente }}
+        </div>
+        <pre class="px-6 py-4 text-sm text-gray-800 whitespace-pre-wrap">{{ m.texto }}</pre>
+    </div>
+    {% endfor %}
+
+    {% if numero_configurado and mensajes %}
+    <form method="post" action="{% url 'modulacion:reporte_despacho_whatsapp_enviar' %}"
+          class="flex justify-end">
+        {% csrf_token %}
+        <input type="hidden" name="fecha" value="{{ fecha }}">
+        <button type="submit"
+                class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition min-h-[44px]">
+            Confirmar y enviar
+        </button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

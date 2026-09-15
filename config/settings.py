@@ -232,6 +232,9 @@ TWILIO_AUTH_TOKEN = env.str('TWILIO_AUTH_TOKEN', default='')
 TWILIO_WHATSAPP_FROM = env.str('TWILIO_WHATSAPP_FROM', default='')
 TWILIO_CONTENT_SID_BITACORA = env.str('TWILIO_CONTENT_SID_BITACORA', default='')
 
+# WhatsApp interno (WAHA) — envío del Programa de despacho agrupado por cliente
+WA_PROGRAMA_DESPACHO_NUMERO = env.str('WA_PROGRAMA_DESPACHO_NUMERO', default='')
+
 # Destinatarios de notificaciones de autorización de salidas de almacén.
 # Se puede sobreescribir vía .env: ALMACEN_AUTORIZACION_EMAILS=correo1@x.com,correo2@x.com
 ALMACEN_AUTORIZACION_EMAILS = env.list(
