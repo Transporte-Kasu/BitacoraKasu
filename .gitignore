@@ -314,3 +314,6 @@ CorOpenWA.md
 
 # Settings locales para correr tests con SQLite (no versionado)
 test_settings.py
+
+# Worktrees aislados de trabajo (superpowers:using-git-worktrees)
+.worktrees/
