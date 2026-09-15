@@ -202,3 +202,31 @@ class ReporteDespachoViewTests(TestCase):
         resp = self.client.get(
             reverse('modulacion:reporte_despacho_xlsx'), {'fecha': 'no-es-fecha'})
         self.assertEqual(resp.status_code, 200)
+
+
+from modulos.modulacion.reportes import _agrupar_y_numerar
+
+
+class AgruparYNumerarTests(TestCase):
+    def test_agrupa_y_numera_igual_que_el_xlsx(self):
+        moy = Cliente.objects.create(nombre='Moya', alias='MOY')
+        nol = Cliente.objects.create(nombre='Nolasco SA')  # sin alias
+        _mod(cliente=moy, contenedor='AAAU1111111')
+        _mod(cliente=moy, contenedor='AAAU2222222')
+        _mod(cliente=nol, contenedor='BBBU3333333')
+        _mod(cliente=None, contenedor='CCCU4444444')
+
+        grupos = _agrupar_y_numerar(FECHA)
+
+        etiquetas = [g[0] for g in grupos]
+        self.assertEqual(etiquetas, ['MOY', 'Nolasco SA', '—'])
+
+        cliente_ids = [g[1] for g in grupos]
+        self.assertEqual(cliente_ids, [moy.pk, nol.pk, None])
+
+        # numeración corrida 1..4 sobre todo el reporte, no por grupo
+        todos_los_numeros = [num for _e, _c, items in grupos for num, _m in items]
+        self.assertEqual(todos_los_numeros, [1, 2, 3, 4])
+
+        contenedores_moy = [m.contenedor for _num, m in grupos[0][2]]
+        self.assertEqual(contenedores_moy, ['AAAU1111111', 'AAAU2222222'])

@@ -96,16 +96,42 @@ def _clave_orden(m):
         term.casefold(),
         m.hora_registro is None,
         m.hora_registro or datetime.datetime.min,
+        m.id,  # tie-breaker para determinismo
     )
 
 
-def construir_programa_despacho(fecha):
+def _agrupar_y_numerar(fecha):
+    """
+    Filtra, ordena, agrupa y numera las modulaciones de `fecha` igual que
+    el xlsx: mismo orden (`_clave_orden`), mismo agrupamiento (`_clave_grupo`)
+    y misma numeración de maniobra corrida sobre todo el reporte. La usan
+    tanto `construir_programa_despacho` como `mensajes_whatsapp.py`, para
+    que el número de maniobra coincida entre el xlsx y los mensajes de WA.
+
+    Devuelve una lista de (etiqueta, cliente_id, items), donde items es
+    [(numero_maniobra, Modulacion), ...].
+    """
     modulaciones = sorted(
         Modulacion.objects
         .filter(fecha_modulacion_aduana=fecha)
         .select_related('cliente', 'operador', 'unidad', 'agencia', 'terminal_portuaria'),
         key=_clave_orden,
     )
+
+    grupos = []
+    maniobra = 0
+    for _clave, grupo_iter in groupby(modulaciones, key=_clave_grupo):
+        grupo = list(grupo_iter)
+        items = []
+        for m in grupo:
+            maniobra += 1
+            items.append((maniobra, m))
+        grupos.append((_etiqueta_grupo(grupo[0]), grupo[0].cliente_id, items))
+    return grupos
+
+
+def construir_programa_despacho(fecha):
+    grupos = _agrupar_y_numerar(fecha)
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -126,19 +152,14 @@ def construir_programa_despacho(fecha):
     ws.freeze_panes = 'A2'
 
     fila = 2
-    maniobra = 0
-    for _clave, grupo in groupby(modulaciones, key=_clave_grupo):
-        grupo = list(grupo)
-        etiqueta = _etiqueta_grupo(grupo[0])
+    for etiqueta, _cliente_id, items in grupos:
         ws.merge_cells(start_row=fila, start_column=1, end_row=fila, end_column=14)
-        gc = ws.cell(row=fila, column=1,
-                     value=f'{etiqueta} — {len(grupo)} maniobra(s)')
+        gc = ws.cell(row=fila, column=1, value=f'{etiqueta} — {len(items)} maniobra(s)')
         gc.font = Font(bold=True)
         gc.fill = _FILL_GRUPO
         fila += 1
 
-        for m in grupo:
-            maniobra += 1
+        for maniobra, m in items:
             horas = [m.hora_registro, m.hora_ingreso, m.hora_carga]
             presentes = [h for h in horas if h is not None]
             operador_txt = (
